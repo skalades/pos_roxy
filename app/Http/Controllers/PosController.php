@@ -64,6 +64,7 @@ class PosController extends Controller
         $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.id' => 'required',
+            'items.*.name' => 'required|string',
             'items.*.type' => 'required|in:service,product',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric',
@@ -93,7 +94,7 @@ class PosController extends Controller
                 'branch_id' => $user->branch_id,
                 'shift_id' => $shift->id,
                 'cashier_id' => $user->id,
-                'customer_id' => $validated['customer_id'],
+                'customer_id' => $validated['customer_id'] ?? null,
                 'transaction_number' => $transactionNumber,
                 'subtotal' => $validated['subtotal'],
                 'tax_amount' => $validated['tax_amount'],
@@ -115,9 +116,9 @@ class PosController extends Controller
                 $commissionRate = 0;
 
                 if ($item['type'] === 'service') {
-                    $service = Service::find($item['id']);
-                    if ($service) {
-                        $commissionRate = $service->commission_rate;
+                    $barber = User::find($item['barber_id']);
+                    if ($barber) {
+                        $commissionRate = $barber->commission_rate;
                         $commissionAmount = ($item['price'] * $item['quantity']) * ($commissionRate / 100);
                     }
                 }
@@ -156,6 +157,11 @@ class PosController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('POS Transaction Failed: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id,
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->back()->with('error', 'Gagal menyimpan transaksi: ' . $e->getMessage());
         }
     }

@@ -15,8 +15,17 @@ class ShiftController extends Controller
             ->where('status', 'open')
             ->first();
 
+        $cashSales = 0;
+        if ($shift) {
+            $cashSales = $shift->transactions()
+                ->where('payment_method', 'cash')
+                ->where('status', 'completed')
+                ->sum('total_amount');
+        }
+
         return Inertia::render('Shifts/Index', [
-            'current_shift' => $shift
+            'current_shift' => $shift,
+            'cash_sales' => (float) $cashSales
         ]);
     }
 

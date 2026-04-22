@@ -26,4 +26,17 @@ class TransactionItem extends Model
     {
         return $this->belongsTo(Transaction::class);
     }
+
+    public function barber(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'barber_id');
+    }
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(
+            $this->item_type === 'service' ? Service::class : Product::class, 
+            'item_id'
+        );
+    }
 }

@@ -42,4 +42,14 @@ class Transaction extends Model
     {
         return $this->belongsTo(User::class, 'cashier_id');
     }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
 }

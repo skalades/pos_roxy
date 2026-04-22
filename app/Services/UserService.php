@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Shift;
+use App\Models\Transaction;
 use Illuminate\Support\Collection;
 
 class UserService extends BaseService
@@ -15,12 +17,17 @@ class UserService extends BaseService
      */
     public function getDashboardConfig(User $user): array
     {
-        $role = $user->role; // We'll keep using the role column for now until Step 2 is done
+        $role = $user->role;
         
+        $activeShift = Shift::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->first();
+
         $config = [
             'title' => $this->getDashboardTitle($role),
             'menu_items' => $this->getMenuItemsByRole($role),
             'stats' => $this->getStatsByRole($role, $user),
+            'active_shift' => $activeShift,
         ];
 
         return $config;
@@ -54,7 +61,7 @@ class UserService extends BaseService
         $items[] = [
             'title' => 'Absen Selfie',
             'icon' => 'Camera',
-            'href' => '#',
+            'href' => '/attendance',
             'color' => 'emerald',
         ];
 
@@ -72,6 +79,13 @@ class UserService extends BaseService
                 'color' => 'indigo',
             ];
         }
+
+        $items[] = [
+            'title' => $role === 'barber' ? 'Riwayat Komisi' : 'Riwayat Transaksi',
+            'icon' => 'History',
+            'href' => $role === 'barber' ? '/my-commissions' : '/transactions',
+            'color' => 'rose',
+        ];
 
         if ($role === 'cashier') {
             $items[] = [
@@ -94,19 +108,60 @@ class UserService extends BaseService
 
     private function getStatsByRole(string $role, User $user): array
     {
-        // Placeholders for now
+        $today = now()->startOfDay();
+        
+        // Base query for transactions
+        $trxQuery = Transaction::where('created_at', '>=', $today);
+        if ($user->role !== 'super_admin') {
+            $trxQuery->where('branch_id', $user->branch_id);
+        }
+
         return match ($role) {
             'barber' => [
-                ['title' => 'Komisi Hari Ini', 'value' => 'Rp 0', 'icon' => 'Wallet'],
-                ['title' => 'Selesai', 'value' => '0', 'icon' => 'CheckCircle'],
+                [
+                    'title' => 'Komisi Hari Ini', 
+                    'value' => 'Rp ' . number_format(
+                        \App\Models\TransactionItem::where('barber_id', $user->id)
+                            ->whereHas('transaction', function($q) use ($today) {
+                                $q->where('created_at', '>=', $today)->where('status', 'completed');
+                            })->sum('commission_amount'), 
+                        0, ',', '.'
+                    ), 
+                    'icon' => 'Wallet'
+                ],
+                [
+                    'title' => 'Selesai', 
+                    'value' => (string) \App\Models\TransactionItem::where('barber_id', $user->id)
+                        ->whereHas('transaction', function($q) use ($today) {
+                            $q->where('created_at', '>=', $today)->where('status', 'completed');
+                        })->count(), 
+                    'icon' => 'CheckCircle'
+                ],
             ],
             'cashier' => [
-                ['title' => 'Sales Toko', 'value' => 'Rp 0', 'icon' => 'Calculator'],
-                ['title' => 'Antrean', 'value' => '0', 'icon' => 'Users', 'color' => 'accent'],
+                [
+                    'title' => 'Sales Toko', 
+                    'value' => 'Rp ' . number_format($trxQuery->clone()->where('status', 'completed')->sum('total_amount'), 0, ',', '.'), 
+                    'icon' => 'Calculator'
+                ],
+                [
+                    'title' => 'Antrean', 
+                    'value' => (string) $trxQuery->clone()->where('status', 'pending')->count(), 
+                    'icon' => 'Users', 
+                    'color' => 'accent'
+                ],
             ],
             default => [
-                ['title' => 'Revenue', 'value' => 'Rp 0', 'icon' => 'TrendingUp'],
-                ['title' => 'Customers', 'value' => '0', 'icon' => 'Users'],
+                [
+                    'title' => 'Revenue', 
+                    'value' => 'Rp ' . number_format($trxQuery->clone()->where('status', 'completed')->sum('total_amount'), 0, ',', '.'), 
+                    'icon' => 'TrendingUp'
+                ],
+                [
+                    'title' => 'Customers', 
+                    'value' => (string) $trxQuery->clone()->where('status', 'completed')->count(), 
+                    'icon' => 'Users'
+                ],
             ],
         };
     }

@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '@/Components/Modal';
 import * as Icons from 'lucide-react';
+import { formatIDR } from '@/utils/currency';
 
 export default function PaymentModal({ show, onClose, total, onConfirm, processing }) {
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [amountPaid, setAmountPaid] = useState('');
     const [change, setChange] = useState(0);
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
-    };
 
     useEffect(() => {
         const paid = parseFloat(amountPaid.replace(/[^0-9]/g, '')) || 0;
@@ -60,7 +53,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                             <div className="relative z-10">
                                 <p className="text-teal-400/80 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Total Tagihan</p>
                                 <h2 className="text-3xl font-black text-white tracking-tight">
-                                    {formatCurrency(total)}
+                                    {formatIDR(total)}
                                 </h2>
                             </div>
                         </div>
@@ -121,7 +114,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                                 onClick={() => handleAmountClick(amt)}
                                                 className="px-3 py-1.5 bg-white border border-slate-200 hover:border-roxy-primary hover:text-roxy-primary text-slate-500 rounded-lg text-[10px] font-bold transition-all active:scale-90"
                                             >
-                                                {formatCurrency(amt)}
+                                                {formatIDR(amt)}
                                             </button>
                                         ))}
                                     </div>
@@ -129,7 +122,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
 
                                 <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100 relative overflow-hidden">
                                     <p className="text-amber-600/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Uang Kembali</p>
-                                    <h2 className="text-2xl font-black text-amber-600">{formatCurrency(change)}</h2>
+                                    <h2 className="text-2xl font-black text-amber-600">{formatIDR(change)}</h2>
                                 </div>
                             </div>
                         ) : (

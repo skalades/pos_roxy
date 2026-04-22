@@ -28,6 +28,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // POS Routes
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/transaction', [PosController::class, 'storeTransaction'])->name('pos.store');
+
+    // Customer Routes
+    Route::post('/customers', [\App\Http\Controllers\CustomerController::class, 'store'])->name('customers.store');
+    // Transaction Routes
+    Route::get('/transactions', [\App\Http\Controllers\TransactionController::class, 'index'])->name('transactions.index');
+    Route::get('/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'show'])->name('transactions.show');
+
+    // Barber Commission Routes
+    Route::get('/my-commissions', [\App\Http\Controllers\BarberCommissionController::class, 'index'])->name('barber.commissions');
+
+    // Attendance Routes
+    Route::get('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('/attendance/clock-in', [\App\Http\Controllers\AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+    Route::post('/attendance/clock-out', [\App\Http\Controllers\AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
 });
 
 Route::middleware('auth')->group(function () {

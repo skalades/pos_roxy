@@ -1,4 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -11,7 +12,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
             <div className="relative z-10 flex-1 flex flex-col w-full">
                 {header && (
-                    <header className="pt-8 pb-4">
+                    <header className="pt-8 pb-4 landscape:pt-4 landscape:pb-2 sm:landscape:pt-8 sm:landscape:pb-4">
                         <div className="px-6 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full flex justify-between items-start">
                             <div className="flex items-center gap-4">
                                 {!route().current('dashboard') && (
@@ -19,7 +20,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         href={route('dashboard')} 
                                         className="bg-white/40 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-slate-700 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 group"
                                     >
-                                        <span className="group-hover:-translate-x-1 transition-transform inline-block text-xl">⬅️</span>
+                                        <ArrowLeft className="group-hover:-translate-x-1 transition-transform" size={20} />
                                     </Link>
                                 )}
                                 {header}
@@ -32,7 +33,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                 as="button"
                                 className="bg-white/40 hover:bg-rose-500/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-rose-600 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 group"
                             >
-                                <span className="group-hover:rotate-12 transition-transform inline-block text-xl">🚪</span>
+                                <LogOut className="group-hover:rotate-12 transition-transform" size={20} />
                             </Link>
                         </div>
                     </header>

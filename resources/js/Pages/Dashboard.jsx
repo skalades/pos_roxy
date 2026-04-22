@@ -100,27 +100,36 @@ export default function Dashboard({ config }) {
                 </div>
                 
                 {/* Status Shift Card - Dark Premium Style */}
-                {auth.user.role === 'cashier' && (
+                {(auth.user.role === 'cashier' || auth.user.role === 'super_admin') && (
                     <div className="relative group overflow-hidden bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl shadow-slate-900/20">
                         {/* Decorative Background for Card */}
                         <div className="absolute top-[-50%] right-[-10%] w-[60%] h-[150%] bg-teal-500/10 blur-[80px] rotate-12 pointer-events-none group-hover:bg-teal-500/20 transition-colors duration-700"></div>
                         
                         <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                             <div className="flex items-center gap-5">
-                                <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-teal-400">
-                                    <Icons.Store size={28} />
+                                <div className={`w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center ${config.active_shift ? 'text-emerald-400' : 'text-teal-400'}`}>
+                                    {config.active_shift ? <Icons.CheckCircle size={28} /> : <Icons.Store size={28} />}
                                 </div>
                                 <div>
                                     <h4 className="text-xl font-bold font-heading text-white tracking-tight">Status Shift Operasional</h4>
                                     <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
-                                        Laci kasir belum dibuka hari ini.
+                                        <span className={`w-1.5 h-1.5 rounded-full ${config.active_shift ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`}></span>
+                                        {config.active_shift 
+                                            ? `Shift aktif sejak ${new Date(config.active_shift.opened_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` 
+                                            : 'Laci kasir belum dibuka hari ini.'}
                                     </p>
                                 </div>
                             </div>
-                            <a href={route('shifts.index')} className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 active:scale-95 uppercase tracking-widest text-center">
-                                Buka Shift
-                            </a>
+                            
+                            {config.active_shift ? (
+                                <a href={route('pos.index')} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-95 uppercase tracking-widest text-center">
+                                    Buka POS
+                                </a>
+                            ) : (
+                                <a href={route('shifts.index')} className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 active:scale-95 uppercase tracking-widest text-center">
+                                    Buka Shift
+                                </a>
+                            )}
                         </div>
                     </div>
                 )}

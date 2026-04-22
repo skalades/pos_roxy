@@ -6,7 +6,7 @@ import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 
-export default function ShiftIndex({ current_shift }) {
+export default function ShiftIndex({ current_shift, cash_sales }) {
     const { auth } = usePage().props;
     
     // Form for opening shift
@@ -175,11 +175,11 @@ export default function ShiftIndex({ current_shift }) {
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-slate-500 font-medium">Total Penjualan Tunai</span>
-                                                <span className="text-slate-800 font-bold">{formatCurrency(0)}</span>
+                                                <span className="text-slate-800 font-bold">{formatCurrency(cash_sales)}</span>
                                             </div>
                                             <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                                                 <span className="text-slate-800 font-bold">Total Seharusnya</span>
-                                                <span className="text-lg font-black text-emerald-600">{formatCurrency(current_shift.opening_balance)}</span>
+                                                <span className="text-lg font-black text-emerald-600">{formatCurrency(parseFloat(current_shift.opening_balance) + cash_sales)}</span>
                                             </div>
                                         </div>
                                     </div>

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, usePage, router } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import * as Icons from 'lucide-react';
+import { formatIDR } from '@/utils/currency';
 import BarberSelectionModal from './Partials/BarberSelectionModal';
 import CustomerSelectionModal from './Partials/CustomerSelectionModal';
 import PaymentModal from './Partials/PaymentModal';
-
+import usePos from '@/hooks/usePos';
 export default function PosIndex({ services, products, categories, barbers, customers, current_shift }) {
     const { auth, flash } = usePage().props;
-    const [cart, setCart] = useState([]);
     const [activeTab, setActiveTab] = useState('services');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -19,13 +19,43 @@ export default function PosIndex({ services, products, categories, barbers, cust
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [tempItem, setTempItem] = useState(null);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [processing, setProcessing] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-    // Calculate totals
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const tax = Math.round(subtotal * 0.1); 
-    const total = subtotal + tax;
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const formatDate = (date) => {
+        return new Intl.DateTimeFormat('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(date);
+    };
+
+    const formatTime = (date) => {
+        return date.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    };
+
+    const {
+        cart,
+        selectedCustomer,
+        setSelectedCustomer,
+        processing,
+        subtotal,
+        tax,
+        total,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        handleCheckout
+    } = usePos();
 
     const handleItemClick = (item, type) => {
         if (type === 'service') {
@@ -36,88 +66,10 @@ export default function PosIndex({ services, products, categories, barbers, cust
         }
     };
 
-    const addToCart = (item, type, barber = null) => {
-        if (!item) return;
-
-        setCart(prevCart => {
-            const existingIndex = prevCart.findIndex(i => 
-                i.id === item.id && 
-                i.type === type && 
-                (type === 'service' ? i.barber_id === barber?.id : true)
-            );
-
-            if (existingIndex > -1) {
-                return prevCart.map((i, idx) => 
-                    idx === existingIndex 
-                    ? { ...i, quantity: i.quantity + 1 } 
-                    : i
-                );
-            } else {
-                return [...prevCart, { 
-                    ...item, 
-                    type, 
-                    quantity: 1, 
-                    barber_id: barber?.id,
-                    barber_name: barber?.name
-                }];
-            }
+    const onCheckout = (paymentData) => {
+        handleCheckout(paymentData, () => {
+            setShowPaymentModal(false);
         });
-
-        setShowBarberModal(false);
-        // Don't clear tempItem immediately to avoid race conditions if any
-        setTimeout(() => setTempItem(null), 100);
-    };
-
-    const removeFromCart = (index) => {
-        setCart(cart.filter((_, i) => i !== index));
-    };
-
-    const updateQuantity = (index, delta) => {
-        setCart(cart.map((item, i) => {
-            if (i === index) {
-                const newQty = Math.max(1, item.quantity + delta);
-                return { ...item, quantity: newQty };
-            }
-            return item;
-        }));
-    };
-
-    const handleCheckout = (paymentData) => {
-        setProcessing(true);
-        router.post(route('pos.store'), {
-            items: cart.map(item => ({
-                id: item.id,
-                name: item.name,
-                type: item.type,
-                quantity: item.quantity,
-                price: item.price,
-                barber_id: item.barber_id
-            })),
-            customer_id: selectedCustomer?.id,
-            payment_method: paymentData.paymentMethod,
-            subtotal,
-            tax_amount: tax,
-            total_amount: total,
-            amount_paid: paymentData.amountPaid,
-            change_amount: paymentData.change,
-            notes: ''
-        }, {
-            onSuccess: () => {
-                setCart([]);
-                setSelectedCustomer(null);
-                setShowPaymentModal(false);
-                setProcessing(false);
-            },
-            onError: () => setProcessing(false)
-        });
-    };
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
     };
 
     const filteredItems = (activeTab === 'services' ? services : products).filter(item => {
@@ -129,17 +81,21 @@ export default function PosIndex({ services, products, categories, barbers, cust
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between w-full">
-                    <div className="flex flex-col">
-                        <h2 className="text-xl sm:text-2xl font-black text-roxy-accent tracking-tight">Kasir POS</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest sm:hidden">
-                             {activeTab === 'services' ? 'Layanan' : 'Produk'} • {current_shift.status}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+                    <div className="relative">
+                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
+                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
+                            Kasir POS
+                        </h2>
+                        <p className="text-sm text-roxy-text-muted mt-1 font-medium">
+                            {formatDate(currentTime)} • <span className="text-roxy-primary font-bold">{formatTime(currentTime)}</span>
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        <div className="bg-amber-100 text-amber-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold flex items-center gap-2">
-                            <Icons.Clock size={14} className="hidden sm:block" />
-                            {new Date(current_shift.opened_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
+                            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Shift Aktif</span>
                         </div>
                     </div>
                 </div>
@@ -147,10 +103,10 @@ export default function PosIndex({ services, products, categories, barbers, cust
         >
             <Head title="POS - Kasir" />
 
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100vh-140px)] lg:h-[calc(100vh-180px)] relative overflow-hidden">
+            <div className="flex flex-col landscape:flex-row lg:flex-row gap-4 lg:gap-6 h-[calc(100vh-140px)] landscape:h-[calc(100vh-100px)] lg:h-[calc(100vh-180px)] relative overflow-hidden">
                 
                 {/* Left Side: Product/Service Selection */}
-                <div className={`flex-1 flex flex-col gap-4 lg:gap-6 bg-white rounded-[2rem] border border-slate-200 p-4 lg:p-6 shadow-sm overflow-hidden ${showMobileCart ? 'hidden lg:flex' : 'flex'}`}>
+                <div className={`flex-1 flex flex-col gap-4 lg:gap-6 bg-white rounded-[2rem] border border-slate-200 p-4 lg:p-6 shadow-sm overflow-hidden ${showMobileCart ? 'hidden landscape:flex lg:flex' : 'flex'}`}>
                     
                     {/* Tabs & Search */}
                     <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
@@ -201,14 +157,14 @@ export default function PosIndex({ services, products, categories, barbers, cust
                     </div>
 
                     {/* Grid Items */}
-                    <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-4 pb-20 lg:pb-4">
+                    <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-4 pb-24 lg:pb-4">
                         {filteredItems.map(item => (
                             <button 
                                 key={item.id}
                                 onClick={() => handleItemClick(item, activeTab === 'services' ? 'service' : 'product')}
-                                className="group relative bg-white border border-slate-100 p-3 lg:p-4 rounded-[1.5rem] lg:rounded-[2rem] text-left hover:border-roxy-primary hover:shadow-xl hover:shadow-roxy-primary/5 transition-all duration-300 flex flex-col gap-2 lg:gap-3"
+                                className="group relative bg-white border border-slate-100 p-4 lg:p-4 rounded-[2rem] text-left hover:border-roxy-primary hover:shadow-xl hover:shadow-roxy-primary/5 transition-all duration-300 flex flex-col gap-3 active:scale-95 active:bg-slate-50"
                             >
-                                <div className="w-full aspect-square bg-slate-50 rounded-[1rem] lg:rounded-[1.5rem] overflow-hidden mb-1">
+                                <div className="w-full aspect-square bg-slate-50 rounded-[1.5rem] overflow-hidden mb-1">
                                     {item.image ? (
                                         <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                     ) : (
@@ -218,8 +174,8 @@ export default function PosIndex({ services, products, categories, barbers, cust
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <h5 className="font-bold text-slate-800 text-[11px] lg:text-sm line-clamp-2 leading-tight h-8 lg:h-10">{item.name}</h5>
-                                    <p className="text-roxy-primary font-black text-[12px] lg:text-sm mt-1">{formatCurrency(item.price)}</p>
+                                    <h5 className="font-bold text-slate-800 text-[12px] lg:text-sm line-clamp-2 leading-tight h-10">{item.name}</h5>
+                                    <p className="text-roxy-primary font-black text-[13px] lg:text-sm mt-1">{formatIDR(item.price)}</p>
                                 </div>
                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="bg-roxy-primary text-white p-1.5 rounded-lg lg:rounded-xl shadow-lg">
@@ -232,10 +188,10 @@ export default function PosIndex({ services, products, categories, barbers, cust
                 </div>
 
                 {/* Right Side: Cart & Checkout (Desktop: Sidebar, Mobile: Adaptive Drawer) */}
-                <div className={`w-full lg:w-[360px] xl:w-[400px] lg:flex flex-col bg-slate-900 lg:rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-800 z-20 ${showMobileCart ? 'fixed inset-0 rounded-none lg:relative lg:rounded-[2.5rem]' : 'hidden lg:flex'}`}>
+                <div className={`w-full landscape:w-[320px] lg:w-[360px] xl:w-[400px] flex flex-col bg-slate-900 lg:rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-800 z-20 ${showMobileCart ? 'fixed inset-0 rounded-none landscape:relative landscape:rounded-[2rem] lg:relative lg:rounded-[2.5rem]' : 'hidden landscape:flex lg:flex'}`}>
                     
-                    {/* Cart Header (Mobile Only) */}
-                    <div className="lg:hidden p-6 bg-slate-800 flex items-center justify-between">
+                    {/* Cart Header (Mobile Only - Portrait) */}
+                    <div className="landscape:hidden lg:hidden p-6 bg-slate-800 flex items-center justify-between">
                         <h4 className="text-white font-black flex items-center gap-2">
                             <Icons.ShoppingCart size={20} />
                             Keranjang Belanja
@@ -282,7 +238,7 @@ export default function PosIndex({ services, products, categories, barbers, cust
                                     <div className="flex-1 min-w-0">
                                         <h6 className="text-xs lg:text-sm font-bold text-white truncate">{item.name}</h6>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <p className="text-[10px] lg:text-xs text-teal-400 font-black">{formatCurrency(item.price)}</p>
+                                            <p className="text-[10px] lg:text-xs text-teal-400 font-black">{formatIDR(item.price)}</p>
                                             {item.barber_name && (
                                                 <span className="text-[8px] lg:text-[10px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-1">
                                                     <Icons.User size={8} /> {item.barber_name}
@@ -321,15 +277,15 @@ export default function PosIndex({ services, products, categories, barbers, cust
                         <div className="space-y-2 lg:space-y-3">
                             <div className="flex justify-between text-xs lg:text-sm">
                                 <span className="text-slate-400">Subtotal</span>
-                                <span className="text-white font-bold">{formatCurrency(subtotal)}</span>
+                                <span className="text-white font-bold">{formatIDR(subtotal)}</span>
                             </div>
                             <div className="flex justify-between text-xs lg:text-sm">
                                 <span className="text-slate-400">Pajak (10%)</span>
-                                <span className="text-white font-bold">{formatCurrency(tax)}</span>
+                                <span className="text-white font-bold">{formatIDR(tax)}</span>
                             </div>
                             <div className="pt-3 border-t border-white/5 flex justify-between items-center">
                                 <span className="text-base lg:text-lg font-bold text-white">Total</span>
-                                <span className="text-xl lg:text-2xl font-black text-teal-400">{formatCurrency(total)}</span>
+                                <span className="text-xl lg:text-2xl font-black text-teal-400">{formatIDR(total)}</span>
                             </div>
                         </div>
 
@@ -345,7 +301,7 @@ export default function PosIndex({ services, products, categories, barbers, cust
 
                 {/* Mobile Floating Action Bar (Portrait Only) */}
                 {!showMobileCart && cart.length > 0 && (
-                    <div className="lg:hidden fixed bottom-4 left-4 right-4 z-30 animate-in slide-in-from-bottom-10 duration-500">
+                    <div className="landscape:hidden lg:hidden fixed bottom-4 left-4 right-4 z-30 animate-in slide-in-from-bottom-10 duration-500">
                         <button 
                             onClick={() => setShowMobileCart(true)}
                             className="w-full bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-between"
@@ -359,7 +315,7 @@ export default function PosIndex({ services, products, categories, barbers, cust
                                 </div>
                                 <div className="text-left">
                                     <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Total Belanja</p>
-                                    <p className="text-sm font-black text-teal-400">{formatCurrency(total)}</p>
+                                    <p className="text-sm font-black text-teal-400">{formatIDR(total)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 text-teal-400 font-bold text-xs uppercase tracking-widest">
@@ -377,7 +333,11 @@ export default function PosIndex({ services, products, categories, barbers, cust
                 onClose={() => setShowBarberModal(false)}
                 barbers={barbers}
                 selectedItem={tempItem}
-                onSelect={(barber) => addToCart(tempItem, 'service', barber)}
+                onSelect={(barber) => {
+                    addToCart(tempItem, 'service', barber);
+                    setShowBarberModal(false);
+                    setTimeout(() => setTempItem(null), 100);
+                }}
             />
 
             <CustomerSelectionModal 
@@ -395,7 +355,7 @@ export default function PosIndex({ services, products, categories, barbers, cust
                 onClose={() => setShowPaymentModal(false)}
                 total={total}
                 processing={processing}
-                onConfirm={handleCheckout}
+                onConfirm={onCheckout}
             />
 
             {/* Flash Messages */}
