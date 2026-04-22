@@ -47,13 +47,12 @@ export default function UpdatePasswordForm({ className = '' }) {
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
-                    Update Password
+                <h2 className="text-xl font-bold font-heading text-roxy-accent">
+                    Perbarui Kata Sandi
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Ensure your account is using a long, random password to stay
-                    secure.
+                <p className="mt-1 text-sm text-roxy-text-muted font-medium">
+                    Pastikan akun Anda menggunakan kata sandi yang panjang dan acak untuk tetap aman.
                 </p>
             </header>
 
