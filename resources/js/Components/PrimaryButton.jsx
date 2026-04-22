@@ -7,12 +7,11 @@ export default function PrimaryButton({
     return (
         <button
             {...props}
-            className={
-                `inline-flex items-center rounded-xl border border-transparent bg-roxy-primary px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white shadow-sm shadow-roxy-primary/20 transition duration-150 ease-in-out hover:bg-roxy-primaryHover focus:outline-none focus:ring-2 focus:ring-roxy-primary focus:ring-offset-2 active:bg-roxy-accent ${
-                    disabled && 'opacity-25'
-                } ` + className
-            }
             disabled={disabled}
+            className={
+                `inline-flex items-center justify-center bg-roxy-primary hover:bg-roxy-primary-dark text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 shadow-lg shadow-teal-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-xs ` +
+                className
+            }
         >
             {children}
         </button>
