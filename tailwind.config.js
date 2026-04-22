@@ -29,6 +29,15 @@ export default {
                     accent: '#1e293b', // slate-800 / navy
                 }
             }
+            keyframes: {
+                'progress-shrink': {
+                    '0%': { width: '100%' },
+                    '100%': { width: '0%' },
+                },
+            },
+            animation: {
+                'progress-shrink': 'progress-shrink linear forwards',
+            },
         },
     },
 

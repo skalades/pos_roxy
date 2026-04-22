@@ -15,71 +15,77 @@ export default function Dashboard({ config }) {
         return () => clearInterval(timer);
     }, []);
 
-
-    // Resolve icon component from name
-    const getIcon = (name) => {
-        return Icons[name] || Icons.HelpCircle;
-    };
-
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
                     <div className="relative">
+                        {/* Status Glow Bar */}
                         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                        <h2 className="text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                            {config.title}
+                        
+                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
+                            Halo, <span className="text-roxy-primary">{auth.user.name.split(' ')[0]}!</span>
                         </h2>
-                        <p className="text-sm text-roxy-text-muted mt-1 font-medium">
-                            {formatDate(currentTime)} • <span className="text-roxy-primary font-bold">{formatTime(currentTime)}</span>
+                        <p className="text-sm text-roxy-text-muted mt-1 font-medium flex items-center gap-2">
+                            <Icons.Clock size={14} className="text-roxy-primary" />
+                            {formatDate(currentTime)} • <span className="text-slate-800 font-bold">{formatTime(currentTime)}</span>
                         </p>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
-                         <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
-                             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                             <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{auth.user.name}</span>
-                         </div>
+                        <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{auth.user.role}</span>
+                        </div>
                     </div>
                 </div>
             }
         >
-            <Head title="Dashboard" />
+            <Head title="Dashboard Operasional" />
 
-            <div className="space-y-10">
-                {/* Premium Stats Section */}
-                <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
+            <div className="max-w-7xl mx-auto space-y-10 pb-20">
+                {/* Statistics Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {config.stats.map((stat, index) => (
-                        <div key={index} className="min-w-[200px] flex-1">
-                            <StatCard 
-                                title={stat.title} 
-                                value={stat.value} 
-                                icon={getIcon(stat.icon)}
-                                color={stat.color}
-                            />
-                        </div>
+                        <StatCard 
+                            key={index}
+                            title={stat.title}
+                            value={stat.value}
+                            icon={stat.icon}
+                            color={stat.color}
+                            trend={stat.trend}
+                        />
                     ))}
                 </div>
 
-                {/* APP GRID SECTION - Modern Icon Style */}
+                {/* Main Navigation Grid */}
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                         <h3 className="text-lg font-bold font-heading text-roxy-accent flex items-center gap-2">
-                             Aplikasi Utama
-                             <span className="text-[10px] bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">Tools</span>
-                         </h3>
+                    <div className="flex items-center justify-between px-2">
+                        <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest">Menu Utama</h3>
+                        <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent ml-6"></div>
                     </div>
                     
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                        {config.menu_items.map((item, index) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                        {config.nav_cards.map((item, index) => (
                             <NavAppCard 
                                 key={index}
-                                title={item.title} 
-                                icon={getIcon(item.icon)} 
-                                href={item.href} 
+                                icon={item.icon}
+                                title={item.title}
+                                description={item.description}
+                                href={item.href}
                                 color={item.color}
                             />
                         ))}
+                        {/* Dynamic Injection of Expenses for operational ease */}
+                        {(auth.user.role === 'cashier' || auth.user.role === 'super_admin') && (
+                            <NavAppCard 
+                                icon="Banknote" 
+                                title="Pengeluaran" 
+                                description="Catat operasional"
+                                href={route('expenses.index')} 
+                                color="rose"
+                            />
+                        )}
                     </div>
                 </div>
                 

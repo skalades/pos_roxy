@@ -25,7 +25,7 @@ class UserService extends BaseService
 
         $config = [
             'title' => $this->getDashboardTitle($role),
-            'menu_items' => $this->getMenuItemsByRole($role),
+            'nav_cards' => $this->getMenuItemsByRole($role),
             'stats' => $this->getStatsByRole($role, $user),
             'active_shift' => $activeShift,
         ];
@@ -52,6 +52,7 @@ class UserService extends BaseService
         if (in_array($role, ['super_admin', 'admin', 'manager', 'cashier'])) {
             $items[] = [
                 'title' => 'Kasir POS',
+                'description' => 'Mulai transaksi baru',
                 'icon' => 'ShoppingBag',
                 'href' => '/pos',
                 'color' => 'teal',
@@ -60,6 +61,7 @@ class UserService extends BaseService
 
         $items[] = [
             'title' => 'Absen Selfie',
+            'description' => 'Masuk & Pulang',
             'icon' => 'Camera',
             'href' => '/attendance',
             'color' => 'emerald',
@@ -68,12 +70,14 @@ class UserService extends BaseService
         if (in_array($role, ['super_admin', 'admin', 'manager'])) {
             $items[] = [
                 'title' => 'Laporan Penjualan',
+                'description' => 'Analisa omzet & performa',
                 'icon' => 'BarChart3',
                 'href' => '#',
                 'color' => 'blue',
             ];
             $items[] = [
                 'title' => 'Manajemen User',
+                'description' => 'Kelola staff & akses',
                 'icon' => 'Users',
                 'href' => '#',
                 'color' => 'indigo',
@@ -82,6 +86,7 @@ class UserService extends BaseService
 
         $items[] = [
             'title' => $role === 'barber' ? 'Riwayat Komisi' : 'Riwayat Transaksi',
+            'description' => 'Cek histori kerja',
             'icon' => 'History',
             'href' => $role === 'barber' ? '/my-commissions' : '/transactions',
             'color' => 'rose',
@@ -90,6 +95,7 @@ class UserService extends BaseService
         if ($role === 'cashier') {
             $items[] = [
                 'title' => 'Shift Kasir',
+                'description' => 'Buka/Tutup laci kas',
                 'icon' => 'Store',
                 'href' => '/shifts',
                 'color' => 'amber',
@@ -98,6 +104,7 @@ class UserService extends BaseService
 
         $items[] = [
             'title' => 'Profil Saya',
+            'description' => 'Pengaturan akun',
             'icon' => 'User',
             'href' => '/profile',
             'color' => 'violet',

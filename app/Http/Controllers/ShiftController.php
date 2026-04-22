@@ -16,16 +16,23 @@ class ShiftController extends Controller
             ->first();
 
         $cashSales = 0;
+        $cashExpenses = 0;
         if ($shift) {
             $cashSales = $shift->transactions()
                 ->where('payment_method', 'cash')
                 ->where('status', 'completed')
                 ->sum('total_amount');
+            
+            $cashExpenses = $shift->cashOperations()
+                ->where('type', 'cash_out')
+                ->where('status', 'completed')
+                ->sum('amount');
         }
 
         return Inertia::render('Shifts/Index', [
             'current_shift' => $shift,
-            'cash_sales' => (float) $cashSales
+            'cash_sales' => (float) $cashSales,
+            'cash_expenses' => (float) $cashExpenses
         ]);
     }
 
@@ -98,8 +105,13 @@ class ShiftController extends Controller
             ->where('status', 'completed')
             ->sum('total_amount');
 
-        // TODO: Add cash operations (In/Out)
-        $expectedBalance = $shift->opening_balance + $totalCashSales;
+        $totalCashExpenses = $shift->cashOperations()
+            ->where('type', 'cash_out')
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        // Expected = opening + total_cash_transactions - cash_out
+        $expectedBalance = $shift->opening_balance + $totalCashSales - $totalCashExpenses;
 
         $shift->update([
             'closing_balance' => $request->closing_balance,

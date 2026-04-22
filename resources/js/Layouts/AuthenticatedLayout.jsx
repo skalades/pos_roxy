@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, LogOut } from 'lucide-react';
+import FlashMessage from '@/Components/FlashMessage';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -42,6 +43,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     {children}
                 </main>
             </div>
+            <FlashMessage />
         </div>
     );
 }

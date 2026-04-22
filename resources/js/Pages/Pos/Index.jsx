@@ -347,19 +347,16 @@ export default function PosIndex({ services, products, categories, barbers, cust
 
             {/* Flash Messages */}
             {flash?.success && (
-                <div className="fixed top-4 right-4 z-[100] animate-in slide-in-from-right-10 duration-300">
-                    <div className="bg-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-                        <Icons.CheckCircle2 size={24} />
-                        <p className="font-bold">{flash.success}</p>
-                    </div>
-                </div>
-            )}
-            {(flash?.error || checkoutError) && (
-                <div className="fixed top-4 right-4 z-[100] animate-in slide-in-from-right-10 duration-300">
-                    <div className="bg-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            {/* Local Error Messages (Validation) */}
+            {checkoutError && (
+                <div className="fixed top-24 right-4 z-[100] animate-in slide-in-from-right-10 duration-300">
+                    <div className="bg-rose-500/90 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-rose-400/20">
                         <Icons.AlertCircle size={24} />
-                        <p className="font-bold">{flash?.error || checkoutError}</p>
-                        <button onClick={clearCheckoutError} className="ml-2 hover:opacity-70">
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest leading-tight">Gagal Checkout</p>
+                            <p className="font-bold text-sm">{checkoutError}</p>
+                        </div>
+                        <button onClick={clearCheckoutError} className="ml-2 hover:opacity-70 p-1">
                             <Icons.X size={16} />
                         </button>
                     </div>
