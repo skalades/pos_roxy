@@ -118,9 +118,9 @@ export default function Dashboard({ config }) {
                                     </p>
                                 </div>
                             </div>
-                            <button className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 active:scale-95 uppercase tracking-widest">
+                            <a href={route('shifts.index')} className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 active:scale-95 uppercase tracking-widest text-center">
                                 Buka Shift
-                            </button>
+                            </a>
                         </div>
                     </div>
                 )}

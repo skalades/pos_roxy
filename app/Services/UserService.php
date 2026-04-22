@@ -46,7 +46,7 @@ class UserService extends BaseService
             $items[] = [
                 'title' => 'Kasir POS',
                 'icon' => 'ShoppingBag',
-                'href' => '#',
+                'href' => '/pos',
                 'color' => 'teal',
             ];
         }
@@ -77,7 +77,7 @@ class UserService extends BaseService
             $items[] = [
                 'title' => 'Shift Kasir',
                 'icon' => 'Store',
-                'href' => '#',
+                'href' => '/shifts',
                 'color' => 'amber',
             ];
         }
