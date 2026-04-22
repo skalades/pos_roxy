@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import * as Icons from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
+import { formatDate, formatTime } from '@/utils/datetime';
 import BarberSelectionModal from './Partials/BarberSelectionModal';
 import CustomerSelectionModal from './Partials/CustomerSelectionModal';
 import PaymentModal from './Partials/PaymentModal';
@@ -26,28 +27,14 @@ export default function PosIndex({ services, products, categories, barbers, cust
         return () => clearInterval(timer);
     }, []);
 
-    const formatDate = (date) => {
-        return new Intl.DateTimeFormat('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        }).format(date);
-    };
-
-    const formatTime = (date) => {
-        return date.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    };
 
     const {
         cart,
         selectedCustomer,
         setSelectedCustomer,
         processing,
+        checkoutError,
+        clearCheckoutError,
         subtotal,
         tax,
         total,
@@ -367,11 +354,14 @@ export default function PosIndex({ services, products, categories, barbers, cust
                     </div>
                 </div>
             )}
-            {flash?.error && (
+            {(flash?.error || checkoutError) && (
                 <div className="fixed top-4 right-4 z-[100] animate-in slide-in-from-right-10 duration-300">
                     <div className="bg-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
                         <Icons.AlertCircle size={24} />
-                        <p className="font-bold">{flash.error}</p>
+                        <p className="font-bold">{flash?.error || checkoutError}</p>
+                        <button onClick={clearCheckoutError} className="ml-2 hover:opacity-70">
+                            <Icons.X size={16} />
+                        </button>
                     </div>
                 </div>
             )}

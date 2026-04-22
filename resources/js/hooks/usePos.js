@@ -5,11 +5,12 @@ export default function usePos(initialCart = []) {
     const [cart, setCart] = useState(initialCart);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const [checkoutError, setCheckoutError] = useState(null);
 
     // Calculate totals using useMemo for performance
     const totals = useMemo(() => {
         const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-        const tax = Math.round(subtotal * 0.1); 
+        const tax = Math.round(subtotal * 0.1);
         const total = subtotal + tax;
         return { subtotal, tax, total };
     }, [cart]);
@@ -18,23 +19,23 @@ export default function usePos(initialCart = []) {
         if (!item) return;
 
         setCart(prevCart => {
-            const existingIndex = prevCart.findIndex(i => 
-                i.id === item.id && 
-                i.type === type && 
+            const existingIndex = prevCart.findIndex(i =>
+                i.id === item.id &&
+                i.type === type &&
                 (type === 'service' ? i.barber_id === barber?.id : true)
             );
 
             if (existingIndex > -1) {
-                return prevCart.map((i, idx) => 
-                    idx === existingIndex 
-                    ? { ...i, quantity: i.quantity + 1 } 
+                return prevCart.map((i, idx) =>
+                    idx === existingIndex
+                    ? { ...i, quantity: i.quantity + 1 }
                     : i
                 );
             } else {
-                return [...prevCart, { 
-                    ...item, 
-                    type, 
-                    quantity: 1, 
+                return [...prevCart, {
+                    ...item,
+                    type,
+                    quantity: 1,
                     barber_id: barber?.id,
                     barber_name: barber?.name
                 }];
@@ -56,8 +57,12 @@ export default function usePos(initialCart = []) {
         }));
     };
 
+    const clearCheckoutError = () => setCheckoutError(null);
+
     const handleCheckout = (paymentData, onSuccessCallback) => {
         setProcessing(true);
+        setCheckoutError(null);
+
         router.post(route('pos.store'), {
             items: cart.map(item => ({
                 id: item.id,
@@ -85,7 +90,9 @@ export default function usePos(initialCart = []) {
                 setProcessing(false);
             },
             onError: (errors) => {
-                console.error('Validation Errors:', errors);
+                // Surface validation errors to the UI
+                const firstError = Object.values(errors)[0];
+                setCheckoutError(firstError || 'Terjadi kesalahan validasi. Periksa kembali data transaksi.');
                 setProcessing(false);
             },
             onFinish: () => setProcessing(false)
@@ -98,6 +105,8 @@ export default function usePos(initialCart = []) {
         selectedCustomer,
         setSelectedCustomer,
         processing,
+        checkoutError,
+        clearCheckoutError,
         ...totals,
         addToCart,
         removeFromCart,

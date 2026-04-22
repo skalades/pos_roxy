@@ -36,7 +36,7 @@ export default function BarberSelectionModal({ show, onClose, barbers, onSelect,
                             </div>
                             <div className="relative z-10">
                                 <p className="font-bold text-slate-900 text-base leading-tight">{capitalize(barber.name)}</p>
-                                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Barber Active</p>
+                                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Barber Aktif</p>
                             </div>
                             <div className="ml-auto relative z-10 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                                 <Icons.ChevronRight size={20} className="text-roxy-primary" />

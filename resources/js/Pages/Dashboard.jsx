@@ -3,8 +3,8 @@ import { Head, usePage } from '@inertiajs/react';
 import StatCard from '@/Components/Dashboard/StatCard';
 import NavAppCard from '@/Components/Dashboard/NavAppCard';
 import * as Icons from 'lucide-react';
-
 import React, { useState, useEffect } from 'react';
+import { formatDate, formatTime } from '@/utils/datetime';
 
 export default function Dashboard({ config }) {
     const { auth } = usePage().props;
@@ -15,22 +15,6 @@ export default function Dashboard({ config }) {
         return () => clearInterval(timer);
     }, []);
 
-    const formatDate = (date) => {
-        return new Intl.DateTimeFormat('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        }).format(date);
-    };
-
-    const formatTime = (date) => {
-        return date.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    };
 
     // Resolve icon component from name
     const getIcon = (name) => {

@@ -17,7 +17,7 @@ export default function StatCard({ title, value, icon: Icon, color = 'primary' }
     const style = colorStyles[color] || colorStyles.primary;
 
     return (
-        <div className="group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(13,148,136,0.05)] transition-all duration-500 hover:-translate-y-1">
+        <div className="relative group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(13,148,136,0.05)] transition-all duration-500 hover:-translate-y-1">
             <div className="flex items-center gap-4">
                 <div className={`p-4 rounded-2xl ${style.bg} group-hover:scale-110 transition-transform duration-500`}>
                     {Icon && <Icon className={style.icon} size={28} strokeWidth={2.5} />}

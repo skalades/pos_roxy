@@ -17,39 +17,43 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
         setAmountPaid(amount.toString());
     };
 
-    const quickAmounts = [
-        total,
-        50000,
-        100000,
-        200000,
-        500000
-    ].filter((amt, index, self) => amt >= total && self.indexOf(amt) === index);
+    // Generate smart quick amounts that always include exact total
+    // and sensible round-up amounts above total, up to Rp 1.000.000
+    const generateQuickAmounts = () => {
+        const roundUps = [50000, 100000, 200000, 500000, 1000000];
+        const above = roundUps.filter(amt => amt > total);
+        // Always include exact total, then next 3 round-up amounts
+        const candidates = [total, ...above].slice(0, 5);
+        // Deduplicate
+        return [...new Set(candidates)];
+    };
+
+    const quickAmounts = generateQuickAmounts();
 
     return (
         <Modal show={show} onClose={onClose} maxWidth="lg">
-            <div className="p-8 relative">
+            <div className="p-5 sm:p-8 relative">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8 px-2">
+                <div className="flex items-center justify-between mb-6 px-2">
                     <div>
                         <h3 className="text-2xl font-black text-slate-900 tracking-tight">Pembayaran</h3>
                         <p className="text-sm text-slate-500 font-medium">Selesaikan transaksi belanja</p>
                     </div>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-900 transition-all active:scale-90"
                     >
                         <Icons.X size={24} strokeWidth={2.5} />
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     {/* Left Column (5/12) */}
                     <div className="lg:col-span-5 space-y-6">
-                        <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden group">
+                        <div className="bg-slate-900 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl relative overflow-hidden group">
                             <div className="absolute -right-4 -bottom-4 p-4 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
                                 <Icons.Wallet size={80} />
                             </div>
-                            
                             <div className="relative z-10">
                                 <p className="text-teal-400/80 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Total Tagihan</p>
                                 <h2 className="text-3xl font-black text-white tracking-tight">
@@ -72,8 +76,8 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                         type="button"
                                         onClick={() => setPaymentMethod(method.id)}
                                         className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all font-bold text-xs ${
-                                            paymentMethod === method.id 
-                                            ? 'border-roxy-primary bg-roxy-primary/5 text-roxy-primary shadow-lg shadow-roxy-primary/5' 
+                                            paymentMethod === method.id
+                                            ? 'border-roxy-primary bg-roxy-primary/5 text-roxy-primary shadow-lg shadow-roxy-primary/5'
                                             : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'
                                         } active:scale-95`}
                                     >
@@ -106,15 +110,20 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                             className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-2xl font-black text-slate-900 focus:ring-4 focus:ring-roxy-primary/5 focus:border-roxy-primary transition-all placeholder:text-slate-200"
                                         />
                                     </div>
+                                    {/* Smart Quick Amounts — always shows amounts >= total */}
                                     <div className="flex flex-wrap gap-2">
                                         {quickAmounts.map((amt) => (
                                             <button
                                                 key={amt}
                                                 type="button"
                                                 onClick={() => handleAmountClick(amt)}
-                                                className="px-3 py-1.5 bg-white border border-slate-200 hover:border-roxy-primary hover:text-roxy-primary text-slate-500 rounded-lg text-[10px] font-bold transition-all active:scale-90"
+                                                className={`px-3 py-1.5 border rounded-lg text-[10px] font-bold transition-all active:scale-90 ${
+                                                    amt === total
+                                                    ? 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100'
+                                                    : 'bg-white border-slate-200 hover:border-roxy-primary hover:text-roxy-primary text-slate-500'
+                                                }`}
                                             >
-                                                {formatIDR(amt)}
+                                                {amt === total ? `Pas ${formatIDR(amt)}` : formatIDR(amt)}
                                             </button>
                                         ))}
                                     </div>

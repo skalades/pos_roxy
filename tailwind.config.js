@@ -23,6 +23,7 @@ export default {
                     border: '#e2e8f0', // slate-200
                     primary: '#0f766e', // teal-700
                     primaryHover: '#115e59', // teal-800
+                    primaryDark: '#0d5f58', // teal-900 equivalent - for hover states
                     textMain: '#334155', // slate-700
                     textMuted: '#64748b', // slate-500
                     accent: '#1e293b', // slate-800 / navy

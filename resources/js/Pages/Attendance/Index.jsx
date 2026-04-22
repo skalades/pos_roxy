@@ -5,6 +5,7 @@ import Camera from '@/Components/Attendance/Camera';
 import { MapPin, Camera as CameraIcon, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import axios from 'axios';
+import { formatDate, formatTime } from '@/utils/datetime';
 
 export default function AttendanceIndex({ attendance, branch }) {
     const [location, setLocation] = useState(null);
@@ -18,22 +19,6 @@ export default function AttendanceIndex({ attendance, branch }) {
         return () => clearInterval(timer);
     }, []);
 
-    const formatDate = (date) => {
-        return new Intl.DateTimeFormat('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        }).format(date);
-    };
-
-    const formatTime = (date) => {
-        return date.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    };
 
     useEffect(() => {
         getLocation();
@@ -190,7 +175,7 @@ export default function AttendanceIndex({ attendance, branch }) {
 
                 {/* Main Action Area */}
                 {!isFinished ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+                    <div className="grid grid-cols-1 landscape:grid-cols-2 lg:grid-cols-2 gap-8 items-start">
                         {/* Camera Section */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between px-2">
