@@ -4,9 +4,34 @@ import StatCard from '@/Components/Dashboard/StatCard';
 import NavAppCard from '@/Components/Dashboard/NavAppCard';
 import * as Icons from 'lucide-react';
 
+import React, { useState, useEffect } from 'react';
+
 export default function Dashboard({ config }) {
     const { auth } = usePage().props;
-    
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const formatDate = (date) => {
+        return new Intl.DateTimeFormat('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(date);
+    };
+
+    const formatTime = (date) => {
+        return date.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    };
+
     // Resolve icon component from name
     const getIcon = (name) => {
         return Icons[name] || Icons.HelpCircle;
@@ -22,15 +47,14 @@ export default function Dashboard({ config }) {
                             {config.title}
                         </h2>
                         <p className="text-sm text-roxy-text-muted mt-1 font-medium">
-                            Selamat datang kembali, <span className="text-roxy-primary font-bold">{auth.user.name}</span> ✨
+                            {formatDate(currentTime)} • <span className="text-roxy-primary font-bold">{formatTime(currentTime)}</span>
                         </p>
                     </div>
                     
-                    {/* Optional Quick Action for Header */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                          <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
                              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                             <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Branch Active</span>
+                             <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{auth.user.name}</span>
                          </div>
                     </div>
                 </div>

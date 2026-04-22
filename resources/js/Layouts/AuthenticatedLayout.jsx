@@ -12,8 +12,18 @@ export default function AuthenticatedLayout({ header, children }) {
             <div className="relative z-10 flex-1 flex flex-col w-full">
                 {header && (
                     <header className="pt-8 pb-4">
-                        <div className="px-6 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full">
+                        <div className="px-6 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full flex justify-between items-start">
                             {header}
+                            
+                            {/* Floating Logout Button */}
+                            <Link 
+                                href={route('logout')} 
+                                method="post" 
+                                as="button"
+                                className="bg-white/40 hover:bg-rose-500/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-rose-600 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 group"
+                            >
+                                <span className="group-hover:rotate-12 transition-transform inline-block text-xl">🚪</span>
+                            </Link>
                         </div>
                     </header>
                 )}
