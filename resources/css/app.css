@@ -2,32 +2,65 @@
 
 @theme {
     /* Fonts */
-    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-heading: "Outfit", sans-serif;
 
-    /* Roxy Design System */
+    /* Roxy Premium Design System */
     --color-roxy-canvas: #f8fafc;
     --color-roxy-surface: #ffffff;
     --color-roxy-border: #e2e8f0;
-    --color-roxy-primary: #0f766e;
-    --color-roxy-primary-hover: #115e59;
-    --color-roxy-text-main: #334155;
+    
+    /* Vibrant Teal Palette */
+    --color-roxy-primary: #0d9488; /* teal-600 */
+    --color-roxy-primary-dark: #0f766e; /* teal-700 */
+    --color-roxy-primary-light: #2dd4bf; /* teal-400 */
+    
+    /* Elegant Dark Palette */
+    --color-roxy-accent: #0f172a; /* slate-900 */
+    --color-roxy-accent-light: #1e293b; /* slate-800 */
+    
+    /* Text */
+    --color-roxy-text-main: #1e293b;
     --color-roxy-text-muted: #64748b;
-    --color-roxy-accent: #1e293b;
+    
+    /* Gradients */
+    --bg-gradient-roxy: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    --bg-gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
 
-/* Custom Base Styles */
 @layer base {
     body {
-        @apply bg-roxy-canvas text-roxy-text-main font-sans;
+        @apply bg-roxy-canvas text-roxy-text-main font-sans antialiased;
     }
 }
 
-/* Hide scrollbar utility */
+/* Premium Component Classes */
+@layer components {
+    .glass-card {
+        @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+    }
+    
+    .premium-shadow {
+        @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+    }
+    
+    .btn-primary {
+        @apply bg-roxy-primary hover:bg-roxy-primary-dark text-white font-bold py-2.5 px-6 rounded-2xl transition-all duration-300 shadow-lg shadow-teal-500/20 active:scale-95;
+    }
+}
+
+/* Utilities */
 @utility scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
     &::-webkit-scrollbar {
         display: none;
     }
+}
+
+@utility bg-mesh {
+    background-color: #f8fafc;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(45, 212, 191, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(15, 23, 42, 0.03) 0px, transparent 50%);
 }

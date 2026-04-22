@@ -1,29 +1,28 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
 
-export default function NavAppCard({ title, icon: Icon, href, color = 'blue' }) {
-    const colorMap = {
-        blue: 'bg-blue-500',
-        emerald: 'bg-emerald-500',
-        amber: 'bg-amber-500',
-        rose: 'bg-rose-500',
-        indigo: 'bg-indigo-500',
-        violet: 'bg-violet-500',
-        teal: 'bg-teal-500',
-        orange: 'bg-orange-500',
+export default function NavAppCard({ title, icon: Icon, href, color = 'teal' }) {
+    const colorVariants = {
+        teal: 'from-teal-400 to-teal-600 shadow-teal-500/25',
+        emerald: 'from-emerald-400 to-emerald-600 shadow-emerald-500/25',
+        amber: 'from-amber-400 to-amber-600 shadow-amber-500/25',
+        blue: 'from-blue-400 to-blue-600 shadow-blue-500/25',
+        indigo: 'from-indigo-400 to-indigo-600 shadow-indigo-500/25',
+        violet: 'from-violet-400 to-violet-600 shadow-violet-500/25',
+        rose: 'from-rose-400 to-rose-600 shadow-rose-500/25',
     };
 
-    const bgColor = colorMap[color] || colorMap.blue;
+    const gradientClass = colorVariants[color] || colorVariants.teal;
 
     return (
         <Link 
             href={href} 
-            className="flex flex-col items-center justify-center gap-3 p-4 bg-roxy-surface rounded-[2rem] border border-roxy-border shadow-sm shadow-slate-200/50 transition-all duration-200 active:scale-95 group hover:border-roxy-primary/30"
+            className="group flex flex-col items-center justify-center p-5 bg-white rounded-[2.5rem] border border-slate-50 shadow-[0_10px_40px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_60px_rgb(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1.5"
         >
-            <div className={`${bgColor} p-4 rounded-3xl text-white shadow-lg shadow-inherit/20 group-hover:scale-110 transition-transform`}>
-                {Icon && <Icon size={28} strokeWidth={2.5} />}
+            <div className={`w-16 h-16 rounded-[1.75rem] bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white shadow-lg mb-4 group-hover:scale-110 transition-transform duration-500 ease-out`}>
+                {Icon && <Icon size={32} strokeWidth={2.2} />}
             </div>
-            <span className="text-xs font-bold text-roxy-accent font-heading text-center line-clamp-1">
+            <span className="text-[13px] font-bold text-roxy-text-main text-center leading-tight group-hover:text-roxy-primary transition-colors">
                 {title}
             </span>
         </Link>
