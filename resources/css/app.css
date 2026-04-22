@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+    /* Fonts */
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-heading: "Outfit", sans-serif;
+
+    /* Roxy Design System */
+    --color-roxy-canvas: #f8fafc;
+    --color-roxy-surface: #ffffff;
+    --color-roxy-border: #e2e8f0;
+    --color-roxy-primary: #0f766e;
+    --color-roxy-primary-hover: #115e59;
+    --color-roxy-text-main: #334155;
+    --color-roxy-text-muted: #64748b;
+    --color-roxy-accent: #1e293b;
+}
+
+/* Custom Base Styles */
+@layer base {
+    body {
+        @apply bg-roxy-canvas text-roxy-text-main font-sans;
+    }
+}
+
+/* Hide scrollbar utility */
+@utility scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
