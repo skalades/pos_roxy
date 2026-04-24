@@ -98,7 +98,6 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                 <div className="space-y-3">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Jumlah Bayar</p>
                                     <div className="relative group">
-                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 text-lg group-focus-within:text-roxy-primary transition-colors">Rp</span>
                                         <input
                                             type="text"
                                             placeholder="0"

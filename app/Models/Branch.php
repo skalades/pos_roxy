@@ -29,6 +29,10 @@ class Branch extends Model
         'opening_time',
         'closing_time',
         'timezone',
+        'tax_rate',
+        'enable_tax',
+        'enable_attendance_deduction',
+        'late_penalty_amount',
     ];
 
     protected function casts(): array
@@ -36,12 +40,16 @@ class Branch extends Model
         return [
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
+            'tax_rate' => 'decimal:2',
+            'enable_tax' => 'boolean',
             'require_attendance_for_shift' => 'boolean',
             'strict_attendance_policy' => 'boolean',
             'attendance_settings' => 'array',
             'attendance_required_roles' => 'array',
             'auto_mark_alpha' => 'boolean',
             'is_active' => 'boolean',
+            'enable_attendance_deduction' => 'boolean',
+            'late_penalty_amount' => 'decimal:2',
         ];
     }
 
@@ -53,5 +61,15 @@ class Branch extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function shifts()
+    {
+        return $this->hasMany(Shift::class);
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
     }
 }

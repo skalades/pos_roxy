@@ -1,19 +1,61 @@
-import React from 'react';
 import { Link } from '@inertiajs/react';
-import * as Icons from 'lucide-react';
+import { 
+    HelpCircle, 
+    Scissors, 
+    Calendar, 
+    Users, 
+    Package, 
+    Settings, 
+    BarChart3, 
+    Clock, 
+    MapPin, 
+    Banknote,
+    UserCircle,
+    ShoppingBag,
+    Camera,
+    Tag,
+    Wallet,
+    History,
+    Store,
+    User,
+    Trophy,
+    Crown
+} from 'lucide-react';
 
 export default function NavAppCard({ title, description, icon: iconName, href, color = 'teal' }) {
-    // Resolve icon component
-    const Icon = Icons[iconName] || Icons.HelpCircle;
+    const icons = {
+        Scissors,
+        Calendar,
+        Users,
+        Package,
+        Settings,
+        BarChart3,
+        Clock,
+        MapPin,
+        Banknote,
+        UserCircle,
+        ShoppingBag,
+        Camera,
+        Tag,
+        Wallet,
+        History,
+        Store,
+        User,
+        Trophy,
+        Crown
+    };
+
+    const Icon = icons[iconName] || HelpCircle;
 
     const colorVariants = {
-        teal: 'from-teal-500 to-teal-700 shadow-teal-500/25',
+        teal: 'from-roxy-primary to-teal-700 shadow-roxy-primary/25',
         emerald: 'from-emerald-500 to-emerald-700 shadow-emerald-500/25',
         amber: 'from-amber-500 to-amber-700 shadow-amber-500/25',
         blue: 'from-blue-500 to-blue-700 shadow-blue-500/25',
         indigo: 'from-indigo-500 to-indigo-700 shadow-indigo-500/25',
         violet: 'from-violet-500 to-violet-700 shadow-violet-500/25',
         rose: 'from-rose-500 to-rose-700 shadow-rose-500/25',
+        cyan: 'from-cyan-500 to-cyan-700 shadow-cyan-500/25',
     };
 
     const gradientClass = colorVariants[color] || colorVariants.teal;

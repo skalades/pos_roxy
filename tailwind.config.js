@@ -28,7 +28,7 @@ export default {
                     textMuted: '#64748b', // slate-500
                     accent: '#1e293b', // slate-800 / navy
                 }
-            }
+            },
             keyframes: {
                 'progress-shrink': {
                     '0%': { width: '100%' },

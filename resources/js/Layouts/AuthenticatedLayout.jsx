@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import FlashMessage from '@/Components/FlashMessage';
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({ header, children, withMobileCartSpace = false }) {
     const user = usePage().props.auth.user;
     
     return (
@@ -13,33 +13,14 @@ export default function AuthenticatedLayout({ header, children }) {
 
             <div className="relative z-10 flex-1 flex flex-col w-full">
                 {header && (
-                    <header className="pt-8 pb-4 landscape:pt-4 landscape:pb-2 sm:landscape:pt-8 sm:landscape:pb-4">
-                        <div className="px-6 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full flex justify-between items-start">
-                            <div className="flex items-center gap-4">
-                                {!route().current('dashboard') && (
-                                    <Link 
-                                        href={route('dashboard')} 
-                                        className="bg-white/40 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-slate-700 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 group"
-                                    >
-                                        <ArrowLeft className="group-hover:-translate-x-1 transition-transform" size={20} />
-                                    </Link>
-                                )}
-                                {header}
-                            </div>
+                    <header className="pt-8 pb-0 landscape:pt-4 sm:landscape:pt-8">
+                        <div className="px-6 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full relative">
+                            {header}
                             
-                            {/* Floating Logout Button */}
-                            <Link 
-                                href={route('logout')} 
-                                method="post" 
-                                as="button"
-                                className="bg-white/40 hover:bg-rose-500/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-rose-600 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 group"
-                            >
-                                <LogOut className="group-hover:rotate-12 transition-transform" size={20} />
-                            </Link>
                         </div>
                     </header>
                 )}
-                <main className="flex-1 px-6 pb-8 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full">
+                <main className={`flex-1 px-6 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full ${withMobileCartSpace ? 'pb-24 landscape:pb-6' : 'pb-8 landscape:pb-6'}`}>
                     {children}
                 </main>
             </div>

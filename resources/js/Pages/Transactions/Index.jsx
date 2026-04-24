@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import * as Icons from 'lucide-react';
+import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2 } from 'lucide-react';
+import PageHeader from '@/Components/PageHeader';
 import { formatIDR } from '@/utils/currency';
 import Modal from '@/Components/Modal';
 
@@ -60,36 +61,23 @@ export default function TransactionIndex({ transactions, filters }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-                    <div className="relative">
-                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                            Riwayat Transaksi
-                        </h2>
-                        <p className="text-sm text-roxy-text-muted mt-1 font-medium">
-                            Menampilkan: <span className="text-roxy-primary font-bold">{activeFilterLabel}</span>
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
-                            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                                {transactions.total || 0} Data
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader 
+                    title="Riwayat Transaksi"
+                    backHref={route('dashboard')}
+                    subtitle={`Menampilkan: ${activeFilterLabel}`}
+                    badge={`${transactions.total || 0} Data`}
+                    badgeColor="teal"
+                />
             }
         >
             <Head title="Riwayat Transaksi" />
 
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto space-y-6 pb-24 landscape:pb-6 px-4 sm:px-0">
                 {/* Search & Filter Bar */}
                 <div className="bg-white p-4 sm:p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch">
                         <form onSubmit={handleSearch} className="relative flex-1">
-                            <Icons.Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <input
                                 type="text"
                                 placeholder="Cari No. Transaksi atau Nama Pelanggan..."
@@ -106,7 +94,7 @@ export default function TransactionIndex({ transactions, filters }) {
                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                         >
-                            <Icons.Filter size={16} />
+                            <Filter size={16} />
                             <span className="hidden sm:inline">Filter</span>
                             {activeFilter !== 'all' && (
                                 <span className="bg-white/20 text-[10px] px-1.5 py-0.5 rounded-full font-black">
@@ -129,10 +117,10 @@ export default function TransactionIndex({ transactions, filters }) {
                                         : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-300'
                                     }`}
                                 >
-                                    {opt.id === 'all' && <Icons.List size={14} />}
-                                    {opt.id === 'today' && <Icons.Calendar size={14} />}
-                                    {opt.id === 'this_week' && <Icons.CalendarRange size={14} />}
-                                    {opt.id === 'this_month' && <Icons.CalendarDays size={14} />}
+                                    {opt.id === 'all' && <List size={14} />}
+                                    {opt.id === 'today' && <Calendar size={14} />}
+                                    {opt.id === 'this_week' && <CalendarRange size={14} />}
+                                    {opt.id === 'this_month' && <CalendarDays size={14} />}
                                     {opt.label}
                                 </button>
                             ))}
@@ -185,7 +173,7 @@ export default function TransactionIndex({ transactions, filters }) {
                                                 onClick={() => fetchDetail(trx.id)}
                                                 className="p-2 hover:bg-roxy-primary/10 text-slate-400 hover:text-roxy-primary rounded-xl transition-all"
                                             >
-                                                <Icons.Eye size={20} />
+                                                <Eye size={20} />
                                             </button>
                                         </td>
                                     </tr>
@@ -219,7 +207,7 @@ export default function TransactionIndex({ transactions, filters }) {
                                         </span>
                                     </div>
                                 </div>
-                                <Icons.ChevronRight className="text-slate-300 mt-1 shrink-0" size={18} />
+                                <ChevronRight className="text-slate-300 mt-1 shrink-0" size={18} />
                             </button>
                         ))}
                     </div>
@@ -227,7 +215,7 @@ export default function TransactionIndex({ transactions, filters }) {
                     {transactions.data.length === 0 && (
                         <div className="p-16 text-center space-y-4">
                             <div className="w-20 h-20 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto text-slate-300">
-                                <Icons.FileText size={40} />
+                                <FileText size={40} />
                             </div>
                             <div>
                                 <h5 className="text-lg font-black text-slate-800">Tidak ada transaksi</h5>
@@ -273,7 +261,7 @@ export default function TransactionIndex({ transactions, filters }) {
                                 <p className="text-sm text-slate-500 font-medium mt-1">{selectedTrx.transaction_number}</p>
                             </div>
                             <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400">
-                                <Icons.X size={24} />
+                                <X size={24} />
                             </button>
                         </div>
 
@@ -305,7 +293,7 @@ export default function TransactionIndex({ transactions, filters }) {
                                     <div key={item.id} className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl">
                                         <div className="flex gap-4 items-center">
                                             <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                                                {item.item_type === 'service' ? <Icons.Scissors size={20} /> : <Icons.Package size={20} />}
+                                                {item.item_type === 'service' ? <Scissors size={20} /> : <Package size={20} />}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-slate-800">{item.item_name}</p>
@@ -338,11 +326,11 @@ export default function TransactionIndex({ transactions, filters }) {
 
                         <div className="flex gap-4 pt-2">
                             <button className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors active:scale-95">
-                                <Icons.Printer size={18} />
+                                <Printer size={18} />
                                 Cetak Struk
                             </button>
                             <button className="flex-1 bg-teal-500 text-slate-900 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-teal-400 transition-colors active:scale-95">
-                                <Icons.Share2 size={18} />
+                                <Share2 size={18} />
                                 Kirim WA
                             </button>
                         </div>

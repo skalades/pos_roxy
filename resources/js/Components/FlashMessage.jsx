@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
-import * as Icons from 'lucide-react';
+import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 export default function FlashMessage() {
     const { flash } = usePage().props;
@@ -35,15 +35,15 @@ export default function FlashMessage() {
         <div className="fixed top-6 right-6 z-[200] animate-in slide-in-from-right-10 duration-500">
             <div 
                 className={`
-                    flex items-center gap-4 px-6 py-4 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-xl border
+                    flex items-center gap-4 px-6 py-4 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border
                     ${type === 'success' 
-                        ? 'bg-emerald-500/90 text-white border-emerald-400/20' 
-                        : 'bg-rose-500/90 text-white border-rose-400/20'
+                        ? 'bg-emerald-500 text-white border-emerald-400/20' 
+                        : 'bg-rose-500 text-white border-rose-400/20'
                     }
                 `}
             >
                 <div className="shrink-0">
-                    {type === 'success' ? <Icons.CheckCircle2 size={24} /> : <Icons.AlertCircle size={24} />}
+                    {type === 'success' ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
                 </div>
                 
                 <div className="flex-1 pr-4">
@@ -55,14 +55,13 @@ export default function FlashMessage() {
                     onClick={() => setVisible(false)}
                     className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                 >
-                    <Icons.X size={18} />
+                    <X size={18} />
                 </button>
                 
                 {/* Timer Progress Bar */}
-                <div className="absolute bottom-0 left-0 h-1 bg-white/30 rounded-full overflow-hidden">
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-full overflow-hidden">
                     <div 
                         className="h-full bg-white animate-progress-shrink" 
-                        style={{ animationDuration: '5000ms', animationTimingFunction: 'linear' }}
                     ></div>
                 </div>
             </div>

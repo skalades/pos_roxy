@@ -38,8 +38,9 @@ class Customer extends Model
         return $this->hasMany(Transaction::class);
     }
 
-    public function appointments(): HasMany
-    {
-        return $this->hasMany(Appointment::class);
-    }
+    // TODO: Uncomment ketika model Appointment sudah dibuat
+    // public function appointments(): HasMany
+    // {
+    //     return $this->hasMany(Appointment::class);
+    // }
 }

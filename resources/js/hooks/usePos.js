@@ -1,19 +1,65 @@
 import { useState, useMemo } from 'react';
 import { router } from '@inertiajs/react';
 
-export default function usePos(initialCart = []) {
+/**
+ * Custom hook untuk logika POS.
+ * @param {Array} initialCart - Cart awal
+ * @param {number} taxRate - Tax rate dari branch config (default 10%)
+ * @param {boolean} enableTax - Status aktif pajak
+ * @param {number} memberDiscountRate - Diskon tetap untuk member (%)
+ * @param {Array} activePromotions - Daftar promosi aktif
+ */
+export default function usePos(initialCart = [], taxRate = 10, enableTax = true, memberDiscountRate = 0, activePromotions = []) {
     const [cart, setCart] = useState(initialCart);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [manualDiscount, setManualDiscount] = useState({ type: 'fixed', value: 0 });
     const [processing, setProcessing] = useState(false);
     const [checkoutError, setCheckoutError] = useState(null);
 
-    // Calculate totals using useMemo for performance
+    // Hitung total pakai useMemo untuk performa
     const totals = useMemo(() => {
         const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-        const tax = Math.round(subtotal * 0.1);
-        const total = subtotal + tax;
-        return { subtotal, tax, total };
-    }, [cart]);
+        
+        let discountAmount = 0;
+        let discountLabel = '';
+
+        // 1. Tentukan diskon otomatis (Member atau Event)
+        let autoDiscountRate = 0;
+        let autoDiscountLabel = '';
+
+        if (selectedCustomer && memberDiscountRate > 0) {
+            autoDiscountRate = memberDiscountRate;
+            autoDiscountLabel = `Member (${memberDiscountRate}%)`;
+        }
+
+        // Cek promo (ambil yang terbesar)
+        activePromotions.forEach(promo => {
+            if (promo.discount_type === 'percentage' && promo.discount_value > autoDiscountRate) {
+                autoDiscountRate = promo.discount_value;
+                autoDiscountLabel = promo.name;
+            }
+        });
+
+        // 2. Terapkan diskon (Manual override Otomatis)
+        if (manualDiscount.value > 0) {
+            if (manualDiscount.type === 'percentage') {
+                discountAmount = Math.round(subtotal * (manualDiscount.value / 100));
+                discountLabel = `Manual (${manualDiscount.value}%)`;
+            } else {
+                discountAmount = Number(manualDiscount.value);
+                discountLabel = 'Manual (Rp)';
+            }
+        } else if (autoDiscountRate > 0) {
+            discountAmount = Math.round(subtotal * (autoDiscountRate / 100));
+            discountLabel = autoDiscountLabel;
+        }
+
+        const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+        const tax = enableTax ? Math.round(discountedSubtotal * (taxRate / 100)) : 0;
+        const total = discountedSubtotal + tax;
+
+        return { subtotal, tax, total, discountAmount, discountLabel };
+    }, [cart, taxRate, enableTax, manualDiscount, selectedCustomer, memberDiscountRate, activePromotions]);
 
     const addToCart = (item, type, barber = null) => {
         if (!item) return;
@@ -76,6 +122,9 @@ export default function usePos(initialCart = []) {
             payment_method: paymentData.paymentMethod,
             subtotal: totals.subtotal,
             tax_amount: totals.tax,
+            discount_amount: totals.discountAmount,
+            manual_discount_type: manualDiscount.value > 0 ? manualDiscount.type : null,
+            manual_discount_value: manualDiscount.value > 0 ? manualDiscount.value : null,
             total_amount: totals.total,
             amount_paid: paymentData.amountPaid,
             change_amount: paymentData.change,
@@ -85,12 +134,13 @@ export default function usePos(initialCart = []) {
                 if (!page?.props?.flash?.error) {
                     setCart([]);
                     setSelectedCustomer(null);
+                    setManualDiscount({ type: 'fixed', value: 0 });
                     if (onSuccessCallback) onSuccessCallback();
                 }
                 setProcessing(false);
             },
             onError: (errors) => {
-                // Surface validation errors to the UI
+                // Tampilkan error validasi ke UI
                 const firstError = Object.values(errors)[0];
                 setCheckoutError(firstError || 'Terjadi kesalahan validasi. Periksa kembali data transaksi.');
                 setProcessing(false);
@@ -107,6 +157,8 @@ export default function usePos(initialCart = []) {
         processing,
         checkoutError,
         clearCheckoutError,
+        manualDiscount,
+        setManualDiscount,
         ...totals,
         addToCart,
         removeFromCart,

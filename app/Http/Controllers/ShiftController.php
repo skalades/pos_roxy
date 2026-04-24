@@ -3,44 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shift;
+use App\Http\Requests\OpenShiftRequest;
+use App\Http\Requests\CloseShiftRequest;
+use App\Services\ShiftService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class ShiftController extends Controller
 {
+    protected ShiftService $shiftService;
+
+    public function __construct(ShiftService $shiftService)
+    {
+        $this->shiftService = $shiftService;
+    }
+
     public function index(Request $request)
     {
-        $shift = Shift::where('user_id', $request->user()->id)
-            ->where('status', 'open')
-            ->first();
+        $shift = $this->shiftService->getActiveShift($request->user()->id);
 
         $cashSales = 0;
         $cashExpenses = 0;
         if ($shift) {
-            $cashSales = $shift->transactions()
-                ->where('payment_method', 'cash')
-                ->where('status', 'completed')
-                ->sum('total_amount');
-            
-            $cashExpenses = $shift->cashOperations()
-                ->where('type', 'cash_out')
-                ->where('status', 'completed')
-                ->sum('amount');
+            $cashSales = $this->shiftService->calculateCashSales($shift);
+            $cashExpenses = $this->shiftService->calculateCashExpenses($shift);
         }
 
         return Inertia::render('Shifts/Index', [
             'current_shift' => $shift,
-            'cash_sales' => (float) $cashSales,
-            'cash_expenses' => (float) $cashExpenses
+            'cash_sales' => $cashSales,
+            'cash_expenses' => $cashExpenses,
         ]);
     }
 
     public function current(Request $request)
     {
-        $shift = Shift::where('user_id', $request->user()->id)
-            ->where('status', 'open')
-            ->first();
+        $shift = $this->shiftService->getActiveShift($request->user()->id);
 
         return response()->json([
             'shift' => $shift,
@@ -48,78 +46,60 @@ class ShiftController extends Controller
         ]);
     }
 
-    public function open(Request $request)
+    public function open(OpenShiftRequest $request)
     {
-        $request->validate([
-            'opening_balance' => 'required|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
-        // Check if there is already an open shift
-        $existingShift = Shift::where('user_id', $request->user()->id)
-            ->where('status', 'open')
-            ->first();
+        // Cek apakah sudah ada shift terbuka
+        $existingShift = $this->shiftService->getActiveShift($request->user()->id);
 
         if ($existingShift) {
             return back()->withErrors(['shift' => 'Anda masih memiliki shift yang terbuka.']);
         }
 
+        // Audit & Enforcement: Check if branch requires attendance for shift
+        $branch = $request->user()->branch;
+        if ($branch && $branch->require_attendance_for_shift) {
+            $hasAttended = \App\Models\Attendance::where('user_id', $request->user()->id)
+                ->where('date', now()->toDateString())
+                ->whereNotNull('clock_in_at')
+                ->exists();
+            
+            if (!$hasAttended) {
+                return back()->withErrors(['shift' => 'Wajib melakukan Absen Selfie sebelum membuka shift di cabang ini.']);
+            }
+        }
+
         Shift::create([
             'branch_id' => $request->user()->branch_id,
             'user_id' => $request->user()->id,
-            'opening_balance' => $request->opening_balance,
+            'opening_balance' => $validated['opening_balance'],
             'opened_at' => now(),
             'status' => 'open',
-            'notes' => $request->notes,
+            'notes' => $validated['notes'],
         ]);
 
         return redirect()->route('pos.index')->with('success', 'Shift berhasil dibuka.');
     }
 
-    public function close(Request $request)
+    public function close(CloseShiftRequest $request)
     {
-        $request->validate([
-            'closing_balance' => 'required|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $shift = Shift::where('user_id', $request->user()->id)
             ->where('status', 'open')
             ->firstOrFail();
 
-        // Calculate expected balance
-        // Expected = opening + total_cash_transactions + cash_in - cash_out
-        $cashSales = $shift->transactions()
-            ->where('payment_method', 'cash')
-            ->where('status', 'completed')
-            ->sum('amount_paid'); // amount_paid is what they give, but we should use total_amount or amount_paid - change?
-            // Actually transactions table has payment_amount and change_amount.
-            // total_amount is what they should pay.
-            
-        // Wait, let's look at transactions table again.
-        // total_amount, payment_amount, change_amount.
-        // If payment is cash, the cash added to drawer is total_amount.
-        
-        $totalCashSales = $shift->transactions()
-            ->where('payment_method', 'cash')
-            ->where('status', 'completed')
-            ->sum('total_amount');
-
-        $totalCashExpenses = $shift->cashOperations()
-            ->where('type', 'cash_out')
-            ->where('status', 'completed')
-            ->sum('amount');
-
-        // Expected = opening + total_cash_transactions - cash_out
-        $expectedBalance = $shift->opening_balance + $totalCashSales - $totalCashExpenses;
+        // Pakai ShiftService — satu sumber kebenaran
+        $expectedBalance = $this->shiftService->calculateExpectedBalance($shift);
 
         $shift->update([
-            'closing_balance' => $request->closing_balance,
+            'closing_balance' => $validated['closing_balance'],
             'expected_balance' => $expectedBalance,
-            'difference' => $request->closing_balance - $expectedBalance,
+            'difference' => $validated['closing_balance'] - $expectedBalance,
             'closed_at' => now(),
             'status' => 'closed',
-            'notes' => $shift->notes . "\nClose notes: " . $request->notes,
+            'notes' => $shift->notes . "\nClose notes: " . $validated['notes'],
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Shift berhasil ditutup.');

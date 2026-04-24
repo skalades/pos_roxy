@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import * as Icons from 'lucide-react';
+import { Filter, Wallet, CheckCircle2, X, Scissors, Inbox, Calendar, CalendarRange, CalendarDays, History, Settings2 } from 'lucide-react';
+import PageHeader from '@/Components/PageHeader';
 import { formatIDR } from '@/utils/currency';
 
 const FILTER_OPTIONS = [
@@ -11,6 +12,8 @@ const FILTER_OPTIONS = [
     { id: 'last_month', name: 'Bulan Lalu', icon: 'History' },
     { id: 'custom', name: 'Custom Range', icon: 'Settings2' },
 ];
+
+const ICON_MAP = { Calendar, CalendarRange, CalendarDays, History, Settings2 };
 
 export default function CommissionIndex({ summary, filters }) {
     const [showFilters, setShowFilters] = useState(false);
@@ -42,45 +45,38 @@ export default function CommissionIndex({ summary, filters }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-                    <div className="relative">
-                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                            Komisi Saya
-                        </h2>
-                        <p className="text-sm text-roxy-text-muted mt-1 font-medium">
-                            Periode: <span className="text-roxy-primary font-bold">{currentFilterName}</span>
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
+                <PageHeader 
+                    title="Komisi Saya"
+                    backHref={route('dashboard')}
+                    subtitle={`Periode: ${currentFilterName}`}
+                    action={
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all active:scale-95 ${
-                                showFilters
-                                ? 'bg-roxy-primary text-white shadow-lg shadow-roxy-primary/20'
-                                : 'bg-white/50 backdrop-blur-sm border border-white text-slate-600 shadow-sm'
+                            className={`p-4 rounded-2xl border transition-all shadow-sm active:scale-95 flex items-center gap-2 font-black uppercase tracking-widest text-[10px] ${
+                                showFilters 
+                                ? 'bg-roxy-primary text-white border-roxy-primary shadow-roxy-primary/20' 
+                                : 'bg-white text-slate-400 border-slate-100 hover:text-roxy-primary hover:border-roxy-primary'
                             }`}
                         >
-                            <Icons.Filter size={16} />
-                            <span className="hidden sm:inline">Filter Periode</span>
+                            <Filter size={18} />
+                            Filter Periode
                         </button>
-                    </div>
-                </div>
+                    }
+                />
             }
         >
             <Head title="Ringkasan Komisi Saya" />
 
-            <div className="max-w-3xl mx-auto space-y-6 pb-32">
+            <div className="max-w-3xl mx-auto space-y-6 pb-32 landscape:pb-6 px-4 sm:px-0">
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-roxy-primary rounded-[2rem] p-6 text-white shadow-xl shadow-roxy-primary/20 relative overflow-hidden group">
-                        <Icons.Wallet className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
+                        <Wallet className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">Total Komisi</p>
                         <h3 className="text-xl font-black truncate">{formatIDR(summary.total_commission)}</h3>
                     </div>
                     <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden group">
-                        <Icons.CheckCircle2 className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
+                        <CheckCircle2 className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">Total Selesai</p>
                         <h3 className="text-2xl font-black">{summary.total_services} <span className="text-xs opacity-60">Layanan</span></h3>
                     </div>
@@ -92,13 +88,13 @@ export default function CommissionIndex({ summary, filters }) {
                         <div className="flex items-center justify-between mb-5">
                             <h4 className="font-black text-slate-800 text-sm uppercase tracking-widest">Pilih Periode</h4>
                             <button onClick={() => setShowFilters(false)} className="p-2 text-slate-400 hover:text-slate-700 transition-colors">
-                                <Icons.X size={18} />
+                                <X size={18} />
                             </button>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {FILTER_OPTIONS.map(option => {
-                                const Icon = Icons[option.icon];
+                                const Icon = ICON_MAP[option.icon];
                                 return (
                                     <button
                                         key={option.id}
@@ -173,7 +169,7 @@ export default function CommissionIndex({ summary, filters }) {
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-roxy-primary/10 group-hover:text-roxy-primary transition-colors">
-                                                    <Icons.Scissors size={20} />
+                                                    <Scissors size={20} />
                                                 </div>
                                                 <div>
                                                     <h5 className="font-black text-slate-800 text-sm">{item.service_name}</h5>
@@ -198,7 +194,7 @@ export default function CommissionIndex({ summary, filters }) {
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-300 mb-4">
-                            <Icons.Inbox size={40} strokeWidth={1.5} />
+                            <Inbox size={40} strokeWidth={1.5} />
                         </div>
                         <p className="font-bold text-slate-500">Belum ada data komisi</p>
                         <p className="text-sm text-slate-400 mt-1">untuk periode "{currentFilterName}"</p>
@@ -208,8 +204,8 @@ export default function CommissionIndex({ summary, filters }) {
 
             {/* Bottom Sticky Summary — fixed, outside normal flow */}
             {summary.total_commission > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 z-30">
-                    <div className="bg-slate-900 text-white px-6 sm:px-8 py-5 shadow-[0_-10px_40px_rgba(0,0,0,0.15)] flex items-center justify-between border-t border-white/10 rounded-t-[2.5rem]">
+                <div className="fixed bottom-0 left-0 right-0 z-30 sm:relative sm:mt-10 sm:bottom-auto pb-safe">
+                    <div className="bg-slate-900 text-white px-6 sm:px-8 py-5 shadow-[0_-10px_40px_rgba(0,0,0,0.15)] sm:shadow-none flex items-center justify-between border-t border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem]">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-1">Estimasi Pendapatan</p>
                             <h3 className="text-2xl font-black text-roxy-primary leading-none">{formatIDR(summary.total_commission)}</h3>

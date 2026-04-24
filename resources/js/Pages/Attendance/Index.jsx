@@ -5,21 +5,16 @@ import Camera from '@/Components/Attendance/Camera';
 import { MapPin, Camera as CameraIcon, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import axios from 'axios';
-import { formatDate, formatTime } from '@/utils/datetime';
+import PageHeader from '@/Components/PageHeader';
 
-export default function AttendanceIndex({ attendance, branch }) {
+import AttendanceMonitor from './Partials/AttendanceMonitor';
+
+export default function AttendanceIndex({ attendance, branch, allAttendances = [], isAdmin = false }) {
+    const [activeTab, setActiveTab] = useState(isAdmin ? 'monitor' : 'selfie');
     const [location, setLocation] = useState(null);
     const [locationError, setLocationError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState({ type: '', message: '' });
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-
     useEffect(() => {
         getLocation();
     }, []);
@@ -126,31 +121,42 @@ export default function AttendanceIndex({ attendance, branch }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-                    <div className="relative">
-                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                            Presensi Karyawan
-                        </h2>
-                        <p className="text-sm text-roxy-text-muted mt-1 font-medium">
-                            {formatDate(currentTime)} • <span className="text-roxy-primary font-bold">{formatTime(currentTime)}</span>
-                        </p>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                         <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
-                             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                             <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Online</span>
-                         </div>
-                    </div>
-                </div>
+                <PageHeader 
+                    title="Presensi Karyawan"
+                    backHref={route('dashboard')}
+                    badge={isAdmin ? "Superadmin" : "Online"}
+                    badgeColor={isAdmin ? "primary" : "emerald"}
+                    showClock={true}
+                />
             }
         >
             <Head title="Absen Selfie" />
 
-            <div className="max-w-4xl mx-auto space-y-8">
-                {/* Status Card */}
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-6 items-center">
+            <div className="max-w-4xl mx-auto space-y-8 landscape:space-y-4 pb-20 px-4 sm:px-0">
+
+                {isAdmin && (
+                    <div className="flex bg-slate-100 p-1 rounded-2xl w-fit mx-auto md:mx-0">
+                        <button 
+                            onClick={() => setActiveTab('selfie')}
+                            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'selfie' ? 'bg-white text-roxy-primary shadow-sm' : 'text-slate-500'}`}
+                        >
+                            Absen Selfie
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('monitor')}
+                            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'monitor' ? 'bg-white text-roxy-primary shadow-sm' : 'text-slate-500'}`}
+                        >
+                            Monitor Absensi
+                        </button>
+                    </div>
+                )}
+
+                {activeTab === 'monitor' && isAdmin ? (
+                    <AttendanceMonitor attendances={allAttendances} />
+                ) : (
+                    <>
+                        {/* Status Card */}
+                        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-6 items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex-1 space-y-2 text-center md:text-left w-full">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cabang Aktif</p>
                         <h3 className="text-xl font-bold text-roxy-accent flex items-center justify-center md:justify-start gap-2">
@@ -165,8 +171,8 @@ export default function AttendanceIndex({ attendance, branch }) {
                     <div className="flex-1 space-y-2 text-center md:text-left w-full">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Status Hari Ini</p>
                         <div className="flex items-center justify-center md:justify-start gap-3">
-                            <Clock size={20} className="text-teal-500" />
-                            <span className={`text-lg font-bold ${isFinished ? 'text-emerald-600' : (isClockedIn ? 'text-amber-600' : 'text-slate-400')}`}>
+                            <Clock size={20} className="text-roxy-primary" />
+                            <span className={`text-lg font-bold ${isFinished ? 'text-roxy-primary' : (isClockedIn ? 'text-amber-600' : 'text-slate-400')}`}>
                                 {isFinished ? 'Selesai Tugas' : (isClockedIn ? 'Sedang Bertugas' : 'Belum Absen')}
                             </span>
                         </div>
@@ -201,7 +207,7 @@ export default function AttendanceIndex({ attendance, branch }) {
                         {/* Instructions & Feedback */}
                         <div className="space-y-6">
                             {status.message && (
-                                <div className={`p-6 rounded-3xl border ${status.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800'} animate-in fade-in slide-in-from-top-4 duration-300`}>
+                                <div className={`p-6 rounded-[2rem] border ${status.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800'} animate-in fade-in slide-in-from-top-4 duration-300`}>
                                     <div className="flex items-start gap-4">
                                         {status.type === 'success' ? <CheckCircle2 className="shrink-0" /> : <AlertCircle className="shrink-0" />}
                                         <div>
@@ -213,7 +219,7 @@ export default function AttendanceIndex({ attendance, branch }) {
                             )}
 
                             {locationError && (
-                                <div className="p-6 rounded-3xl bg-amber-50 border border-amber-100 text-amber-800">
+                                <div className="p-6 rounded-[2rem] bg-amber-50 border border-amber-100 text-amber-800">
                                     <div className="flex items-start gap-4">
                                         <AlertCircle className="shrink-0" />
                                         <div>
@@ -263,8 +269,8 @@ export default function AttendanceIndex({ attendance, branch }) {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white p-12 rounded-[3rem] text-center shadow-sm border border-slate-100 space-y-6">
-                        <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <div className="bg-white p-12 rounded-[2.5rem] text-center shadow-sm border border-slate-100 space-y-6">
+                        <div className="w-24 h-24 bg-roxy-primary/10 text-roxy-primary rounded-full flex items-center justify-center mx-auto shadow-inner">
                             <CheckCircle2 size={48} />
                         </div>
                         <div className="space-y-2">
@@ -288,6 +294,8 @@ export default function AttendanceIndex({ attendance, branch }) {
                             Kembali ke Dashboard
                         </button>
                     </div>
+                )}
+                    </>
                 )}
             </div>
         </AuthenticatedLayout>

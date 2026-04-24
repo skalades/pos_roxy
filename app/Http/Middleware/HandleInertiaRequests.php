@@ -34,6 +34,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'app_settings' => [
+                'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
+                'app_logo' => \App\Models\Setting::get('app_logo'),
+            ],
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

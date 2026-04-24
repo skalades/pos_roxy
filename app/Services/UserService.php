@@ -49,7 +49,7 @@ class UserService extends BaseService
         // This will be more dynamic once Permissions are implemented
         $items = [];
 
-        if (in_array($role, ['super_admin', 'admin', 'manager', 'cashier'])) {
+        if (in_array($role, ['admin', 'manager', 'cashier'])) {
             $items[] = [
                 'title' => 'Kasir POS',
                 'description' => 'Mulai transaksi baru',
@@ -76,11 +76,60 @@ class UserService extends BaseService
                 'color' => 'blue',
             ];
             $items[] = [
+                'title' => 'Manajemen Layanan',
+                'description' => 'Kelola jasa & komisi',
+                'icon' => 'Scissors',
+                'href' => '/services',
+                'color' => 'indigo',
+            ];
+            $items[] = [
+                'title' => 'Manajemen Produk',
+                'description' => 'Stok & inventaris',
+                'icon' => 'Package',
+                'href' => '/products',
+                'color' => 'blue',
+            ];
+            $items[] = [
+                'title' => 'Kategori',
+                'description' => 'Grup produk & jasa',
+                'icon' => 'Tag',
+                'href' => '/categories',
+                'color' => 'amber',
+            ];
+            $items[] = [
                 'title' => 'Manajemen User',
                 'description' => 'Kelola staff & akses',
                 'icon' => 'Users',
-                'href' => '#',
+                'href' => '/users',
                 'color' => 'indigo',
+            ];
+            $items[] = [
+                'title' => 'Manajemen Cabang',
+                'description' => 'Kelola outlet & lokasi',
+                'icon' => 'MapPin',
+                'href' => '/branches',
+                'color' => 'cyan',
+            ];
+            $items[] = [
+                'title' => 'HR & Payroll',
+                'description' => 'Manajemen gaji & absen',
+                'icon' => 'Wallet',
+                'href' => '/payroll',
+                'color' => 'rose',
+            ];
+            $items[] = [
+                'title' => 'Peringkat',
+                'description' => 'Analisa performa bisnis',
+                'icon' => 'Trophy',
+                'href' => '/ranking',
+                'color' => 'amber',
+            ];
+            $items[] = [
+                'title' => 'Pengaturan Sistem',
+                'description' => 'Branding & Operasional',
+                'icon' => 'Settings',
+                'href' => '/settings',
+                'color' => 'slate',
             ];
         }
 
@@ -134,40 +183,45 @@ class UserService extends BaseService
                             })->sum('commission_amount'), 
                         0, ',', '.'
                     ), 
-                    'icon' => 'Wallet'
+                    'icon' => 'Wallet',
+                    'color' => 'teal'
                 ],
                 [
-                    'title' => 'Selesai', 
+                    'title' => 'Layanan Selesai', 
                     'value' => (string) \App\Models\TransactionItem::where('barber_id', $user->id)
                         ->whereHas('transaction', function($q) use ($today) {
                             $q->where('created_at', '>=', $today)->where('status', 'completed');
                         })->count(), 
-                    'icon' => 'CheckCircle'
+                    'icon' => 'CheckCircle',
+                    'color' => 'emerald'
                 ],
             ],
             'cashier' => [
                 [
                     'title' => 'Sales Toko', 
                     'value' => 'Rp ' . number_format($trxQuery->clone()->where('status', 'completed')->sum('total_amount'), 0, ',', '.'), 
-                    'icon' => 'Calculator'
+                    'icon' => 'Calculator',
+                    'color' => 'teal'
                 ],
                 [
-                    'title' => 'Antrean', 
+                    'title' => 'Antrean Pelanggan', 
                     'value' => (string) $trxQuery->clone()->where('status', 'pending')->count(), 
                     'icon' => 'Users', 
-                    'color' => 'accent'
+                    'color' => 'rose'
                 ],
             ],
             default => [
                 [
-                    'title' => 'Revenue', 
+                    'title' => 'Total Revenue', 
                     'value' => 'Rp ' . number_format($trxQuery->clone()->where('status', 'completed')->sum('total_amount'), 0, ',', '.'), 
-                    'icon' => 'TrendingUp'
+                    'icon' => 'TrendingUp',
+                    'color' => 'emerald'
                 ],
                 [
-                    'title' => 'Customers', 
+                    'title' => 'Total Customers', 
                     'value' => (string) $trxQuery->clone()->where('status', 'completed')->count(), 
-                    'icon' => 'Users'
+                    'icon' => 'Users',
+                    'color' => 'blue'
                 ],
             ],
         };

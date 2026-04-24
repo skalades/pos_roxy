@@ -2,48 +2,29 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import StatCard from '@/Components/Dashboard/StatCard';
 import NavAppCard from '@/Components/Dashboard/NavAppCard';
-import * as Icons from 'lucide-react';
+import PageHeader from '@/Components/PageHeader';
+import { Clock, CheckCircle, Store } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { formatDate, formatTime } from '@/utils/datetime';
 
 export default function Dashboard({ config }) {
     const { auth } = usePage().props;
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-                    <div className="relative">
-                        {/* Status Glow Bar */}
-                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                        
-                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                            Halo, <span className="text-roxy-primary">{auth.user.name.split(' ')[0]}!</span>
-                        </h2>
-                        <p className="text-sm text-roxy-text-muted mt-1 font-medium flex items-center gap-2">
-                            <Icons.Clock size={14} className="text-roxy-primary" />
-                            {formatDate(currentTime)} • <span className="text-slate-800 font-bold">{formatTime(currentTime)}</span>
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className="bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{auth.user.role}</span>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader 
+                    title={`Halo, ${auth.user.name.split(' ')[0]}!`}
+                    subtitle={`Dashboard Operasional • ${auth.user.role}`}
+                    backHref={null}
+                    showClock={true}
+                    showLogout={true}
+                />
             }
         >
             <Head title="Dashboard Operasional" />
 
-            <div className="max-w-7xl mx-auto space-y-10 pb-20">
+            <div className="max-w-7xl mx-auto space-y-10">
                 {/* Statistics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {config.stats.map((stat, index) => (
@@ -59,10 +40,11 @@ export default function Dashboard({ config }) {
                 </div>
 
                 {/* Main Navigation Grid */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                        <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest">Menu Utama</h3>
-                        <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent ml-6"></div>
+                <div className="space-y-8">
+                    <div className="flex items-center gap-4 px-2">
+                        <div className="w-1.5 h-6 bg-roxy-primary rounded-full"></div>
+                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-widest">Menu Utama</h3>
+                        <div className="h-px flex-1 bg-slate-100"></div>
                     </div>
                     
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -77,7 +59,7 @@ export default function Dashboard({ config }) {
                             />
                         ))}
                         {/* Dynamic Injection of Expenses for operational ease */}
-                        {(auth.user.role === 'cashier' || auth.user.role === 'super_admin') && (
+                        {auth.user.role === 'cashier' && (
                             <NavAppCard 
                                 icon="Banknote" 
                                 title="Pengeluaran" 
@@ -89,21 +71,21 @@ export default function Dashboard({ config }) {
                     </div>
                 </div>
                 
-                {/* Status Shift Card - Dark Premium Style */}
-                {(auth.user.role === 'cashier' || auth.user.role === 'super_admin') && (
-                    <div className="relative group overflow-hidden bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl shadow-slate-900/20">
-                        {/* Decorative Background for Card */}
-                        <div className="absolute top-[-50%] right-[-10%] w-[60%] h-[150%] bg-teal-500/10 blur-[80px] rotate-12 pointer-events-none group-hover:bg-teal-500/20 transition-colors duration-700"></div>
+                {/* Status Shift Card - Premium Modern Style */}
+                {auth.user.role === 'cashier' && (
+                    <div className="relative group overflow-hidden bg-white border-2 border-slate-900/5 p-8 rounded-[3rem] shadow-2xl shadow-slate-200/50">
+                        {/* Decorative Gradient Background */}
+                        <div className={`absolute top-0 right-0 w-80 h-80 ${config.active_shift ? 'bg-emerald-500/5' : 'bg-rose-500/5'} blur-[100px] -mr-40 -mt-40 transition-colors duration-700`}></div>
                         
-                        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                            <div className="flex items-center gap-5">
-                                <div className={`w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center ${config.active_shift ? 'text-emerald-400' : 'text-teal-400'}`}>
-                                    {config.active_shift ? <Icons.CheckCircle size={28} /> : <Icons.Store size={28} />}
+                        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8">
+                            <div className="flex items-center gap-6">
+                                <div className={`w-16 h-16 rounded-[1.75rem] ${config.active_shift ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'} border-2 flex items-center justify-center shadow-inner`}>
+                                    {config.active_shift ? <CheckCircle size={32} strokeWidth={2.5} /> : <Store size={32} strokeWidth={2.5} />}
                                 </div>
                                 <div>
-                                    <h4 className="text-xl font-bold font-heading text-white tracking-tight">Status Shift Operasional</h4>
-                                    <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
-                                        <span className={`w-1.5 h-1.5 rounded-full ${config.active_shift ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`}></span>
+                                    <h4 className="text-2xl font-black text-slate-900 tracking-tight">Status Shift Operasional</h4>
+                                    <p className="text-sm font-bold text-slate-500 mt-1 flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full ${config.active_shift ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></span>
                                         {config.active_shift 
                                             ? `Shift aktif sejak ${new Date(config.active_shift.opened_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` 
                                             : 'Laci kasir belum dibuka hari ini.'}
@@ -112,20 +94,19 @@ export default function Dashboard({ config }) {
                             </div>
                             
                             {config.active_shift ? (
-                                <a href={route('pos.index')} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-95 uppercase tracking-widest text-center">
-                                    Buka POS
+                                <a href={route('pos.index')} className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-10 py-5 rounded-2xl text-xs font-black transition-all duration-300 shadow-xl shadow-slate-900/20 active:scale-95 uppercase tracking-[0.2em] text-center">
+                                    Mulai POS
                                 </a>
                             ) : (
-                                <a href={route('shifts.index')} className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 px-8 py-4 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 active:scale-95 uppercase tracking-widest text-center">
-                                    Buka Shift
+                                <a href={route('shifts.index')} className="w-full sm:w-auto bg-roxy-primary hover:bg-teal-600 text-white px-10 py-5 rounded-2xl text-xs font-black transition-all duration-300 shadow-xl shadow-roxy-primary/20 active:scale-95 uppercase tracking-[0.2em] text-center">
+                                    Buka Shift Baru
                                 </a>
                             )}
                         </div>
                     </div>
                 )}
 
-                {/* Extra space for bottom nav */}
-                <div className="h-12"></div>
+
             </div>
         </AuthenticatedLayout>
     );

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import * as Icons from 'lucide-react';
+import { Store, CheckCircle, ArrowRight, LogOut, AlertTriangle } from 'lucide-react';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
+import CurrencyInput from '@/Components/CurrencyInput';
 import { formatIDR } from '@/utils/currency';
+import PageHeader from '@/Components/PageHeader';
 
 export default function ShiftIndex({ current_shift, cash_sales, cash_expenses }) {
     const { auth } = usePage().props;
@@ -49,33 +51,20 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-                    <div className="relative">
-                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                        <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                            Manajemen Shift
-                        </h2>
-                        <p className="text-sm text-roxy-text-muted mt-1 font-medium">
-                            {current_shift ? (
-                                <>Shift aktif sejak <span className="text-roxy-primary font-bold">{new Date(current_shift.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></>
-                            ) : 'Belum ada shift aktif hari ini.'}
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className={`bg-white/50 backdrop-blur-sm border border-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm`}>
-                            <div className={`w-2 h-2 rounded-full animate-pulse ${current_shift ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                                {current_shift ? 'Shift Aktif' : 'Shift Tutup'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader 
+                    title="Manajemen Shift"
+                    backHref={route('dashboard')}
+                    subtitle={current_shift ? (
+                        <>Shift aktif sejak <span className="text-roxy-primary font-bold">{new Date(current_shift.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></>
+                    ) : 'Belum ada shift aktif hari ini.'}
+                    badge={current_shift ? 'Shift Aktif' : 'Shift Tutup'}
+                    badgeColor={current_shift ? 'emerald' : 'rose'}
+                />
             }
         >
             <Head title="Shift Kasir" />
 
-            <div className="max-w-4xl mx-auto space-y-8">
+            <div className="max-w-4xl mx-auto space-y-8 landscape:space-y-4">
                 {!current_shift ? (
                     /* Open Shift Card */
                     <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
@@ -83,7 +72,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                             <div className="absolute top-[-50%] right-[-10%] w-64 h-64 bg-teal-500/20 blur-[60px] rounded-full"></div>
                             <div className="relative z-10 flex items-center gap-6">
                                 <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-teal-400">
-                                    <Icons.Store size={32} />
+                                    <Store size={32} />
                                 </div>
                                 <div>
                                     <h3 className="text-2xl font-black font-heading">Buka Shift Kasir</h3>
@@ -95,18 +84,12 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                         <form onSubmit={submitOpen} className="p-6 sm:p-10 space-y-8">
                             <div className="space-y-4">
                                 <InputLabel htmlFor="opening_balance" value="Modal Awal (Cash in Drawer)" className="text-slate-500 font-bold uppercase tracking-wider text-[10px]" />
-                                <div className="relative">
-                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">Rp</div>
-                                    <TextInput
-                                        id="opening_balance"
-                                        type="text"
-                                        className="w-full pl-16 pr-6 py-5 bg-slate-50 border-slate-200 rounded-3xl text-xl font-black text-slate-800 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                                        value={formatInputDisplay(openForm.data.opening_balance)}
-                                        onChange={(e) => handlePriceChange(e.target.value, 'open')}
-                                        placeholder="0"
-                                        required
-                                    />
-                                </div>
+                                <CurrencyInput
+                                    id="opening_balance"
+                                    value={openForm.data.opening_balance}
+                                    onChange={(val) => openForm.setData('opening_balance', val)}
+                                    required
+                                />
                                 {openForm.errors.opening_balance && <p className="text-rose-500 text-xs font-bold">{openForm.errors.opening_balance}</p>}
                             </div>
 
@@ -131,7 +114,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                                 ) : (
                                     <>
                                         Mulai Shift Sekarang
-                                        <Icons.ArrowRight size={20} />
+                                        <ArrowRight size={20} />
                                     </>
                                 )}
                             </button>
@@ -144,7 +127,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div className="flex items-center gap-6">
                                     <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-                                        <Icons.CheckCircle size={32} />
+                                        <CheckCircle size={32} />
                                     </div>
                                     <div>
                                         <h3 className="text-2xl font-black">Shift Sedang Aktif</h3>
@@ -165,20 +148,15 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                             </div>
 
                             <form onSubmit={submitClose} className="space-y-8">
-                                <div className="grid md:grid-cols-2 gap-8">
+                                <div className="grid md:grid-cols-2 landscape:grid-cols-2 gap-8 landscape:gap-4">
                                     <div className="space-y-4">
                                         <InputLabel value="Saldo Akhir di Laci (Fisik)" className="text-slate-500 font-bold uppercase tracking-wider text-[10px]" />
-                                        <div className="relative">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">Rp</div>
-                                            <TextInput
-                                                type="text"
-                                                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-slate-200 rounded-3xl text-xl font-black text-slate-800 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
-                                                value={formatInputDisplay(closeForm.data.closing_balance)}
-                                                onChange={(e) => handlePriceChange(e.target.value, 'close')}
-                                                placeholder="0"
-                                                required
-                                            />
-                                        </div>
+                                        <CurrencyInput
+                                            value={closeForm.data.closing_balance}
+                                            onChange={(val) => closeForm.setData('closing_balance', val)}
+                                            className="focus:ring-rose-500/20 focus:border-rose-500"
+                                            required
+                                        />
                                     </div>
 
                                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
@@ -222,14 +200,14 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                                         onClick={() => setShowCloseConfirm(true)}
                                         className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-slate-200 disabled:text-slate-400 text-white py-5 rounded-3xl text-lg font-black transition-all duration-300 shadow-xl shadow-rose-500/20 active:scale-[0.98] uppercase tracking-widest flex items-center justify-center gap-3"
                                     >
-                                        <Icons.LogOut size={20} />
+                                        <LogOut size={20} />
                                         Tutup Shift & Keluar
                                     </button>
                                 ) : (
                                     <div className="border-2 border-rose-300 bg-rose-50 rounded-3xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300">
                                         <div className="flex items-start gap-4">
                                             <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
-                                                <Icons.AlertTriangle size={20} />
+                                                <AlertTriangle size={20} />
                                             </div>
                                             <div>
                                                 <p className="font-black text-rose-800 text-sm">Konfirmasi Tutup Shift?</p>
@@ -253,7 +231,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                                                     <div className="w-5 h-5 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
                                                 ) : (
                                                     <>
-                                                        <Icons.CheckCircle size={16} />
+                                                        <CheckCircle size={16} />
                                                         Ya, Tutup Sekarang
                                                     </>
                                                 )}

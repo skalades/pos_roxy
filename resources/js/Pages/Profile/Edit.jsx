@@ -3,18 +3,17 @@ import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import PageHeader from '@/Components/PageHeader';
 
 export default function Edit({ mustVerifyEmail, status }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="relative">
-                    <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-roxy-primary rounded-full shadow-[0_0_15px_rgba(13,148,136,0.5)]"></div>
-                    <h2 className="text-3xl font-black font-heading leading-tight text-roxy-accent tracking-tight">
-                        Pengaturan Profil
-                    </h2>
-                    <p className="text-sm text-roxy-text-muted mt-1 font-medium">Kelola informasi akun dan keamanan Anda</p>
-                </div>
+                <PageHeader 
+                    title="Pengaturan Profil"
+                    backHref={route('dashboard')}
+                    subtitle="Kelola informasi akun dan keamanan Anda"
+                />
             }
         >
             <Head title="Profile" />

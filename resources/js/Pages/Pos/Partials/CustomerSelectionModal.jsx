@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '@/Components/Modal';
 import * as Icons from 'lucide-react';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
 
-export default function CustomerSelectionModal({ show, onClose, customers, onSelect }) {
+export default function CustomerSelectionModal({ show, onClose, onSelect }) {
     const [search, setSearch] = useState('');
     const [isAdding, setIsAdding] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -12,15 +13,33 @@ export default function CustomerSelectionModal({ show, onClose, customers, onSel
         phone: ''
     });
     
+    const [customers, setCustomers] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (show) {
+            setLoading(true);
+            const delayDebounceFn = setTimeout(() => {
+                axios.get(route('api.pos.customers'), {
+                    params: { search }
+                }).then(res => {
+                    setCustomers(res.data);
+                    setLoading(false);
+                }).catch(err => {
+                    console.error("Error fetching customers", err);
+                    setLoading(false);
+                });
+            }, 300);
+            return () => clearTimeout(delayDebounceFn);
+        }
+    }, [search, show]);
+
     const capitalize = (str) => {
         if (!str) return '';
         return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
-    const filteredCustomers = customers.filter(customer => 
-        customer.name.toLowerCase().includes(search.toLowerCase()) ||
-        (customer.phone && customer.phone.includes(search))
-    );
+    const filteredCustomers = customers;
 
     const handleQuickAdd = (e) => {
         e.preventDefault();
