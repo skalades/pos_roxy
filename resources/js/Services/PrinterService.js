@@ -114,9 +114,10 @@ class PrinterService {
                     if (imgData && height > 0) {
                         this.encoder
                             .align('center')
-                            .image(imgData, logoWidth, height, 'threshold', 128);
+                            .image(imgData, logoWidth, height, 'floyd-steinberg')
+                            .newline();
                         
-                        console.log('Logo added to encoder successfully');
+                        console.log('Logo added to encoder with floyd-steinberg');
                     } else {
                         console.warn('Logo processed but has no content (height 0)');
                     }
@@ -233,12 +234,13 @@ class PrinterService {
      * Send data in chunks (BLE has a limit of ~20-512 bytes per packet)
      */
     async _sendInChunks(data) {
-        const chunkSize = 100; // Tingkatkan ke 100 bytes untuk pengiriman gambar lebih cepat
+        const chunkSize = 20; // Gunakan chunk size standar BLE (20 bytes) untuk stabilitas maksimal
+        console.log(`Sending ${data.length} bytes in ${chunkSize} byte chunks...`);
         for (let i = 0; i < data.length; i += chunkSize) {
             const chunk = data.slice(i, i + chunkSize);
             await this.characteristic.writeValue(chunk);
-            // Tambahkan delay sangat kecil agar buffer printer tidak meluap
-            await new Promise(r => setTimeout(r, 10));
+            // Tambahkan delay sedikit lebih besar untuk mengizinkan printer memproses buffer gambar
+            await new Promise(r => setTimeout(r, 20));
         }
     }
 
