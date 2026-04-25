@@ -62,7 +62,7 @@ class TransactionController extends Controller
 
     public function show($id)
     {
-        $transaction = Transaction::with(['customer', 'cashier', 'items.item', 'items.barber'])
+        $transaction = Transaction::with(['customer', 'cashier', 'items.item', 'items.barber', 'branch'])
             ->findOrFail($id);
             
         return response()->json($transaction);

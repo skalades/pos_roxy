@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2 } from 'lucide-react';
+import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2, Loader2 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 import { formatIDR } from '@/utils/currency';
 import Modal from '@/Components/Modal';
+import { usePage } from '@inertiajs/react';
+import printerService from '@/Services/PrinterService';
+import { formatDate, formatTime } from '@/utils/datetime';
 
 const FILTER_OPTIONS = [
     { id: 'all', label: 'Semua Waktu' },
@@ -14,11 +17,13 @@ const FILTER_OPTIONS = [
 ];
 
 export default function TransactionIndex({ transactions, filters }) {
+    const { app_settings } = usePage().props;
     const [search, setSearch] = useState(filters.search || '');
     const [activeFilter, setActiveFilter] = useState(filters.date_filter || 'all');
     const [showFilter, setShowFilter] = useState(false);
     const [selectedTrx, setSelectedTrx] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [printing, setPrinting] = useState(false);
 
     const applyFilters = (overrides = {}) => {
         const params = {
@@ -53,6 +58,42 @@ export default function TransactionIndex({ transactions, filters }) {
             setShowModal(true);
         } catch (error) {
             console.error('Failed to fetch transaction detail', error);
+        }
+    };
+
+    const handlePrint = async (trx) => {
+        setPrinting(true);
+        try {
+            // Transform transaction data for printer
+            const receiptData = {
+                storeName: app_settings.app_name,
+                branchName: trx.branch?.name || '',
+                branchAddress: trx.branch?.address || '',
+                cashierName: trx.cashier?.name || '',
+                date: formatDate(new Date(trx.created_at)),
+                time: formatTime(new Date(trx.created_at)),
+                paymentMethod: trx.payment_method,
+                orderId: trx.transaction_number,
+                items: trx.items.map(item => ({
+                    name: item.item_name,
+                    quantity: item.quantity,
+                    price: item.unit_price,
+                    barber_name: item.barber?.name,
+                    commission_rate: item.commission_rate || 0
+                })),
+                total: trx.total_amount,
+                payment: trx.total_amount, // For history, we assume exact payment
+                change: 0,
+                website: app_settings.app_website,
+                instagram: app_settings.app_instagram,
+                whatsapp: app_settings.app_whatsapp
+            };
+
+            await printerService.printReceipt(receiptData, app_settings.receipt_logo);
+        } catch (error) {
+            alert('Gagal mencetak: ' + error.message);
+        } finally {
+            setPrinting(false);
         }
     };
 
@@ -169,12 +210,31 @@ export default function TransactionIndex({ transactions, filters }) {
                                             <span className="text-sm font-black text-roxy-primary">{formatIDR(trx.total_amount)}</span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
-                                            <button
-                                                onClick={() => fetchDetail(trx.id)}
-                                                className="p-2 hover:bg-roxy-primary/10 text-slate-400 hover:text-roxy-primary rounded-xl transition-all"
-                                            >
-                                                <Eye size={20} />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        fetchDetail(trx.id).then(() => {
+                                                            // We fetch detail first to get full data including branch
+                                                        });
+                                                    }}
+                                                    className="p-2 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-xl transition-all"
+                                                    title="Lihat Detail"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        // Fetch full data for printing
+                                                        const response = await fetch(route('transactions.show', trx.id));
+                                                        const fullTrx = await response.json();
+                                                        handlePrint(fullTrx);
+                                                    }}
+                                                    className="p-2 hover:bg-teal-50 text-teal-400 hover:text-teal-600 rounded-xl transition-all"
+                                                    title="Cetak Struk Cepat"
+                                                >
+                                                    <Printer size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -325,8 +385,12 @@ export default function TransactionIndex({ transactions, filters }) {
                         </div>
 
                         <div className="flex gap-4 pt-2">
-                            <button className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors active:scale-95">
-                                <Printer size={18} />
+                            <button 
+                                disabled={printing}
+                                onClick={() => handlePrint(selectedTrx)}
+                                className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors active:scale-95 disabled:opacity-50"
+                            >
+                                {printing ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
                                 Cetak Struk
                             </button>
                             <button className="flex-1 bg-teal-500 text-slate-900 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-teal-400 transition-colors active:scale-95">
