@@ -7,6 +7,7 @@ use App\Models\CashOperation;
 use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
