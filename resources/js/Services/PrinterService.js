@@ -301,9 +301,6 @@ class PrinterService {
                     .line(`Total Fisik : ${data.closingBalance.toLocaleString('id-ID')}`)
                     .line(`Selisih     : ${data.difference.toLocaleString('id-ID')}`)
                     .line('-'.repeat(32))
-                    .line(`TOTAL PENDAPATAN (GABUNGAN):`)
-                    .line(`${totalAllMethods.toLocaleString('id-ID').padStart(32)}`)
-                    .line('-'.repeat(32))
                     .line('Metode Pembayaran:')
                     .align('left');
 
@@ -314,14 +311,17 @@ class PrinterService {
                 });
 
                 this.encoder.line('-'.repeat(32))
+                    .line(`TOTAL PENDAPATAN (GABUNGAN):`)
+                    .line(`${totalAllMethods.toLocaleString('id-ID').padStart(32)}`)
+                    .line('-'.repeat(32))
                     .line('Rincian Layanan:')
                     .align('left');
 
                 (data.servicesBreakdown || []).forEach(s => {
-                    const name = s.item_name.substring(0, 20).padEnd(20);
-                    const qty = s.qty.toString().padStart(3);
-                    const total = Number(s.total).toLocaleString('id-ID').padStart(9);
-                    this.encoder.line(`${name}${qty}${total}`);
+                    const nameWithQty = `${s.item_name} (${s.qty})`;
+                    const priceStr = Number(s.total).toLocaleString('id-ID');
+                    const spaceCount = Math.max(1, 32 - nameWithQty.length - priceStr.length);
+                    this.encoder.line(nameWithQty + ' '.repeat(spaceCount) + priceStr);
                 });
 
                 this.encoder.line('-'.repeat(32))
@@ -329,10 +329,10 @@ class PrinterService {
                     .align('left');
 
                 (data.productsBreakdown || []).forEach(p => {
-                    const name = p.item_name.substring(0, 20).padEnd(20);
-                    const qty = p.qty.toString().padStart(3);
-                    const total = Number(p.total).toLocaleString('id-ID').padStart(9);
-                    this.encoder.line(`${name}${qty}${total}`);
+                    const nameWithQty = `${p.item_name} (${p.qty})`;
+                    const priceStr = Number(p.total).toLocaleString('id-ID');
+                    const spaceCount = Math.max(1, 32 - nameWithQty.length - priceStr.length);
+                    this.encoder.line(nameWithQty + ' '.repeat(spaceCount) + priceStr);
                 });
 
                 this.encoder.line('-'.repeat(32))
