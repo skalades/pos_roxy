@@ -40,8 +40,8 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
         
         // Ambil nama-nama barber yang melayani (unik)
         const uniqueBarbers = [...new Set(cart
-            .filter(item => item.barber)
-            .map(item => item.barber.name)
+            .filter(item => item.barber_id)
+            .map(item => item.barber_name)
         )];
         const barberName = uniqueBarbers.length > 0 ? uniqueBarbers.join(', ') : '-';
 

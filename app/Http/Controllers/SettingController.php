@@ -64,7 +64,7 @@ class SettingController extends Controller
     public function updateBranch(Request $request, Branch $branch)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'phone' => 'nullable|string',
             'email' => 'nullable|email',
             'address' => 'nullable|string',
@@ -75,7 +75,7 @@ class SettingController extends Controller
             'longitude' => 'nullable|numeric',
             'geofence_radius' => 'nullable|numeric',
             'require_attendance_for_shift' => 'nullable|boolean',
-            'tax_rate' => 'required|numeric|min:0|max:100',
+            'tax_rate' => 'sometimes|required|numeric|min:0|max:100',
             'enable_tax' => 'nullable|boolean',
             'late_penalty_amount' => 'nullable|numeric|min:0',
             'enable_attendance_deduction' => 'nullable|boolean',

@@ -8,12 +8,10 @@ export default function SettingsIndex({ settings, branches, promotions }) {
     const [activeTab, setActiveTab] = useState('branding');
 
     const tabs = [
-        { id: 'branding', label: 'Sistem & UI', icon: Layout },
+        { id: 'branding', label: 'Sistem & Branding', icon: Layout },
         { id: 'loyalty', label: 'Member & Loyalitas', icon: ShieldCheck },
         { id: 'promo', label: 'Event & Promosi', icon: Tag },
-        { id: 'branch', label: 'Profil Toko', icon: Store },
-        { id: 'ops', label: 'Absensi & Lokasi', icon: MapPin },
-        { id: 'finance', label: 'Keuangan & Pajak', icon: Percent },
+        { id: 'branch', label: 'Cabang & Operasional', icon: Store },
     ];
 
     return (
@@ -56,8 +54,6 @@ export default function SettingsIndex({ settings, branches, promotions }) {
                         {activeTab === 'loyalty' && <LoyaltyTab settings={settings} />}
                         {activeTab === 'promo' && <PromotionTab promotions={promotions} branches={branches} />}
                         {activeTab === 'branch' && <BranchTab branches={branches} />}
-                        {activeTab === 'ops' && <OpsTab branches={branches} />}
-                        {activeTab === 'finance' && <FinanceTab branches={branches} />}
                     </div>
                 </div>
             </div>
@@ -69,7 +65,7 @@ function BrandingTab({ settings }) {
     const [preview, setPreview] = useState(settings.app_logo || null);
     const [previewReceipt, setPreviewReceipt] = useState(settings.receipt_logo || null);
     const { data, setData, post, processing, recentlySuccessful } = useForm({
-        app_name: settings.app_name || 'Roxy POS',
+        app_name: settings.app_name || '',
         app_website: settings.app_website || '',
         app_instagram: settings.app_instagram || '',
         app_whatsapp: settings.app_whatsapp || '',
@@ -236,22 +232,7 @@ function BrandingTab({ settings }) {
     );
 }
 
-function BranchTab({ branches }) {
-    return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Profil Toko / Cabang</h3>
-                <p className="text-sm text-slate-500 font-medium mt-1">Kelola data operasional setiap cabang</p>
-            </div>
 
-            <div className="space-y-6">
-                {branches.map((branch) => (
-                    <BranchForm key={branch.id} branch={branch} />
-                ))}
-            </div>
-        </div>
-    );
-}
 
 function BranchForm({ branch }) {
     const { data, setData, post, processing, recentlySuccessful } = useForm({
@@ -354,19 +335,26 @@ function BranchForm({ branch }) {
                 </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4">
-                <button
-                    disabled={processing}
-                    type="submit"
-                    className="px-8 py-3.5 bg-white text-slate-900 border border-slate-200 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
-                >
-                    <Save size={16} className="text-teal-500" />
-                    Simpan Cabang
-                </button>
-                {recentlySuccessful && (
-                    <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">Berhasil!</span>
-                )}
-            </div>
+                <div className="flex items-center gap-4">
+                    {recentlySuccessful && (
+                        <div className="flex items-center gap-2 text-teal-600 animate-in fade-in slide-in-from-left-4">
+                            <CheckCircle2 size={16} />
+                            <span className="text-xs font-bold uppercase tracking-widest">Tersimpan!</span>
+                        </div>
+                    )}
+                    <button
+                        disabled={processing}
+                        type="submit"
+                        className={`px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm ${
+                            recentlySuccessful 
+                            ? 'bg-teal-500 text-white border-teal-500' 
+                            : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50'
+                        }`}
+                    >
+                        <Save size={16} className={recentlySuccessful ? 'text-white' : 'text-teal-500'} />
+                        {recentlySuccessful ? 'Data Diperbarui' : 'Simpan Cabang'}
+                    </button>
+                </div>
         </form>
     );
 }
@@ -682,18 +670,74 @@ function PromotionTab({ promotions, branches }) {
     );
 }
 
-function OpsTab({ branches }) {
-    return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Absensi & Geofence</h3>
-                <p className="text-sm text-slate-500 font-medium mt-1">Atur radius absensi dan lokasi setiap cabang</p>
-            </div>
+function BranchTab({ branches }) {
+    const [selectedBranch, setSelectedBranch] = useState(branches[0]);
+    const [activeSubTab, setActiveSubTab] = useState('profile');
 
-            <div className="space-y-6">
-                {branches.map((branch) => (
-                    <OpsForm key={branch.id} branch={branch} />
-                ))}
+    if (!selectedBranch) return null;
+
+    return (
+        <div className="animate-in fade-in duration-500 h-full flex flex-col">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                {/* Branch Selection List */}
+                <div className="xl:col-span-4 space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-2">Pilih Cabang</p>
+                    {branches.map((branch) => (
+                        <button
+                            key={branch.id}
+                            type="button"
+                            onClick={() => setSelectedBranch(branch)}
+                            className={`w-full flex items-center gap-4 p-5 rounded-[1.8rem] border-2 transition-all text-left ${
+                                selectedBranch.id === branch.id
+                                ? 'bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/10'
+                                : 'bg-white border-slate-50 text-slate-500 hover:border-slate-200'
+                            }`}
+                        >
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                                selectedBranch.id === branch.id ? 'bg-roxy-primary text-slate-900' : 'bg-slate-100 text-slate-400'
+                            }`}>
+                                {branch.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm truncate">{branch.name}</p>
+                                <p className={`text-[10px] uppercase tracking-wider font-black mt-0.5 opacity-50`}>
+                                    ID: {branch.id.toString().padStart(3, '0')}
+                                </p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Branch Settings Content */}
+                <div className="xl:col-span-8 space-y-6">
+                    {/* Internal Sub-Tabs */}
+                    <div className="bg-slate-50 p-2 rounded-[2rem] border border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-inner">
+                        {[
+                            { id: 'profile', name: 'Profil', icon: Store },
+                            { id: 'ops', name: 'Operasional', icon: MapPin },
+                            { id: 'finance', name: 'Keuangan', icon: Percent },
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveSubTab(tab.id)}
+                                className={`flex items-center justify-center gap-2 px-6 py-3.5 rounded-[1.4rem] font-bold text-[10px] uppercase tracking-widest whitespace-nowrap transition-all flex-1 ${
+                                    activeSubTab === tab.id
+                                    ? 'bg-white text-slate-900 shadow-lg shadow-slate-900/5'
+                                    : 'bg-transparent text-slate-400 hover:bg-slate-100/50'
+                                }`}
+                            >
+                                <tab.icon size={14} className={activeSubTab === tab.id ? 'text-roxy-primary' : 'text-slate-300'} />
+                                {tab.name}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="animate-in zoom-in-95 duration-300">
+                        {activeSubTab === 'profile' && <BranchForm branch={selectedBranch} />}
+                        {activeSubTab === 'ops' && <OpsForm branch={selectedBranch} />}
+                        {activeSubTab === 'finance' && <FinanceForm branch={selectedBranch} />}
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -769,44 +813,36 @@ function OpsForm({ branch }) {
                 </div>
             </div>
 
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-4 flex items-center justify-end gap-4">
+                {recentlySuccessful && (
+                    <div className="flex items-center gap-2 text-teal-600 animate-in fade-in slide-in-from-left-4">
+                        <CheckCircle2 size={16} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Berhasil Disimpan</span>
+                    </div>
+                )}
                 <button
                     disabled={processing}
                     type="submit"
-                    className="px-8 py-3 bg-white text-slate-900 border border-slate-200 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
+                    className={`px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm ${
+                        recentlySuccessful 
+                        ? 'bg-teal-500 text-white border-teal-500' 
+                        : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50'
+                    }`}
                 >
-                    <Save size={16} className="text-teal-500" />
-                    Update Lokasi
+                    <Save size={16} className={recentlySuccessful ? 'text-white' : 'text-teal-500'} />
+                    {recentlySuccessful ? 'Terupdate' : 'Update Lokasi'}
                 </button>
-                {recentlySuccessful && (
-                    <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">Tersimpan!</span>
-                )}
             </div>
         </form>
     );
 }
 
-function FinanceTab({ branches }) {
-    return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Keuangan & Pajak</h3>
-                <p className="text-sm text-slate-500 font-medium mt-1">Kelola pajak dan denda keterlambatan</p>
-            </div>
 
-            <div className="space-y-6">
-                {branches.map((branch) => (
-                    <FinanceForm key={branch.id} branch={branch} />
-                ))}
-            </div>
-        </div>
-    );
-}
 
 function FinanceForm({ branch }) {
     const { data, setData, post, processing, recentlySuccessful } = useForm({
-        tax_rate: branch.tax_rate,
-        enable_tax: branch.enable_tax,
+        tax_rate: branch.tax_rate || 0,
+        enable_tax: branch.enable_tax || false,
         late_penalty_amount: branch.late_penalty_amount || 0,
         enable_attendance_deduction: branch.enable_attendance_deduction || false,
     });
@@ -878,18 +914,25 @@ function FinanceForm({ branch }) {
                 </div>
             </div>
 
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-4 flex items-center justify-end gap-4">
+                {recentlySuccessful && (
+                    <div className="flex items-center gap-2 text-teal-600 animate-in fade-in slide-in-from-left-4">
+                        <CheckCircle2 size={16} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Tersimpan!</span>
+                    </div>
+                )}
                 <button
                     disabled={processing}
                     type="submit"
-                    className="px-8 py-3 bg-white text-slate-900 border border-slate-200 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
+                    className={`px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm ${
+                        recentlySuccessful 
+                        ? 'bg-teal-500 text-white border-teal-500' 
+                        : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50'
+                    }`}
                 >
-                    <Save size={16} className="text-teal-500" />
-                    Update Keuangan
+                    <Save size={16} className={recentlySuccessful ? 'text-white' : 'text-teal-500'} />
+                    {recentlySuccessful ? 'Data Diperbarui' : 'Update Keuangan'}
                 </button>
-                {recentlySuccessful && (
-                    <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">Tersimpan!</span>
-                )}
             </div>
         </form>
     );
