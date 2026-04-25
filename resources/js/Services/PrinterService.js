@@ -170,10 +170,12 @@ class PrinterService {
      * Send data in chunks (BLE has a limit of ~20-512 bytes per packet)
      */
     async _sendInChunks(data) {
-        const chunkSize = 20; // Safe for all BLE devices
+        const chunkSize = 100; // Tingkatkan ke 100 bytes untuk pengiriman gambar lebih cepat
         for (let i = 0; i < data.length; i += chunkSize) {
             const chunk = data.slice(i, i + chunkSize);
             await this.characteristic.writeValue(chunk);
+            // Tambahkan delay sangat kecil agar buffer printer tidak meluap
+            await new Promise(r => setTimeout(r, 10));
         }
     }
 
@@ -193,22 +195,33 @@ class PrinterService {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 
-                // Background putih
+                // FORCE WHITE BACKGROUND (Penting untuk transparansi)
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, width, height);
                 
-                ctx.imageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = true;
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // Logika High-Contrast
+                // Ambil data gambar untuk diolah
                 const imageData = ctx.getImageData(0, 0, width, height);
                 const data = imageData.data;
+
+                // Pre-process: Handle transparency & High Contrast
                 for (let i = 0; i < data.length; i += 4) {
-                    const grayscale = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
-                    const val = grayscale < 220 ? 0 : 255; 
-                    data[i] = val;
-                    data[i+1] = val;
-                    data[i+2] = val;
+                    const alpha = data[i+3];
+                    if (alpha < 128) {
+                        // Jika transparan, ubah jadi putih pekat
+                        data[i] = 255;
+                        data[i+1] = 255;
+                        data[i+2] = 255;
+                        data[i+3] = 255;
+                    } else {
+                        // High contrast untuk area berwarna
+                        const grayscale = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+                        const val = grayscale < 180 ? 0 : 255; 
+                        data[i] = data[i+1] = data[i+2] = val;
+                        data[i+3] = 255;
+                    }
                 }
                 ctx.putImageData(imageData, 0, 0);
                 
@@ -218,7 +231,8 @@ class PrinterService {
                 console.warn('Failed to load logo image from:', url);
                 reject(new Error('Image load failed'));
             };
-            img.src = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+            // Tambahkan cache busting
+            img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
         });
     }
 }
