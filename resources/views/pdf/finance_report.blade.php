@@ -50,8 +50,7 @@
         }
         
         .section {
-            margin-bottom: 30px;
-            page-break-inside: avoid;
+            margin-bottom: 25px;
         }
         .section-title {
             background: #f8fafc;
@@ -190,53 +189,58 @@
         </div>
     </div>
 
-    <div style="width: 100%;" class="clearfix">
-        <!-- Payment Methods -->
-        <div style="width: 48%; float: left;" class="section">
-            <div class="section-title">Distribusi Pembayaran</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Metode</th>
-                        <th class="text-right">Frekuensi</th>
-                        <th class="text-right">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($payment_distribution as $item)
-                    <tr>
-                        <td class="text-bold" style="text-transform: uppercase;">{{ $item->payment_method }}</td>
-                        <td class="text-right">{{ $item->count }} Trx</td>
-                        <td class="text-right text-bold">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Barber Commissions -->
-        <div style="width: 48%; float: right;" class="section">
-            <div class="section-title">Komisi & Performa Barber</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nama Barber</th>
-                        <th class="text-right">Layanan</th>
-                        <th class="text-right">Total Komisi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($barber_commissions as $bc)
-                    <tr>
-                        <td class="text-bold">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
-                        <td class="text-right">{{ $bc->total_services }} x</td>
-                        <td class="text-right text-indigo text-bold">Rp {{ number_format($bc->total_commission, 0, ',', '.') }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <table style="width: 100%; border: none; margin-bottom: 0;">
+        <tr>
+            <td style="width: 48%; padding: 0; border: none; vertical-align: top;">
+                <div class="section">
+                    <div class="section-title">Distribusi Pembayaran</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metode</th>
+                                <th class="text-right">Trx</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($payment_distribution as $item)
+                            <tr>
+                                <td class="text-bold" style="text-transform: uppercase;">{{ $item->payment_method }}</td>
+                                <td class="text-right">{{ $item->count }}</td>
+                                <td class="text-right text-bold">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+            <td style="width: 4%; border: none;"></td>
+            <td style="width: 48%; padding: 0; border: none; vertical-align: top;">
+                <!-- Barber Commissions -->
+                <div class="section">
+                    <div class="section-title">Komisi & Performa Barber</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Barber</th>
+                                <th class="text-right">Layanan</th>
+                                <th class="text-right">Komisi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($barber_commissions as $bc)
+                            <tr>
+                                <td class="text-bold">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
+                                <td class="text-right">{{ $bc->total_services }} x</td>
+                                <td class="text-right text-indigo text-bold">Rp {{ number_format($bc->total_commission, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     <!-- Shifts & Cash Log -->
     <div class="section">
@@ -275,7 +279,7 @@
         </table>
     </div>
 
-    <div style="page-break-before: always;"></div>
+    <div style="margin-top: 30px;"></div>
 
     <!-- Transaction Detail -->
     <div class="section">

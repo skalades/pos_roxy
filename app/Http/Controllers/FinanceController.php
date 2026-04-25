@@ -151,6 +151,8 @@ class FinanceController extends Controller
         // 3. Payment Method Distribution
         $paymentDistribution = Transaction::select('payment_method', DB::raw('SUM(total_amount) as total'), DB::raw('COUNT(*) as count'))
             ->whereBetween('created_at', $dateRange)
+            ->whereNotNull('payment_method')
+            ->where('payment_method', '!=', '')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->groupBy('payment_method')
             ->get();
