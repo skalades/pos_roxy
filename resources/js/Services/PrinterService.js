@@ -257,7 +257,13 @@ class PrinterService {
         return new Promise((resolve, reject) => {
             console.log('Loading image from URL:', url);
             const img = new Image();
-            img.crossOrigin = 'Anonymous';
+            
+            // Cek apakah URL adalah cross-domain
+            const isCrossDomain = url.startsWith('http') && !url.startsWith(window.location.origin);
+            if (isCrossDomain) {
+                img.crossOrigin = 'Anonymous';
+            }
+            
             img.onload = () => {
                 const aspect = img.height / img.width;
                 const height = Math.round(width * aspect);
