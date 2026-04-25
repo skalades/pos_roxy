@@ -37,7 +37,7 @@ class HandleInertiaRequests extends Middleware
             'app_settings' => [
                 'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
                 'app_logo' => \App\Models\Setting::get('app_logo') 
-                    ? asset('storage/' . \App\Models\Setting::get('app_logo')) 
+                    ? '/storage/' . \App\Models\Setting::get('app_logo') 
                     : null,
             ],
             'flash' => [
