@@ -124,6 +124,15 @@ class FinanceController extends Controller
         $branch = $branchId ? Branch::find($branchId) : null;
         $dateRange = [$startDate . ' 00:00:00', $endDate . ' 23:59:59'];
 
+        // Resolve logo path for dompdf
+        $logoUrl = \App\Models\Setting::get('receipt_logo');
+        $logoPath = null;
+        if ($logoUrl) {
+            $parsedUrl = parse_url($logoUrl, PHP_URL_PATH);
+            $relativePath = str_replace('/storage/', '', $parsedUrl);
+            $logoPath = storage_path('app/public/' . $relativePath);
+        }
+
         // 1. Financial Summary
         $revenue = Transaction::whereBetween('created_at', $dateRange)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
@@ -193,7 +202,7 @@ class FinanceController extends Controller
 
         $data = [
             'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
-            'app_logo' => \App\Models\Setting::get('receipt_logo'),
+            'app_logo' => $logoPath,
             'report_date' => now()->format('d M Y H:i'),
             'period' => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
             'branch' => $branch ? $branch->name : 'Semua Cabang',

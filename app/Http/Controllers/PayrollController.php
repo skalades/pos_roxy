@@ -132,9 +132,18 @@ class PayrollController extends Controller
 
         $branch = $branchId ? Branch::find($branchId) : null;
 
+        // Resolve logo path for dompdf
+        $logoUrl = \App\Models\Setting::get('receipt_logo');
+        $logoPath = null;
+        if ($logoUrl) {
+            $parsedUrl = parse_url($logoUrl, PHP_URL_PATH);
+            $relativePath = str_replace('/storage/', '', $parsedUrl);
+            $logoPath = storage_path('app/public/' . $relativePath);
+        }
+
         $data = [
             'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
-            'app_logo' => \App\Models\Setting::get('receipt_logo'),
+            'app_logo' => $logoPath,
             'report_date' => now()->format('d M Y H:i'),
             'period_label' => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
             'branch_name' => $branch ? $branch->name : 'Semua Cabang',
