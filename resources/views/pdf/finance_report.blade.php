@@ -194,7 +194,7 @@
 
     <table style="width: 100%; border: none; margin-bottom: 0;">
         <tr>
-            <td style="width: 48%; padding: 0; border: none; vertical-align: top;">
+            <td style="width: 35%; padding: 0; border: none; vertical-align: top;">
                 <div class="section">
                     <div class="section-title">Distribusi Pembayaran</div>
                     <table>
@@ -208,21 +208,21 @@
                         <tbody>
                             @foreach($payment_distribution as $item)
                             <tr>
-                                <td class="text-bold" style="text-transform: uppercase;">{{ $item->payment_method }}</td>
-                                <td class="text-right">{{ $item->count }}</td>
-                                <td class="text-right text-bold">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
+                                <td class="text-bold" style="text-transform: uppercase; font-size: 9px;">{{ $item->payment_method }}</td>
+                                <td class="text-right" style="font-size: 9px;">{{ $item->count }}</td>
+                                <td class="text-right text-bold" style="white-space: nowrap; font-size: 9px;">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
             </td>
-            <td style="width: 4%; border: none;"></td>
-            <td style="width: 48%; padding: 0; border: none; vertical-align: top;">
+            <td style="width: 3%; border: none;"></td>
+            <td style="width: 62%; padding: 0; border: none; vertical-align: top;">
                 <!-- Barber Commissions -->
                 <div class="section">
                     <div class="section-title">Gaji & Komisi Barber</div>
-                    <table>
+                    <table style="font-size: 9px;">
                         <thead>
                             <tr>
                                 <th>Barber</th>
@@ -239,11 +239,11 @@
                                 $comm = (float)$bc->total_commission;
                             @endphp
                             <tr>
-                                <td class="text-bold">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
-                                <td class="text-right">{{ $bc->total_services }} x</td>
-                                <td class="text-right">Rp {{ number_format($salary, 0, ',', '.') }}</td>
-                                <td class="text-right text-indigo">Rp {{ number_format($comm, 0, ',', '.') }}</td>
-                                <td class="text-right text-bold">Rp {{ number_format($salary + $comm, 0, ',', '.') }}</td>
+                                <td class="text-bold" style="white-space: nowrap;">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
+                                <td class="text-right">{{ $bc->total_services }}x</td>
+                                <td class="text-right" style="white-space: nowrap;">Rp{{ number_format($salary, 0, ',', '.') }}</td>
+                                <td class="text-right text-indigo" style="white-space: nowrap;">Rp{{ number_format($comm, 0, ',', '.') }}</td>
+                                <td class="text-right text-bold" style="white-space: nowrap;">Rp{{ number_format($salary + $comm, 0, ',', '.') }}</td>
                             </tr>
                             @endforeach
                         </tbody>
