@@ -22,6 +22,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
         const source = data || current_shift;
         
         if (!source) {
+            alert('Data laporan tidak ditemukan. Silakan refresh halaman.');
             console.error('Print Error: No source data found', { type, data, current_shift });
             return;
         }
