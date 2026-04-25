@@ -18,7 +18,12 @@ trait HasRoles
         // Fallback to 'role' column if exists
         if (isset($this->role)) {
             if (is_array($role)) {
-                if (in_array($this->role, $role)) return true;
+                $normalizedUserRole = str_replace('_', '', $this->role);
+                foreach ($role as $r) {
+                    if ($this->role === $r || $normalizedUserRole === str_replace('_', '', $r)) {
+                        return true;
+                    }
+                }
             } else {
                 if ($this->role === $role) return true;
                 // Check with underscore too (e.g. superadmin vs super_admin)

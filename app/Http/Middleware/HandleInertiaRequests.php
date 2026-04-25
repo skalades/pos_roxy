@@ -54,9 +54,10 @@ class HandleInertiaRequests extends Middleware
         if (!$logo) return null;
         if (str_starts_with($logo, 'http')) return $logo;
         
-        // Pastikan ada prefix logos/ jika belum ada
-        $path = str_starts_with($logo, 'logos/') ? $logo : 'logos/' . $logo;
+        // Remove /storage/ or storage/ if present
+        $cleanPath = ltrim($logo, '/');
+        $cleanPath = preg_replace('/^storage\//', '', $cleanPath);
         
-        return asset('storage/' . $path);
+        return asset('storage/' . $cleanPath);
     }
 }

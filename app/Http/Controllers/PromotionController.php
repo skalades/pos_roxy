@@ -12,10 +12,7 @@ class PromotionController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Settings/Promotions/Index', [
-            'promotions' => Promotion::with('branch')->orderBy('start_date', 'desc')->get(),
-            'branches' => Branch::all(),
-        ]);
+        return redirect()->route('settings.index', ['tab' => 'promo']);
     }
 
     public function store(Request $request)

@@ -40,22 +40,22 @@ class SettingController extends Controller
         if ($request->hasFile('app_logo')) {
             $oldLogo = Setting::get('app_logo');
             if ($oldLogo) {
-                $cleanPath = str_replace(Storage::url(''), '', $oldLogo);
+                $cleanPath = ltrim(str_replace(Storage::url(''), '', $oldLogo), '/');
                 Storage::disk('public')->delete($cleanPath);
             }
             $path = $request->file('app_logo')->store('logos', 'public');
-            Setting::set('app_logo', $path, 'ui');
+            Setting::set('app_logo', Storage::url($path), 'ui');
         }
 
         // Handle Receipt Logo
         if ($request->hasFile('receipt_logo')) {
             $oldReceiptLogo = Setting::get('receipt_logo');
             if ($oldReceiptLogo) {
-                $cleanPath = str_replace(Storage::url(''), '', $oldReceiptLogo);
+                $cleanPath = ltrim(str_replace(Storage::url(''), '', $oldReceiptLogo), '/');
                 Storage::disk('public')->delete($cleanPath);
             }
             $path = $request->file('receipt_logo')->store('logos', 'public');
-            Setting::set('receipt_logo', $path, 'ui');
+            Setting::set('receipt_logo', Storage::url($path), 'ui');
         }
 
         return back()->with('success', 'Pengaturan tampilan berhasil diperbarui!');
@@ -95,5 +95,23 @@ class SettingController extends Controller
         Setting::set('member_discount_rate', $validated['member_discount_rate'], 'loyalty');
 
         return back()->with('success', 'Pengaturan loyalitas berhasil diperbarui!');
+    }
+
+    public function deleteLogo(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:app_logo,receipt_logo',
+        ]);
+
+        $key = $request->type;
+        $oldLogo = Setting::get($key);
+
+        if ($oldLogo) {
+            $cleanPath = ltrim(str_replace(Storage::url(''), '', $oldLogo), '/');
+            Storage::disk('public')->delete($cleanPath);
+            Setting::set($key, null, 'ui');
+        }
+
+        return back()->with('success', 'Logo berhasil dihapus!');
     }
 }

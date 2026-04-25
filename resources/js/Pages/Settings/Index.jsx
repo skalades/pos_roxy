@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { Layout, Store, Percent, Tag, MapPin, ShieldCheck, Save, Upload, X, CheckCircle2, Pencil, Printer } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 
 export default function SettingsIndex({ settings, branches, promotions }) {
-    const [activeTab, setActiveTab] = useState('branding');
+    const queryParams = new URLSearchParams(window.location.search);
+    const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'branding');
 
     const tabs = [
         { id: 'branding', label: 'Sistem & Branding', icon: Layout },
@@ -34,7 +35,12 @@ export default function SettingsIndex({ settings, branches, promotions }) {
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => {
+                                        setActiveTab(tab.id);
+                                        const url = new URL(window.location);
+                                        url.searchParams.set('tab', tab.id);
+                                        window.history.pushState({}, '', url);
+                                    }}
                                     className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all ${
                                         activeTab === tab.id
                                         ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20'
@@ -64,7 +70,7 @@ export default function SettingsIndex({ settings, branches, promotions }) {
 function BrandingTab({ settings }) {
     const [preview, setPreview] = useState(settings.app_logo || null);
     const [previewReceipt, setPreviewReceipt] = useState(settings.receipt_logo || null);
-    const { data, setData, post, processing, recentlySuccessful } = useForm({
+    const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
         app_name: settings.app_name || '',
         app_website: settings.app_website || '',
         app_instagram: settings.app_instagram || '',
@@ -83,6 +89,26 @@ function BrandingTab({ settings }) {
                 else setPreviewReceipt(reader.result);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDeleteLogo = (type) => {
+        if (confirm('Apakah Anda yakin ingin menghapus logo ini?')) {
+            router.post(route('settings.ui.delete-logo'), { type }, {
+                onSuccess: () => {
+                    if (type === 'app_logo') {
+                        setPreview(null);
+                        setData('app_logo', null);
+                        const el = document.getElementById('logo-upload');
+                        if (el) el.value = '';
+                    } else {
+                        setPreviewReceipt(null);
+                        setData('receipt_logo', null);
+                        const el = document.getElementById('receipt-logo-upload');
+                        if (el) el.value = '';
+                    }
+                }
+            });
         }
     };
 
@@ -114,21 +140,33 @@ function BrandingTab({ settings }) {
                                 )}
                             </div>
                             <div className="flex-1 space-y-3">
-                                <input
-                                    type="file"
-                                    id="logo-upload"
-                                    className="hidden"
-                                    onChange={(e) => handleFileChange(e, 'app_logo')}
-                                    accept="image/*"
-                                />
-                                <label
-                                    htmlFor="logo-upload"
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
-                                >
-                                    <Upload size={14} />
-                                    Upload Logo App
-                                </label>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <input
+                                        type="file"
+                                        id="logo-upload"
+                                        className="hidden"
+                                        onChange={(e) => handleFileChange(e, 'app_logo')}
+                                        accept="image/*"
+                                    />
+                                    <label
+                                        htmlFor="logo-upload"
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
+                                    >
+                                        <Upload size={14} />
+                                        Upload Logo App
+                                    </label>
+                                    {preview && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteLogo('app_logo')}
+                                            className="p-2.5 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="text-[9px] text-slate-400 font-medium">Logo utama untuk Dashboard & Login</p>
+                                {errors.app_logo && <p className="text-[10px] text-rose-500 font-bold">{errors.app_logo}</p>}
                             </div>
                         </div>
                     </div>
@@ -145,21 +183,33 @@ function BrandingTab({ settings }) {
                                 )}
                             </div>
                             <div className="flex-1 space-y-3">
-                                <input
-                                    type="file"
-                                    id="receipt-logo-upload"
-                                    className="hidden"
-                                    onChange={(e) => handleFileChange(e, 'receipt_logo')}
-                                    accept="image/*"
-                                />
-                                <label
-                                    htmlFor="receipt-logo-upload"
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
-                                >
-                                    <Upload size={14} />
-                                    Upload Logo Struk
-                                </label>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <input
+                                        type="file"
+                                        id="receipt-logo-upload"
+                                        className="hidden"
+                                        onChange={(e) => handleFileChange(e, 'receipt_logo')}
+                                        accept="image/*"
+                                    />
+                                    <label
+                                        htmlFor="receipt-logo-upload"
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
+                                    >
+                                        <Upload size={14} />
+                                        Upload Logo Struk
+                                    </label>
+                                    {previewReceipt && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteLogo('receipt_logo')}
+                                            className="p-2.5 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="text-[9px] text-slate-400 font-medium">Khusus untuk printer termal (Gunakan B&W)</p>
+                                {errors.receipt_logo && <p className="text-[10px] text-rose-500 font-bold">{errors.receipt_logo}</p>}
                             </div>
                         </div>
                     </div>
@@ -174,6 +224,7 @@ function BrandingTab({ settings }) {
                             onChange={e => setData('app_name', e.target.value)}
                             className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
                         />
+                        {errors.app_name && <p className="text-xs text-rose-500 font-bold mt-1">{errors.app_name}</p>}
                     </div>
 
                     <div className="space-y-4">
@@ -235,7 +286,7 @@ function BrandingTab({ settings }) {
 
 
 function BranchForm({ branch }) {
-    const { data, setData, post, processing, recentlySuccessful } = useForm({
+    const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
         name: branch.name,
         phone: branch.phone || '',
         email: branch.email || '',
@@ -274,6 +325,7 @@ function BranchForm({ branch }) {
                         onChange={e => setData('name', e.target.value)}
                         className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                     />
+                    {errors.name && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.name}</p>}
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Cabang</label>
@@ -360,7 +412,7 @@ function BranchForm({ branch }) {
 }
 
 function LoyaltyTab({ settings }) {
-    const { data, setData, post, processing, recentlySuccessful } = useForm({
+    const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
         member_discount_rate: settings.member_discount_rate || 0,
     });
 
@@ -396,6 +448,7 @@ function LoyaltyTab({ settings }) {
                             onChange={e => setData('member_discount_rate', e.target.value)}
                             className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-xl font-black focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all"
                         />
+                        {errors.member_discount_rate && <p className="text-xs text-rose-500 font-bold mt-2">{errors.member_discount_rate}</p>}
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                     </div>
                 </div>
@@ -422,7 +475,7 @@ function PromotionTab({ promotions, branches }) {
     const [showModal, setShowModal] = useState(false);
     const [editingPromo, setEditingPromo] = useState(null);
 
-    const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
+    const { data, setData, post, put, delete: destroy, processing, reset, errors } = useForm({
         name: '',
         discount_type: 'percentage',
         discount_value: 0,
@@ -572,6 +625,7 @@ function PromotionTab({ promotions, branches }) {
                                     className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold"
                                     placeholder="Contoh: Diskon Lebaran"
                                 />
+                                {errors.name && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.name}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -595,6 +649,7 @@ function PromotionTab({ promotions, branches }) {
                                         onChange={e => setData('discount_value', e.target.value)}
                                         className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold"
                                     />
+                                    {errors.discount_value && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.discount_value}</p>}
                                 </div>
                             </div>
 
@@ -608,6 +663,7 @@ function PromotionTab({ promotions, branches }) {
                                         onChange={e => setData('start_date', e.target.value)}
                                         className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold"
                                     />
+                                    {errors.start_date && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.start_date}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tgl Selesai</label>
@@ -618,6 +674,7 @@ function PromotionTab({ promotions, branches }) {
                                         onChange={e => setData('end_date', e.target.value)}
                                         className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold"
                                     />
+                                    {errors.end_date && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.end_date}</p>}
                                 </div>
                             </div>
 
@@ -733,9 +790,9 @@ function BranchTab({ branches }) {
                     </div>
 
                     <div className="animate-in zoom-in-95 duration-300">
-                        {activeSubTab === 'profile' && <BranchForm branch={selectedBranch} />}
-                        {activeSubTab === 'ops' && <OpsForm branch={selectedBranch} />}
-                        {activeSubTab === 'finance' && <FinanceForm branch={selectedBranch} />}
+                        {activeSubTab === 'profile' && <BranchForm key={`profile-${selectedBranch.id}`} branch={selectedBranch} />}
+                        {activeSubTab === 'ops' && <OpsForm key={`ops-${selectedBranch.id}`} branch={selectedBranch} />}
+                        {activeSubTab === 'finance' && <FinanceForm key={`finance-${selectedBranch.id}`} branch={selectedBranch} />}
                     </div>
                 </div>
             </div>
@@ -744,7 +801,7 @@ function BranchTab({ branches }) {
 }
 
 function OpsForm({ branch }) {
-    const { data, setData, post, processing, recentlySuccessful } = useForm({
+    const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
         latitude: branch.latitude || '',
         longitude: branch.longitude || '',
         geofence_radius: branch.geofence_radius || 100,
@@ -778,6 +835,7 @@ function OpsForm({ branch }) {
                         className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                         placeholder="-6.123456"
                     />
+                    {errors.latitude && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.latitude}</p>}
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Longitude</label>
@@ -788,6 +846,7 @@ function OpsForm({ branch }) {
                         className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                         placeholder="106.123456"
                     />
+                    {errors.longitude && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.longitude}</p>}
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Radius Aman (Meter)</label>
@@ -840,7 +899,7 @@ function OpsForm({ branch }) {
 
 
 function FinanceForm({ branch }) {
-    const { data, setData, post, processing, recentlySuccessful } = useForm({
+    const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
         tax_rate: branch.tax_rate || 0,
         enable_tax: branch.enable_tax || false,
         late_penalty_amount: branch.late_penalty_amount || 0,
@@ -887,6 +946,7 @@ function FinanceForm({ branch }) {
                             className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                             disabled={!data.enable_tax}
                         />
+                        {errors.tax_rate && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.tax_rate}</p>}
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                     </div>
                 </div>
@@ -899,6 +959,7 @@ function FinanceForm({ branch }) {
                             onChange={e => setData('late_penalty_amount', e.target.value)}
                             className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                         />
+                        {errors.late_penalty_amount && <p className="text-[10px] text-rose-500 font-bold mt-1">{errors.late_penalty_amount}</p>}
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs hidden lg:block">Rp</span>
                     </div>
                 </div>

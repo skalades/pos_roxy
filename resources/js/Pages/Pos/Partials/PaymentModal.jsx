@@ -55,7 +55,8 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
             website: app_settings.app_website,
             instagram: app_settings.app_instagram,
             whatsapp: app_settings.app_whatsapp,
-            date: `${formatDate(new Date())} ${formatTime(new Date())}`,
+            date: formatDate(new Date()),
+            time: formatTime(new Date()),
             orderId: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
             items: [...cart].map(item => ({
                 name: item.name,

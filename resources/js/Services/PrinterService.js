@@ -71,12 +71,12 @@ class PrinterService {
             // Logo Handling
             if (logoUrl) {
                 try {
-                    const logoSize = 128; // Gunakan 128 (kelipatan 8, ukuran ideal 58mm)
-                    const imgData = await this._loadImage(logoUrl, logoSize);
+                    const logoWidth = 112; // Ukuran lebih ramping (sebelumnya 128)
+                    const { imgData, height } = await this._loadImage(logoUrl, logoWidth);
                     if (imgData) {
                         this.encoder.align('center')
-                            .image(imgData, logoSize, logoSize, 'threshold') 
-                            .newline();
+                            .image(imgData, logoWidth, height, 'threshold');
+                        // Tidak perlu newline tambahan karena .line() setelah ini akan menambah jarak
                     }
                 } catch (e) {
                     console.error('Logo print error:', e);
@@ -97,6 +97,7 @@ class PrinterService {
                 .line(`Kasir : ${data.cashierName}`)
                 .line(`Barber: ${data.barberName}`)
                 .line(`Tgl   : ${data.date}`)
+                .line(`Jam   : ${data.time || ''}`)
                 .line(`No    : ${data.orderId}`)
                 .line('-'.repeat(32));
 
@@ -179,34 +180,31 @@ class PrinterService {
     /**
      * Helper to load image as HTMLImageElement with custom size
      */
-    _loadImage(url, size = 160) {
+    _loadImage(url, width = 112) {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
             img.onload = () => {
+                const aspect = img.height / img.width;
+                const height = Math.round(width * aspect);
+                
                 const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
+                canvas.width = width;
+                canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 
                 // Background putih
                 ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, size, size);
-                
-                const scale = Math.min(size / img.width, size / img.height);
-                const x = (size / 2) - (img.width / 2) * scale;
-                const y = (size / 2) - (img.height / 2) * scale;
+                ctx.fillRect(0, 0, width, height);
                 
                 ctx.imageSmoothingEnabled = false;
-                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                ctx.drawImage(img, 0, 0, width, height);
                 
-                // Logika High-Contrast yang lebih agresif
-                const imageData = ctx.getImageData(0, 0, size, size);
+                // Logika High-Contrast
+                const imageData = ctx.getImageData(0, 0, width, height);
                 const data = imageData.data;
                 for (let i = 0; i < data.length; i += 4) {
-                    // Gunakan luminansi relatif untuk deteksi warna lebih baik
                     const grayscale = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
-                    // Threshold lebih ketat (220) agar warna abu-abu tipis jadi hitam pekat
                     const val = grayscale < 220 ? 0 : 255; 
                     data[i] = val;
                     data[i+1] = val;
@@ -214,7 +212,7 @@ class PrinterService {
                 }
                 ctx.putImageData(imageData, 0, 0);
                 
-                resolve(imageData);
+                resolve({ imgData: imageData, height: height });
             };
             img.onerror = () => {
                 console.warn('Failed to load logo image from:', url);

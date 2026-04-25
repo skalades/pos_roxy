@@ -71,11 +71,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/ranking', [\App\Http\Controllers\RankingController::class, 'index'])->name('ranking.index');
 
     // Setting Routes
-    Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
-    Route::post('/settings/ui', [\App\Http\Controllers\SettingController::class, 'updateBranding'])->name('settings.ui');
-    Route::post('/settings/branch/{branch}', [\App\Http\Controllers\SettingController::class, 'updateBranch'])->name('settings.branch');
-    Route::post('/settings/loyalty', [\App\Http\Controllers\SettingController::class, 'updateLoyalty'])->name('settings.loyalty');
-    Route::resource('promotions', \App\Http\Controllers\PromotionController::class);
+    Route::middleware('admin')->group(function () {
+        Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings/ui', [\App\Http\Controllers\SettingController::class, 'updateBranding'])->name('settings.ui');
+        Route::post('/settings/ui/delete-logo', [\App\Http\Controllers\SettingController::class, 'deleteLogo'])->name('settings.ui.delete-logo');
+        Route::post('/settings/branch/{branch}', [\App\Http\Controllers\SettingController::class, 'updateBranch'])->name('settings.branch');
+        Route::post('/settings/loyalty', [\App\Http\Controllers\SettingController::class, 'updateLoyalty'])->name('settings.loyalty');
+        Route::resource('promotions', \App\Http\Controllers\PromotionController::class);
+    });
 });
 
 Route::middleware('auth')->group(function () {
