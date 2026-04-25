@@ -229,9 +229,113 @@ class PrinterService {
             const commands = this.encoder.encode();
             await this._sendInChunks(commands);
 
+    /**
+     * Print the shift report (Opening/Closing)
+     * @param {Object} data Shift data
+     * @param {string} type 'open' or 'close'
+     * @param {string} logoUrl URL of the logo image
+     */
+    async printShiftReport(data, type = 'open', logoUrl = null) {
+        if (!this.device || !this.device.gatt.connected) {
+            await this.connect();
+        }
+
+        try {
+            this.encoder.initialize();
+
+            // Logo Handling
+            if (logoUrl) {
+                try {
+                    const logoWidth = 112;
+                    const { imgData, height } = await this._loadImage(logoUrl, logoWidth);
+                    if (imgData && height > 0) {
+                        this.encoder
+                            .align('center')
+                            .image(imgData, logoWidth, height, 'floyd-steinberg')
+                            .newline();
+                    }
+                } catch (e) {
+                    console.error('Logo print error:', e);
+                }
+            }
+
+            // Header
+            this.encoder
+                .align('center')
+                .line(data.storeName || 'ROXY POS')
+                .line(data.branchName || '')
+                .line('-'.repeat(32))
+                .line(type === 'open' ? 'LAPORAN BUKA SHIFT' : 'LAPORAN TUTUP SHIFT')
+                .line('-'.repeat(32));
+
+            // Info
+            this.encoder
+                .align('left')
+                .line(`Kasir : ${data.cashierName}`)
+                .line(`Waktu : ${data.time}`)
+                .line('-'.repeat(32));
+
+            if (type === 'open') {
+                this.encoder
+                    .line(`Modal Awal : ${data.openingBalance.toLocaleString('id-ID')}`)
+                    .newline()
+                    .line('Catatan:')
+                    .line(data.notes || '-')
+                    .newline();
+            } else {
+                this.encoder
+                    .line(`Modal Awal : ${data.openingBalance.toLocaleString('id-ID')}`)
+                    .line(`Penjualan  : ${data.cashSales.toLocaleString('id-ID')}`)
+                    .line(`Pengeluaran: ${data.cashExpenses.toLocaleString('id-ID')}`)
+                    .line('-'.repeat(32))
+                    .line(`Total Sistem: ${data.expectedBalance.toLocaleString('id-ID')}`)
+                    .line(`Total Fisik : ${data.closingBalance.toLocaleString('id-ID')}`)
+                    .line(`Selisih     : ${data.difference.toLocaleString('id-ID')}`)
+                    .line('-'.repeat(32))
+                    .line('Metode Pembayaran:')
+                    .align('left');
+
+                Object.entries(data.paymentSummary || {}).forEach(([method, total]) => {
+                    const label = method.toUpperCase().padEnd(12);
+                    const val = total.toLocaleString('id-ID').padStart(20);
+                    this.encoder.line(`${label}${val}`);
+                });
+
+                this.encoder.line('-'.repeat(32))
+                    .line('Penjualan Item:')
+                    .line(`Layanan    : ${data.servicesTotal.toLocaleString('id-ID').padStart(19)}`)
+                    .line(`Produk     : ${data.productsTotal.toLocaleString('id-ID').padStart(19)}`)
+                    .line('-'.repeat(32))
+                    .line('Komisi Barber:');
+
+                (data.barberCommissions || []).forEach(b => {
+                    const label = b.name.substring(0, 12).padEnd(12);
+                    const val = b.total.toLocaleString('id-ID').padStart(20);
+                    this.encoder.line(`${label}${val}`);
+                });
+
+                this.encoder.newline()
+                    .line('Catatan:')
+                    .line(data.notes || '-')
+                    .newline();
+            }
+
+            // Footer
+            this.encoder
+                .align('center')
+                .line('-'.repeat(32))
+                .line('Dicetak pada:')
+                .line(new Date().toLocaleString('id-ID'))
+                .newline()
+                .newline()
+                .cut();
+
+            const commands = this.encoder.encode();
+            await this._sendInChunks(commands);
+
             return true;
         } catch (error) {
-            console.error('Printing failed:', error);
+            console.error('Shift printing failed:', error);
             throw error;
         }
     }

@@ -1,16 +1,50 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { Store, CheckCircle, ArrowRight, LogOut, AlertTriangle } from 'lucide-react';
+import { Store, CheckCircle, ArrowRight, LogOut, AlertTriangle, Printer } from 'lucide-react';
+import PrinterService from '@/Services/PrinterService';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import CurrencyInput from '@/Components/CurrencyInput';
 import { formatIDR } from '@/utils/currency';
 import PageHeader from '@/Components/PageHeader';
 
-export default function ShiftIndex({ current_shift, cash_sales, cash_expenses }) {
-    const { auth } = usePage().props;
+export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total }) {
+    const { auth, app_settings } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+    const [printing, setPrinting] = useState(false);
+
+    const handlePrint = async (type = 'open') => {
+        if (!current_shift) return;
+        
+        setPrinting(true);
+        try {
+            const printData = {
+                storeName: app_settings.app_name,
+                branchName: auth.user.branch?.name || '',
+                cashierName: auth.user.name,
+                time: new Date(current_shift.opened_at).toLocaleString('id-ID'),
+                openingBalance: parseFloat(current_shift.opening_balance),
+                notes: current_shift.notes,
+                // For close report
+                cashSales: cash_sales,
+                cashExpenses: cash_expenses,
+                expectedBalance: parseFloat(current_shift.opening_balance) + cash_sales - cash_expenses,
+                closingBalance: parseFloat(current_shift.closing_balance || 0),
+                difference: parseFloat(current_shift.difference || 0),
+                paymentSummary: payment_summary,
+                barberCommissions: barber_commissions,
+                servicesTotal: services_total,
+                productsTotal: products_total,
+            };
+
+            await PrinterService.printShiftReport(printData, type, app_settings.receipt_logo);
+        } catch (error) {
+            alert('Gagal mencetak: ' + error.message);
+        } finally {
+            setPrinting(false);
+        }
+    };
 
     // Form for opening shift
     const openForm = useForm({
@@ -134,9 +168,29 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses })
                                         <p className="opacity-80 text-sm font-medium">Dimulai pada {new Date(current_shift.opened_at).toLocaleString('id-ID')}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] uppercase font-bold tracking-widest opacity-80">Modal Awal</p>
-                                    <p className="text-2xl font-black">{formatIDR(current_shift.opening_balance)}</p>
+                                <div className="text-right flex flex-col items-end gap-2">
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handlePrint('open')}
+                                            disabled={printing}
+                                            className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all flex items-center gap-2 text-xs font-bold"
+                                        >
+                                            <Printer size={16} />
+                                            {printing ? 'Mencetak...' : 'Buka Shift'}
+                                        </button>
+                                        <button
+                                            onClick={() => handlePrint('close')}
+                                            disabled={printing}
+                                            className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all flex items-center gap-2 text-xs font-bold"
+                                        >
+                                            <Printer size={16} />
+                                            {printing ? 'Mencetak...' : 'Draft Tutup Shift'}
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold tracking-widest opacity-80">Modal Awal</p>
+                                        <p className="text-2xl font-black">{formatIDR(current_shift.opening_balance)}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

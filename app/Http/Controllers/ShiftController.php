@@ -22,17 +22,28 @@ class ShiftController extends Controller
     {
         $shift = $this->shiftService->getActiveShift($request->user()->id);
 
-        $cashSales = 0;
-        $cashExpenses = 0;
+        $paymentSummary = [];
+        $barberCommissions = [];
+        $servicesTotal = 0;
+        $productsTotal = 0;
+
         if ($shift) {
             $cashSales = $this->shiftService->calculateCashSales($shift);
             $cashExpenses = $this->shiftService->calculateCashExpenses($shift);
+            $paymentSummary = $this->shiftService->getPaymentMethodsSummary($shift);
+            $barberCommissions = $this->shiftService->getBarberCommissions($shift);
+            $servicesTotal = $this->shiftService->getServicesTotal($shift);
+            $productsTotal = $this->shiftService->getProductsTotal($shift);
         }
 
         return Inertia::render('Shifts/Index', [
             'current_shift' => $shift,
             'cash_sales' => $cashSales,
             'cash_expenses' => $cashExpenses,
+            'payment_summary' => $paymentSummary,
+            'barber_commissions' => $barberCommissions,
+            'services_total' => $servicesTotal,
+            'products_total' => $productsTotal,
         ]);
     }
 
@@ -79,7 +90,7 @@ class ShiftController extends Controller
             'notes' => $validated['notes'],
         ]);
 
-        return redirect()->route('pos.index')->with('success', 'Shift berhasil dibuka.');
+        return redirect()->route('pos.index')->with('success', 'Shift berhasil dibuka.')->with('just_opened', true);
     }
 
     public function close(CloseShiftRequest $request)
