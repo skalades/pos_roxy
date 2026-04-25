@@ -290,6 +290,8 @@ class PrinterService {
                     .line(data.notes || '-')
                     .newline();
             } else {
+                const totalAllMethods = Object.values(data.paymentSummary || {}).reduce((acc, val) => acc + Number(val), 0);
+
                 this.encoder
                     .line(`Modal Awal : ${data.openingBalance.toLocaleString('id-ID')}`)
                     .line(`Penjualan  : ${data.cashSales.toLocaleString('id-ID')}`)
@@ -298,6 +300,9 @@ class PrinterService {
                     .line(`Total Sistem: ${data.expectedBalance.toLocaleString('id-ID')}`)
                     .line(`Total Fisik : ${data.closingBalance.toLocaleString('id-ID')}`)
                     .line(`Selisih     : ${data.difference.toLocaleString('id-ID')}`)
+                    .line('-'.repeat(32))
+                    .line(`TOTAL PENDAPATAN (GABUNGAN):`)
+                    .line(`${totalAllMethods.toLocaleString('id-ID').padStart(32)}`)
                     .line('-'.repeat(32))
                     .line('Metode Pembayaran:')
                     .align('left');
