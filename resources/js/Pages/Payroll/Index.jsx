@@ -180,6 +180,21 @@ export default function Index({ payrollData, branches, filters }) {
                             <UserIcon size={20} className="text-roxy-primary" />
                             Daftar Penggajian Staff
                         </h3>
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams({
+                                    start_date: startDate,
+                                    end_date: endDate,
+                                    branch_id: branchId
+                                });
+                                if (filterType === 'monthly') params.set('period', period);
+                                window.open(route('payroll.export') + '?' + params.toString());
+                            }}
+                            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-roxy-primary hover:shadow-xl hover:shadow-roxy-primary/30 transition-all active:scale-95"
+                        >
+                            <Download size={16} />
+                            Generate PDF Seluruh Staff
+                        </button>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

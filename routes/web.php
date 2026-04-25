@@ -64,6 +64,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Payroll Routes
     Route::get('/payroll', [\App\Http\Controllers\PayrollController::class, 'index'])->name('payroll.index');
+    Route::get('/payroll/export', [\App\Http\Controllers\PayrollController::class, 'exportPdf'])->name('payroll.export');
     Route::get('/payroll/{user}', [\App\Http\Controllers\PayrollController::class, 'show'])->name('payroll.show');
     Route::post('/payroll/generate', [\App\Http\Controllers\PayrollController::class, 'generate'])->name('payroll.generate');
 

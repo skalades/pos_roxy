@@ -110,4 +110,36 @@ class PayrollController extends Controller
 
         return back()->with('success', 'Payroll berhasil diproses.');
     }
+
+    public function exportPdf(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        $users = User::with(['branch'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->whereIn('role', ['barber', 'cashier', 'manager', 'admin'])
+            ->where('role', '!=', 'super_admin')
+            ->get();
+
+        $payrollData = $users->map(function ($user) use ($startDate, $endDate) {
+            return $this->payrollService->calculateUserPayroll($user, $startDate, $endDate);
+        });
+
+        $branch = $branchId ? Branch::find($branchId) : null;
+
+        $data = [
+            'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
+            'app_logo' => \App\Models\Setting::get('receipt_logo'),
+            'report_date' => now()->format('d M Y H:i'),
+            'period_label' => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
+            'branch_name' => $branch ? $branch->name : 'Semua Cabang',
+            'payroll_data' => $payrollData,
+            'total_net_payroll' => $payrollData->sum('net_salary'),
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.payroll_report', $data);
+        return $pdf->download('Laporan_Payroll_' . now()->format('Ymd') . '.pdf');
+    }
 }
