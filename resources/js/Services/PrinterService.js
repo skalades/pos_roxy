@@ -15,23 +15,28 @@ class PrinterService {
      */
     async connect() {
         try {
+            console.log('Attempting to connect to printer...');
+            
             // 1. Coba cari device yang sudah pernah di-pair (Chrome 85+)
             if (navigator.bluetooth && navigator.bluetooth.getDevices) {
                 const devices = await navigator.bluetooth.getDevices();
+                console.log('Found ' + devices.length + ' paired devices:', devices.map(d => d.name));
+                
                 const pairedDevice = devices.find(d => 
-                    d.name === 'RP02N' || 
+                    (d.name && d.name.includes('RP02N')) || 
+                    (d.name && d.name.toLowerCase().includes('printer')) ||
                     (d.uuids && d.uuids.includes('000018f0-0000-1000-8000-00805f9b34fb'))
                 );
                 
                 if (pairedDevice) {
-                    console.log('Found already paired device:', pairedDevice.name);
+                    console.log('Reusing already paired device:', pairedDevice.name);
                     this.device = pairedDevice;
                 }
             }
 
-            // 2. Jika tidak ada device yang sudah di-pair, baru panggil requestDevice
+            // 2. Jika tidak ada device yang sudah di-pair atau getDevices tidak didukung
             if (!this.device) {
-                console.log('Searching for printer RP02N via requestDevice...');
+                console.log('No paired device found, requesting new device picker...');
                 this.device = await navigator.bluetooth.requestDevice({
                     filters: [
                         { name: 'RP02N' },
@@ -40,10 +45,11 @@ class PrinterService {
                     optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
                 });
 
-                // Add disconnect listener only for new devices
+                // Add disconnect listener
                 this.device.addEventListener('gattserverdisconnected', () => {
                     console.warn('Printer disconnected');
                     this.characteristic = null;
+                    // Optional: auto-reconnect logic could go here
                 });
             }
 
