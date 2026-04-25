@@ -252,49 +252,66 @@ class PrinterService {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 
-                // FORCE WHITE BACKGROUND (Penting untuk transparansi)
+                // 1. Draw with white background (handle transparency)
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, width, height);
-                
                 ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // Ambil data gambar untuk diolah
+                // 2. Get data and process pixels
                 const imageData = ctx.getImageData(0, 0, width, height);
                 const data = imageData.data;
 
-                // Pre-process: Handle transparency & High Contrast
+                // Thresholding with slight contrast boost
                 for (let i = 0; i < data.length; i += 4) {
                     const alpha = data[i+3];
-                    if (alpha < 128) {
-                        // Jika transparan, ubah jadi putih pekat
-                        data[i] = 255;
-                        data[i+1] = 255;
-                        data[i+2] = 255;
-                        data[i+3] = 255;
+                    if (alpha < 10) { // Very transparent -> White
+                        data[i] = data[i+1] = data[i+2] = 255;
                     } else {
-                        // High contrast untuk area berwarna
-                        const grayscale = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
-                        const val = grayscale < 180 ? 0 : 255; 
+                        // Better grayscale conversion (BT.709)
+                        const grayscale = data[i] * 0.2126 + data[i+1] * 0.7152 + data[i+2] * 0.0722;
+                        // Use a slightly more aggressive threshold to keep logo sharp
+                        const val = grayscale < 190 ? 0 : 255; 
                         data[i] = data[i+1] = data[i+2] = val;
-                        data[i+3] = 255;
                     }
+                    data[i+3] = 255; // Always opaque for the printer
                 }
-                ctx.putImageData(imageData, 0, 0);
+
+                // 3. AUTO-TRIM: Find the actual content boundaries to reduce gaps
+                let top = 0;
+                let bottom = height - 1;
+
+                const isRowWhite = (y) => {
+                    for (let x = 0; x < width; x++) {
+                        const idx = (y * width + x) * 4;
+                        if (data[idx] < 255) return false; // Found black pixel
+                    }
+                    return true;
+                };
+
+                while (top < bottom && isRowWhite(top)) top++;
+                while (bottom > top && isRowWhite(bottom)) bottom--;
+
+                // Apply trim
+                const trimmedHeight = (bottom - top) + 1;
+                const trimmedCanvas = document.createElement('canvas');
+                trimmedCanvas.width = width;
+                trimmedCanvas.height = trimmedHeight;
+                const tCtx = trimmedCanvas.getContext('2d');
                 
-                resolve({ imgData: imageData, height: height });
+                tCtx.putImageData(imageData, 0, -top);
+                const finalData = tCtx.getImageData(0, 0, width, trimmedHeight);
+                
+                console.log(`Logo processed: ${width}x${trimmedHeight} (Trimmed ${top}px from top, ${height-1-bottom}px from bottom)`);
+                resolve({ imgData: finalData, height: trimmedHeight });
             };
             img.onerror = (err) => {
-                console.error('Failed to load logo image:', {
-                    url: url,
-                    error: err,
-                    timestamp: new Date().toISOString()
-                });
-                reject(new Error('Image load failed: ' + url));
+                console.error('Failed to load logo image:', url, err);
+                reject(new Error('Image load failed'));
             };
-            // Tambahkan cache busting
+            // Cache busting
             const cacheUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-            console.log('Attempting to load logo from:', cacheUrl);
             img.src = cacheUrl;
         });
     }
