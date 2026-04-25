@@ -1,26 +1,14 @@
-const CACHE_NAME = 'roxy-v2-cache-v1';
+const CACHE_NAME = 'roxy-v2-cache-v2';
 const ASSETS_TO_CACHE = [
-  '/',
   '/logo.png',
   '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
-        // Don't cache everything, just specific things if needed
-        // For Inertia apps, usually let the browser handle standard requests
-        return fetchResponse;
-      });
     })
   );
 });
@@ -35,6 +23,26 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    })
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  // Strategi: Network First untuk navigasi (halaman utama)
+  // Ini mencegah PWA terjebak di halaman error lama
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  // Strategi: Cache First untuk aset statis lainnya
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
     })
   );
 });
