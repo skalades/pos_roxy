@@ -221,21 +221,29 @@
             <td style="width: 48%; padding: 0; border: none; vertical-align: top;">
                 <!-- Barber Commissions -->
                 <div class="section">
-                    <div class="section-title">Komisi & Performa Barber</div>
+                    <div class="section-title">Gaji & Komisi Barber</div>
                     <table>
                         <thead>
                             <tr>
                                 <th>Barber</th>
                                 <th class="text-right">Layanan</th>
+                                <th class="text-right">Gaji Pokok</th>
                                 <th class="text-right">Komisi</th>
+                                <th class="text-right">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($barber_commissions as $bc)
+                            @php 
+                                $salary = $bc->barber ? (float)$bc->barber->monthly_salary : 0;
+                                $comm = (float)$bc->total_commission;
+                            @endphp
                             <tr>
                                 <td class="text-bold">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
                                 <td class="text-right">{{ $bc->total_services }} x</td>
-                                <td class="text-right text-indigo text-bold">Rp {{ number_format($bc->total_commission, 0, ',', '.') }}</td>
+                                <td class="text-right">Rp {{ number_format($salary, 0, ',', '.') }}</td>
+                                <td class="text-right text-indigo">Rp {{ number_format($comm, 0, ',', '.') }}</td>
+                                <td class="text-right text-bold">Rp {{ number_format($salary + $comm, 0, ',', '.') }}</td>
                             </tr>
                             @endforeach
                         </tbody>
