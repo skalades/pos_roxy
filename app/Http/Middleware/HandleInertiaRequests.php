@@ -52,6 +52,14 @@ class HandleInertiaRequests extends Middleware
     private function getLogoUrl($logo)
     {
         if (!$logo) return null;
+        
+        // If it's a full URL from storage, extract the path to make it relative
+        // This avoids issues when APP_URL in .env (e.g. localhost) doesn't match the current browser host
+        $urlPath = parse_url($logo, PHP_URL_PATH);
+        if ($urlPath && str_contains($urlPath, '/storage/')) {
+            return $urlPath;
+        }
+
         if (str_starts_with($logo, 'http')) return $logo;
         
         // Ensure path starts with /storage/ and is relative to root

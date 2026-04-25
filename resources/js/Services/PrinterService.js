@@ -107,16 +107,22 @@ class PrinterService {
 
             // Logo Handling
             if (logoUrl) {
+                console.log('Printing with logo:', logoUrl);
                 try {
-                    const logoWidth = 112; // Ukuran lebih ramping (sebelumnya 128)
+                    const logoWidth = 112; 
                     const { imgData, height } = await this._loadImage(logoUrl, logoWidth);
-                    if (imgData) {
-                        this.encoder.align('center')
-                            .image(imgData, logoWidth, height, 'threshold');
-                        // Tidak perlu newline tambahan karena .line() setelah ini akan menambah jarak
+                    if (imgData && height > 0) {
+                        this.encoder
+                            .align('center')
+                            .image(imgData, logoWidth, height, 'threshold', 128);
+                        
+                        console.log('Logo added to encoder successfully');
+                    } else {
+                        console.warn('Logo processed but has no content (height 0)');
                     }
                 } catch (e) {
                     console.error('Logo print error:', e);
+                    // Continue printing even if logo fails
                 }
             }
 
@@ -241,6 +247,7 @@ class PrinterService {
      */
     _loadImage(url, width = 112) {
         return new Promise((resolve, reject) => {
+            console.log('Loading image from URL:', url);
             const img = new Image();
             img.crossOrigin = 'Anonymous';
             img.onload = () => {
@@ -263,29 +270,29 @@ class PrinterService {
                 const imageData = ctx.getImageData(0, 0, width, height);
                 const data = imageData.data;
 
-                // Thresholding with slight contrast boost
+                // Simple Thresholding with a balanced threshold
                 for (let i = 0; i < data.length; i += 4) {
                     const alpha = data[i+3];
-                    if (alpha < 10) { // Very transparent -> White
+                    if (alpha < 50) { // Transparent -> White
                         data[i] = data[i+1] = data[i+2] = 255;
                     } else {
-                        // Better grayscale conversion (BT.709)
-                        const grayscale = data[i] * 0.2126 + data[i+1] * 0.7152 + data[i+2] * 0.0722;
-                        // Use a slightly more aggressive threshold to keep logo sharp
-                        const val = grayscale < 190 ? 0 : 255; 
+                        // Grayscale conversion
+                        const grayscale = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+                        // Boost contrast: values near white become white, values near black become black
+                        const val = grayscale < 200 ? (grayscale < 100 ? 0 : grayscale) : 255;
                         data[i] = data[i+1] = data[i+2] = val;
                     }
-                    data[i+3] = 255; // Always opaque for the printer
+                    data[i+3] = 255; 
                 }
 
-                // 3. AUTO-TRIM: Find the actual content boundaries to reduce gaps
+                // 3. AUTO-TRIM: Find the actual content boundaries
                 let top = 0;
                 let bottom = height - 1;
 
                 const isRowWhite = (y) => {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
-                        if (data[idx] < 255) return false; // Found black pixel
+                        if (data[idx] < 240) return false; // Not white enough
                     }
                     return true;
                 };
@@ -293,8 +300,14 @@ class PrinterService {
                 while (top < bottom && isRowWhite(top)) top++;
                 while (bottom > top && isRowWhite(bottom)) bottom--;
 
-                // Apply trim
-                const trimmedHeight = (bottom - top) + 1;
+                // Apply trim if needed
+                const trimmedHeight = Math.max(0, (bottom - top) + 1);
+                
+                if (trimmedHeight === 0) {
+                    resolve({ imgData: null, height: 0 });
+                    return;
+                }
+
                 const trimmedCanvas = document.createElement('canvas');
                 trimmedCanvas.width = width;
                 trimmedCanvas.height = trimmedHeight;
@@ -303,7 +316,7 @@ class PrinterService {
                 tCtx.putImageData(imageData, 0, -top);
                 const finalData = tCtx.getImageData(0, 0, width, trimmedHeight);
                 
-                console.log(`Logo processed: ${width}x${trimmedHeight} (Trimmed ${top}px from top, ${height-1-bottom}px from bottom)`);
+                console.log(`Logo processed: ${width}x${trimmedHeight} (Original: ${height}px)`);
                 resolve({ imgData: finalData, height: trimmedHeight });
             };
             img.onerror = (err) => {
