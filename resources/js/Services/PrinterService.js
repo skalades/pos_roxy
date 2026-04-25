@@ -304,7 +304,7 @@ class PrinterService {
 
                 Object.entries(data.paymentSummary || {}).forEach(([method, total]) => {
                     const label = method.toUpperCase().padEnd(12);
-                    const val = total.toLocaleString('id-ID').padStart(20);
+                    const val = Number(total).toLocaleString('id-ID').padStart(20);
                     this.encoder.line(`${label}${val}`);
                 });
 
@@ -315,7 +315,7 @@ class PrinterService {
                 (data.servicesBreakdown || []).forEach(s => {
                     const name = s.item_name.substring(0, 20).padEnd(20);
                     const qty = s.qty.toString().padStart(3);
-                    const total = s.total.toLocaleString('id-ID').padStart(9);
+                    const total = Number(s.total).toLocaleString('id-ID').padStart(9);
                     this.encoder.line(`${name}${qty}${total}`);
                 });
 
@@ -326,7 +326,7 @@ class PrinterService {
                 (data.productsBreakdown || []).forEach(p => {
                     const name = p.item_name.substring(0, 20).padEnd(20);
                     const qty = p.qty.toString().padStart(3);
-                    const total = p.total.toLocaleString('id-ID').padStart(9);
+                    const total = Number(p.total).toLocaleString('id-ID').padStart(9);
                     this.encoder.line(`${name}${qty}${total}`);
                 });
 
