@@ -229,6 +229,13 @@ class PrinterService {
             const commands = this.encoder.encode();
             await this._sendInChunks(commands);
 
+            return true;
+        } catch (error) {
+            console.error('Printing failed:', error);
+            throw error;
+        }
+    }
+
     /**
      * Print the shift report (Opening/Closing)
      * @param {Object} data Shift data
