@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
-import { Layout, Store, Percent, Tag, MapPin, ShieldCheck, Save, Upload, X, CheckCircle2, Pencil } from 'lucide-react';
+import { Layout, Store, Percent, Tag, MapPin, ShieldCheck, Save, Upload, X, CheckCircle2, Pencil, Printer } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 
 export default function SettingsIndex({ settings, branches, promotions }) {
@@ -67,20 +67,25 @@ export default function SettingsIndex({ settings, branches, promotions }) {
 
 function BrandingTab({ settings }) {
     const [preview, setPreview] = useState(settings.app_logo || null);
+    const [previewReceipt, setPreviewReceipt] = useState(settings.receipt_logo || null);
     const { data, setData, post, processing, recentlySuccessful } = useForm({
         app_name: settings.app_name || 'Roxy POS',
         app_website: settings.app_website || '',
         app_instagram: settings.app_instagram || '',
         app_whatsapp: settings.app_whatsapp || '',
         app_logo: null,
+        receipt_logo: null,
     });
 
-    const handleFileChange = (e) => {
+    const handleFileChange = (e, type) => {
         const file = e.target.files[0];
         if (file) {
-            setData('app_logo', file);
+            setData(type, file);
             const reader = new FileReader();
-            reader.onloadend = () => setPreview(reader.result);
+            reader.onloadend = () => {
+                if (type === 'app_logo') setPreview(reader.result);
+                else setPreviewReceipt(reader.result);
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -100,40 +105,71 @@ function BrandingTab({ settings }) {
             </div>
 
             <form onSubmit={submit} className="space-y-8">
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logo Aplikasi</label>
-                    <div className="flex flex-col sm:flex-row items-center gap-8 p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                        <div className="w-32 h-32 bg-white rounded-3xl shadow-inner flex items-center justify-center overflow-hidden border border-slate-100 relative group">
-                            {preview ? (
-                                <img src={preview} alt="Logo" className="w-full h-full object-contain p-4" />
-                            ) : (
-                                <Layout size={40} className="text-slate-200" />
-                            )}
-                        </div>
-                        <div className="flex-1 space-y-4 text-center sm:text-left">
-                            <div>
-                                <h5 className="text-sm font-bold text-slate-800">Upload Logo Baru</h5>
-                                <p className="text-xs text-slate-500 mt-1">Format PNG atau JPG, Maksimal 2MB. Disarankan background transparan.</p>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    {/* App Logo */}
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logo Aplikasi (Warna)</label>
+                        <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                            <div className="w-24 h-24 bg-white rounded-2xl shadow-sm flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
+                                {preview ? (
+                                    <img src={preview} alt="Logo" className="w-full h-full object-contain p-2" />
+                                ) : (
+                                    <Layout size={32} className="text-slate-200" />
+                                )}
                             </div>
-                            <input
-                                type="file"
-                                id="logo-upload"
-                                className="hidden"
-                                onChange={handleFileChange}
-                                accept="image/*"
-                            />
-                            <label
-                                htmlFor="logo-upload"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-50 cursor-pointer transition-all"
-                            >
-                                <Upload size={16} />
-                                Pilih File
-                            </label>
+                            <div className="flex-1 space-y-3">
+                                <input
+                                    type="file"
+                                    id="logo-upload"
+                                    className="hidden"
+                                    onChange={(e) => handleFileChange(e, 'app_logo')}
+                                    accept="image/*"
+                                />
+                                <label
+                                    htmlFor="logo-upload"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
+                                >
+                                    <Upload size={14} />
+                                    Upload Logo App
+                                </label>
+                                <p className="text-[9px] text-slate-400 font-medium">Logo utama untuk Dashboard & Login</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Receipt Logo */}
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logo Struk (Hitam Putih)</label>
+                        <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                            <div className="w-24 h-24 bg-white rounded-2xl shadow-sm flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
+                                {previewReceipt ? (
+                                    <img src={previewReceipt} alt="Logo Struk" className="w-full h-full object-contain p-2 grayscale" />
+                                ) : (
+                                    <Printer size={32} className="text-slate-200" />
+                                )}
+                            </div>
+                            <div className="flex-1 space-y-3">
+                                <input
+                                    type="file"
+                                    id="receipt-logo-upload"
+                                    className="hidden"
+                                    onChange={(e) => handleFileChange(e, 'receipt_logo')}
+                                    accept="image/*"
+                                />
+                                <label
+                                    htmlFor="receipt-logo-upload"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
+                                >
+                                    <Upload size={14} />
+                                    Upload Logo Struk
+                                </label>
+                                <p className="text-[9px] text-slate-400 font-medium">Khusus untuk printer termal (Gunakan B&W)</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                     <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Aplikasi</label>
                         <input

@@ -88,7 +88,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
         
         setPrinting(true);
         try {
-            await printerService.printReceipt(snapshotRef.current, app_settings.app_logo);
+            await printerService.printReceipt(snapshotRef.current, app_settings.receipt_logo);
         } catch (error) {
             alert('Gagal mencetak: ' + error.message);
         } finally {
