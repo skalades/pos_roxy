@@ -78,7 +78,7 @@ export default function PageHeader({
                     {showClock && (
                         <div className="bg-white/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 shadow-sm text-right hidden sm:block landscape:block">
                             <p className="text-xl font-black text-slate-900 tabular-nums leading-none tracking-tight">
-                                {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')}
                             </p>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
                                 {currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}

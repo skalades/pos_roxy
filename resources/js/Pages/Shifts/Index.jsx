@@ -116,7 +116,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                     title="Manajemen Shift"
                     backHref={route('dashboard')}
                     subtitle={current_shift ? (
-                        <>Shift aktif sejak <span className="text-roxy-primary font-bold">{new Date(current_shift.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></>
+                        <>Shift aktif sejak <span className="text-roxy-primary font-bold">{new Date(current_shift.opened_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')}</span></>
                     ) : 'Belum ada shift aktif hari ini.'}
                     badge={current_shift ? 'Shift Aktif' : 'Shift Tutup'}
                     badgeColor={current_shift ? 'emerald' : 'rose'}
