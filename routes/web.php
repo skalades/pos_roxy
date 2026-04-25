@@ -70,6 +70,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Ranking Routes
     Route::get('/ranking', [\App\Http\Controllers\RankingController::class, 'index'])->name('ranking.index');
 
+    // Finance Report Routes
+    Route::get('/reports/finance', [\App\Http\Controllers\FinanceController::class, 'index'])->name('reports.finance');
+    Route::get('/reports/finance/export', [\App\Http\Controllers\FinanceController::class, 'exportPdf'])->name('reports.finance.export');
+
     // Setting Routes
     Route::middleware('admin')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');

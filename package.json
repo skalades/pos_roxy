@@ -27,6 +27,7 @@
         "date-fns": "^4.1.0",
         "esc-pos-encoder": "^3.0.0",
         "lucide-react": "^1.8.0",
+        "recharts": "^3.8.1",
         "tailwindcss": "^4.2.4"
     }
 }
