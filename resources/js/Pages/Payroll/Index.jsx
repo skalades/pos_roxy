@@ -188,7 +188,7 @@ export default function Index({ payrollData, branches, filters }) {
                                     branch_id: branchId
                                 });
                                 if (filterType === 'monthly') params.set('period', period);
-                                window.open(route('payroll.export') + '?' + params.toString());
+                                window.location.href = route('payroll.export') + '?' + params.toString();
                             }}
                             className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-roxy-primary hover:shadow-xl hover:shadow-roxy-primary/30 transition-all active:scale-95"
                         >
