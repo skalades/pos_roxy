@@ -228,7 +228,7 @@
                 <tbody>
                     @foreach($barber_commissions as $bc)
                     <tr>
-                        <td class="text-bold">{{ $bc->barber->name }}</td>
+                        <td class="text-bold">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
                         <td class="text-right">{{ $bc->total_services }} x</td>
                         <td class="text-right text-indigo text-bold">Rp {{ number_format($bc->total_commission, 0, ',', '.') }}</td>
                     </tr>
