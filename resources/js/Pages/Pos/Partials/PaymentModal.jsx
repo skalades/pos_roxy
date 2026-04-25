@@ -13,11 +13,13 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
     const [change, setChange] = useState(0);
     const [isSuccess, setIsSuccess] = useState(false);
     const [printing, setPrinting] = useState(false);
+    const [receiptSnapshot, setReceiptSnapshot] = useState(null);
 
     useEffect(() => {
         if (!show) {
             setIsSuccess(false);
             setAmountPaid('');
+            setReceiptSnapshot(null);
         }
     }, [show]);
 
@@ -31,6 +33,24 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
     };
 
     const handleConfirm = () => {
+        // Ambil snapshot data SEBELUM onConfirm menghapus cart
+        const snapshot = {
+            storeName: app_settings.app_name,
+            branchName: auth.user.branch?.name || '',
+            branchAddress: auth.user.branch?.address || '',
+            cashierName: auth.user.name,
+            date: `${formatDate(new Date())} ${formatTime(new Date())}`,
+            orderId: `TRX-${Date.now().toString().slice(-6)}`,
+            items: cart.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price
+            })),
+            total: total,
+            payment: parseFloat(amountPaid) || total,
+            change: change
+        };
+
         const paymentData = { 
             paymentMethod, 
             amountPaid: parseFloat(amountPaid) || total, 
@@ -38,31 +58,17 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
         };
         
         onConfirm(paymentData, () => {
+            setReceiptSnapshot(snapshot);
             setIsSuccess(true);
         });
     };
 
     const handlePrint = async () => {
+        if (!receiptSnapshot) return;
+        
         setPrinting(true);
         try {
-            const receiptData = {
-                storeName: app_settings.app_name,
-                branchName: auth.user.branch?.name || '',
-                branchAddress: auth.user.branch?.address || '',
-                cashierName: auth.user.name,
-                date: `${formatDate(new Date())} ${formatTime(new Date())}`,
-                orderId: `TRX-${Date.now().toString().slice(-6)}`, // Placeholder or from backend
-                items: cart.map(item => ({
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.price
-                })),
-                total: total,
-                payment: parseFloat(amountPaid) || total,
-                change: change
-            };
-
-            await printerService.printReceipt(receiptData, app_settings.app_logo);
+            await printerService.printReceipt(receiptSnapshot, app_settings.app_logo);
         } catch (error) {
             alert('Gagal mencetak: ' + error.message);
         } finally {

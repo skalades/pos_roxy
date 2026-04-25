@@ -61,28 +61,30 @@ class PrinterService {
      * @param {string} logoUrl URL of the logo image
      */
     async printReceipt(data, logoUrl) {
-        if (!this.characteristic) {
-            const connected = await this.connect();
-            if (!connected) return;
+        if (!this.device || !this.device.gatt.connected) {
+            await this.connect();
         }
 
         try {
             this.encoder.initialize();
 
-            // 1. Logo
+            // Logo Handling
             if (logoUrl) {
                 try {
-                    const img = await this._loadImage(logoUrl);
-                    // Resize/Dither logic is handled by the encoder if we pass canvas/image
-                    this.encoder.align('center')
-                        .image(img, 160, 160, 'atkinson') // Max width 384px, we use 160px for logo as requested "not too big"
-                        .newline();
+                    // Gunakan snapshot logoUrl yang valid
+                    const imgData = await this._loadImage(logoUrl);
+                    if (imgData) {
+                        this.encoder.align('center')
+                            .image(imgData, 160, 160, 'atkinson')
+                            .newline();
+                    }
                 } catch (e) {
-                    console.warn('Failed to load logo for printing:', e);
+                    console.error('Logo print error:', e);
+                    // Lanjut tanpa logo jika gagal
                 }
             }
 
-            // 2. Header
+            // Header
             this.encoder
                 .align('center')
                 .line(data.storeName || 'ROXY POS')
@@ -90,7 +92,7 @@ class PrinterService {
                 .line(data.branchAddress || '')
                 .line('-'.repeat(32));
 
-            // 3. Info
+            // Info
             this.encoder
                 .align('left')
                 .line(`Kasir: ${data.cashierName}`)
@@ -98,7 +100,7 @@ class PrinterService {
                 .line(`No   : ${data.orderId}`)
                 .line('-'.repeat(32));
 
-            // 4. Items
+            // Items
             data.items.forEach(item => {
                 const name = item.name.substring(0, 20);
                 const qty = item.quantity.toString().padStart(2);
@@ -106,33 +108,40 @@ class PrinterService {
                 
                 this.encoder.line(`${name.padEnd(20)} ${qty} ${price}`);
                 if (item.name.length > 20) {
-                    this.encoder.line(item.name.substring(20));
+                    this.encoder.line(`  ${item.name.substring(20)}`);
                 }
             });
 
             this.encoder.line('-'.repeat(32));
 
-            // 5. Totals
+            // Totals
+            const totalLabel = 'Total'.padEnd(20);
+            const totalValue = data.total.toLocaleString().padStart(12);
+            const payLabel = 'Bayar'.padEnd(20);
+            const payValue = data.payment.toLocaleString().padStart(12);
+            const changeLabel = 'Kembali'.padEnd(20);
+            const changeValue = data.change.toLocaleString().padStart(12);
+
             this.encoder
                 .align('right')
-                .line(`Total     : ${data.total.toLocaleString()}`)
-                .line(`Bayar     : ${data.payment.toLocaleString()}`)
-                .line(`Kembali   : ${data.change.toLocaleString()}`);
+                .line(`${totalLabel}${totalValue}`)
+                .line(`${payLabel}${payValue}`)
+                .line(`${changeLabel}${changeValue}`)
+                .newline();
 
-            // 6. Footer
+            // Footer
             this.encoder
-                .newline()
                 .align('center')
                 .line('Terima Kasih')
                 .line('Sudah Berkunjung')
                 .newline()
                 .newline()
-                .newline()
                 .cut();
 
-            const result = this.encoder.encode();
-            await this._sendData(result);
+            const commands = this.encoder.encode();
+            await this._sendInChunks(commands);
 
+            return true;
         } catch (error) {
             console.error('Printing failed:', error);
             throw error;
@@ -142,7 +151,7 @@ class PrinterService {
     /**
      * Send data in chunks (BLE has a limit of ~20-512 bytes per packet)
      */
-    async _sendData(data) {
+    async _sendInChunks(data) {
         const chunkSize = 20; // Safe for all BLE devices
         for (let i = 0; i < data.length; i += chunkSize) {
             const chunk = data.slice(i, i + chunkSize);
@@ -157,9 +166,32 @@ class PrinterService {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = url;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // Resize to fixed size for thermal consistency
+                const size = 160;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw white background (thermal doesn't do transparency)
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, size, size);
+                
+                // Draw image centered
+                const scale = Math.min(size / img.width, size / img.height);
+                const x = (size / 2) - (img.width / 2) * scale;
+                const y = (size / 2) - (img.height / 2) * scale;
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                
+                resolve(ctx.getImageData(0, 0, size, size));
+            };
+            img.onerror = () => {
+                console.warn('Failed to load logo image from:', url);
+                reject(new Error('Image load failed'));
+            };
+            // Add cache buster to avoid CORS issues with cached images
+            img.src = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
         });
     }
 }
