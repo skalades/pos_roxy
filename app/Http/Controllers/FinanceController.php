@@ -108,7 +108,6 @@ class FinanceController extends Controller
 
     public function exportPdf(Request $request)
     {
-        // Similar logic to index but for PDF
         $user = $request->user();
         if (!$user->hasRole(['super_admin', 'admin', 'manager'])) abort(403);
 
@@ -118,46 +117,84 @@ class FinanceController extends Controller
         if ($user->hasRole('manager')) $branchId = $user->branch_id;
 
         $branch = $branchId ? Branch::find($branchId) : null;
+        $dateRange = [$startDate . ' 00:00:00', $endDate . ' 23:59:59'];
 
-        // Fetch data (simplified for PDF)
-        $revenue = Transaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        // 1. Financial Summary
+        $revenue = Transaction::whereBetween('created_at', $dateRange)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
         
         $expenses = CashOperation::where('type', 'cash_out')
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereBetween('created_at', $dateRange)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('amount');
 
-        $commissions = TransactionItem::whereHas('transaction', function($q) use ($startDate, $endDate, $branchId) {
-            $q->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        $commissions = TransactionItem::whereHas('transaction', function($q) use ($dateRange, $branchId) {
+            $q->whereBetween('created_at', $dateRange);
             if ($branchId) $q->where('branch_id', $branchId);
         })->sum('commission_amount');
 
+        // 2. Barber Commission Breakdown
+        $barberCommissions = TransactionItem::select(
+                'barber_id',
+                DB::raw('SUM(commission_amount) as total_commission'),
+                DB::raw('COUNT(*) as total_services')
+            )
+            ->whereHas('transaction', function($q) use ($dateRange, $branchId) {
+                $q->whereBetween('created_at', $dateRange);
+                if ($branchId) $q->where('branch_id', $branchId);
+            })
+            ->with('barber')
+            ->groupBy('barber_id')
+            ->get();
+
+        // 3. Payment Method Distribution
+        $paymentDistribution = Transaction::select('payment_method', DB::raw('SUM(total_amount) as total'), DB::raw('COUNT(*) as count'))
+            ->whereBetween('created_at', $dateRange)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->groupBy('payment_method')
+            ->get();
+
+        // 4. Shift & Cash Summary (Buka/Tutup Kas)
+        $shifts = Shift::whereBetween('opened_at', $dateRange)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->with('user')
+            ->orderBy('opened_at', 'desc')
+            ->get();
+
+        // 5. Detailed Transactions
+        $transactions = Transaction::whereBetween('created_at', $dateRange)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->with(['items', 'cashier', 'customer'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 6. Detailed Expenses
+        $expenseList = CashOperation::where('type', 'cash_out')
+            ->whereBetween('created_at', $dateRange)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $data = [
             'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
-            'app_logo' => \App\Models\Setting::get('receipt_logo'), // Using receipt logo for PDF
+            'app_logo' => \App\Models\Setting::get('receipt_logo'),
             'report_date' => now()->format('d M Y H:i'),
             'period' => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
             'branch' => $branch ? $branch->name : 'Semua Cabang',
             'summary' => [
-                'revenue' => $revenue,
-                'expenses' => $expenses,
-                'commissions' => $commissions,
-                'profit' => $revenue - $expenses - $commissions
+                'revenue' => (float)$revenue,
+                'expenses' => (float)$expenses,
+                'commissions' => (float)$commissions,
+                'profit' => (float)($revenue - $expenses - $commissions)
             ],
-            // Add list of expenses and payment methods for the PDF detail
-            'expense_list' => CashOperation::where('type', 'cash_out')
-                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->with('user')
-                ->get(),
-            'payment_distribution' => Transaction::select('payment_method', DB::raw('SUM(total_amount) as total'))
-                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->groupBy('payment_method')
-                ->get()
+            'barber_commissions' => $barberCommissions,
+            'payment_distribution' => $paymentDistribution,
+            'shifts' => $shifts,
+            'transactions' => $transactions,
+            'expense_list' => $expenseList,
         ];
 
         $pdf = Pdf::loadView('pdf.finance_report', $data);
-        return $pdf->download('Laporan_Keuangan_' . now()->format('Ymd') . '.pdf');
+        return $pdf->download('Laporan_Keuangan_Detail_' . now()->format('Ymd') . '.pdf');
     }
 }

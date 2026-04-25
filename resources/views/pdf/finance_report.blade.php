@@ -2,104 +2,132 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Laporan Keuangan - {{ $period }}</title>
+    <title>Laporan Keuangan Detail - {{ $period }}</title>
     <style>
+        @page { margin: 40px; }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            color: #1e293b;
+            color: #334155;
+            line-height: 1.5;
+            font-size: 11px;
             margin: 0;
             padding: 0;
-            font-size: 12px;
         }
         .header {
-            padding: 20px 0;
-            border-bottom: 2px solid #f1f5f9;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 20px;
             margin-bottom: 30px;
         }
+        .logo-container {
+            float: left;
+            width: 30%;
+        }
         .logo {
-            float: left;
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
         }
-        .company-info {
-            float: left;
-            margin-left: 15px;
-        }
-        .report-title {
+        .header-info {
             float: right;
+            width: 65%;
             text-align: right;
         }
-        .report-title h1 {
+        .header-info h1 {
             margin: 0;
+            color: #6366f1;
             font-size: 24px;
-            color: #4f46e5;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
-        .report-title p {
-            margin: 5px 0 0;
+        .header-info p {
+            margin: 5px 0;
             color: #64748b;
+            font-size: 12px;
         }
         .clearfix::after {
             content: "";
             clear: both;
             display: table;
         }
+        
         .section {
             margin-bottom: 30px;
+            page-break-inside: avoid;
         }
         .section-title {
-            font-size: 14px;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-left: 5px solid #6366f1;
             font-weight: bold;
-            color: #334155;
+            font-size: 13px;
             margin-bottom: 15px;
+            color: #1e293b;
             text-transform: uppercase;
-            border-left: 4px solid #4f46e5;
-            padding-left: 10px;
         }
-        .stats-grid {
+        
+        .summary-grid {
             width: 100%;
             margin-bottom: 20px;
         }
-        .stat-card {
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 10px;
+        .summary-box {
             width: 23%;
             float: left;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 12px;
             margin-right: 2%;
         }
-        .stat-card:last-child {
-            margin-right: 0;
-            background: #4f46e5;
-            color: white;
+        .summary-box.profit {
+            background: #6366f1;
+            color: #ffffff;
+            border-color: #4f46e5;
         }
-        .stat-label {
-            font-size: 10px;
+        .summary-label {
+            font-size: 9px;
             text-transform: uppercase;
             font-weight: bold;
-            margin-bottom: 5px;
-            opacity: 0.8;
+            margin-bottom: 8px;
+            color: #64748b;
         }
-        .stat-value {
-            font-size: 16px;
-            font-weight: bold;
+        .profit .summary-label { color: #e0e7ff; }
+        .summary-value {
+            font-size: 15px;
+            font-weight: 900;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 10px;
         }
         th {
             background: #f1f5f9;
-            padding: 10px;
+            padding: 10px 8px;
             text-align: left;
             font-weight: bold;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 9px;
         }
         td {
-            padding: 10px;
+            padding: 10px 8px;
             border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
         }
+        .row-even { background: #fafafa; }
+        
+        .badge {
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef9c3; color: #854d0e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        
         .footer {
             margin-top: 50px;
             text-align: center;
@@ -108,105 +136,210 @@
             border-top: 1px solid #f1f5f9;
             padding-top: 20px;
         }
+        
         .text-right { text-align: right; }
+        .text-bold { font-weight: bold; }
         .text-rose { color: #e11d48; }
-        .text-indigo { color: #4f46e5; }
-        .bg-indigo { background-color: #4f46e5; color: white; }
+        .text-emerald { color: #10b981; }
+        .text-indigo { color: #6366f1; }
+        
+        .sub-table {
+            background: #fcfcfc;
+            font-size: 9px;
+            margin-top: 5px;
+            border: 1px solid #f1f5f9;
+        }
     </style>
 </head>
 <body>
+    <!-- Header Section -->
     <div class="header clearfix">
-        <div class="company-info">
+        <div class="logo-container">
             @if($app_logo)
                 <img src="{{ public_path($app_logo) }}" class="logo">
             @endif
-            <div style="float: left; margin-left: 10px;">
-                <h2 style="margin: 0; font-size: 18px;">{{ $app_name }}</h2>
-                <p style="margin: 2px 0; color: #64748b;">{{ $branch }}</p>
-            </div>
         </div>
-        <div class="report-title">
-            <h1>LAPORAN KEUANGAN</h1>
-            <p>Periode: {{ $period }}</p>
+        <div class="header-info">
+            <h1>Laporan Keuangan</h1>
+            <p><strong>Periode:</strong> {{ $period }}</p>
+            <p><strong>Cabang:</strong> {{ $branch }}</p>
+            <p><strong>Dicetak pada:</strong> {{ $report_date }}</p>
         </div>
     </div>
 
+    <!-- Summary Stats -->
     <div class="section">
-        <div class="stats-grid clearfix">
-            <div class="stat-card">
-                <div class="stat-label">Pendapatan</div>
-                <div class="stat-value">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
+        <div class="section-title">Ringkasan Performa</div>
+        <div class="summary-grid clearfix">
+            <div class="summary-box">
+                <div class="summary-label">Pendapatan (Revenue)</div>
+                <div class="summary-value">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Pengeluaran</div>
-                <div class="stat-value">Rp {{ number_format($summary['expenses'], 0, ',', '.') }}</div>
+            <div class="summary-box">
+                <div class="summary-label">Pengeluaran (Expenses)</div>
+                <div class="summary-value text-rose">Rp {{ number_format($summary['expenses'], 0, ',', '.') }}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Komisi</div>
-                <div class="stat-value">Rp {{ number_format($summary['commissions'], 0, ',', '.') }}</div>
+            <div class="summary-box">
+                <div class="summary-label">Komisi Barber (Payroll)</div>
+                <div class="summary-value text-indigo">Rp {{ number_format($summary['commissions'], 0, ',', '.') }}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label" style="color: rgba(255,255,255,0.7)">Laba Bersih</div>
-                <div class="stat-value">Rp {{ number_format($summary['profit'], 0, ',', '.') }}</div>
+            <div class="summary-box profit" style="margin-right: 0;">
+                <div class="summary-label">Laba Bersih</div>
+                <div class="summary-value">Rp {{ number_format($summary['profit'], 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
 
+    <div style="width: 100%;" class="clearfix">
+        <!-- Payment Methods -->
+        <div style="width: 48%; float: left;" class="section">
+            <div class="section-title">Distribusi Pembayaran</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metode</th>
+                        <th class="text-right">Frekuensi</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($payment_distribution as $item)
+                    <tr>
+                        <td class="text-bold" style="text-transform: uppercase;">{{ $item->payment_method }}</td>
+                        <td class="text-right">{{ $item->count }} Trx</td>
+                        <td class="text-right text-bold">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Barber Commissions -->
+        <div style="width: 48%; float: right;" class="section">
+            <div class="section-title">Komisi & Performa Barber</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama Barber</th>
+                        <th class="text-right">Layanan</th>
+                        <th class="text-right">Total Komisi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($barber_commissions as $bc)
+                    <tr>
+                        <td class="text-bold">{{ $bc->barber->name }}</td>
+                        <td class="text-right">{{ $bc->total_services }} x</td>
+                        <td class="text-right text-indigo text-bold">Rp {{ number_format($bc->total_commission, 0, ',', '.') }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Shifts & Cash Log -->
     <div class="section">
-        <div class="section-title">Metode Pembayaran</div>
+        <div class="section-title">Riwayat Kas & Shift (Buka/Tutup Kas)</div>
         <table>
             <thead>
                 <tr>
-                    <th>Metode</th>
-                    <th class="text-right">Total Transaksi</th>
+                    <th>Waktu Buka</th>
+                    <th>Waktu Tutup</th>
+                    <th>Kasir</th>
+                    <th class="text-right">Saldo Awal</th>
+                    <th class="text-right">Saldo Akhir</th>
+                    <th class="text-right">Selisih</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($payment_distribution as $item)
+                @foreach($shifts as $shift)
                 <tr>
-                    <td style="text-transform: uppercase;">{{ $item->payment_method }}</td>
-                    <td class="text-right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
+                    <td>{{ $shift->opened_at->format('d/m/y H:i') }}</td>
+                    <td>{{ $shift->closed_at ? $shift->closed_at->format('d/m/y H:i') : '-' }}</td>
+                    <td class="text-bold">{{ $shift->user->name }}</td>
+                    <td class="text-right">Rp {{ number_format($shift->opening_balance, 0, ',', '.') }}</td>
+                    <td class="text-right">Rp {{ number_format($shift->closing_balance, 0, ',', '.') }}</td>
+                    <td class="text-right {{ $shift->difference < 0 ? 'text-rose' : '' }}">
+                        Rp {{ number_format($shift->difference, 0, ',', '.') }}
+                    </td>
+                    <td>
+                        <span class="badge {{ $shift->status === 'closed' ? 'badge-success' : 'badge-warning' }}">
+                            {{ $shift->status }}
+                        </span>
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
     </div>
 
-    @if(count($expense_list) > 0)
+    <div style="page-break-before: always;"></div>
+
+    <!-- Transaction Detail -->
     <div class="section">
-        <div class="section-title">Detail Pengeluaran</div>
+        <div class="section-title">Log Transaksi Lengkap</div>
         <table>
             <thead>
                 <tr>
-                    <th>Tanggal</th>
-                    <th>Alasan</th>
-                    <th>Oleh</th>
-                    <th class="text-right">Jumlah</th>
+                    <th width="15%">No. Trx</th>
+                    <th width="15%">Waktu</th>
+                    <th width="15%">Pelanggan</th>
+                    <th width="35%">Item & Layanan</th>
+                    <th width="20%" class="text-right">Total Akhir</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($transactions as $trx)
+                <tr>
+                    <td class="text-bold">{{ $trx->transaction_number }}</td>
+                    <td>{{ $trx->created_at->format('d/m H:i') }}</td>
+                    <td>{{ $trx->customer ? $trx->customer->name : 'Walk-in' }}</td>
+                    <td>
+                        <div style="font-size: 8px; color: #64748b;">
+                            @foreach($trx->items as $item)
+                                • {{ $item->item_name }} ({{ $item->quantity }}x) <br>
+                            @endforeach
+                        </div>
+                    </td>
+                    <td class="text-right text-bold">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Expense Detail -->
+    @if(count($expense_list) > 0)
+    <div class="section">
+        <div class="section-title">Detail Pengeluaran Operasional</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="20%">Tanggal</th>
+                    <th width="40%">Alasan / Keperluan</th>
+                    <th width="20%">Oleh</th>
+                    <th width="20%" class="text-right">Jumlah</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($expense_list as $expense)
                 <tr>
-                    <td>{{ $expense->created_at->format('d/m/Y H:i') }}</td>
-                    <td>{{ $expense->reason }}</td>
+                    <td>{{ $expense->created_at->format('d/m/y H:i') }}</td>
+                    <td class="text-bold">{{ $expense->reason }}</td>
                     <td>{{ $expense->user->name }}</td>
-                    <td class="text-right text-rose">Rp {{ number_format($expense->amount, 0, ',', '.') }}</td>
+                    <td class="text-right text-rose text-bold">Rp {{ number_format($expense->amount, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>
-            <tfoot>
-                <tr>
-                    <th colspan="3" class="text-right">TOTAL PENGELUARAN</th>
-                    <th class="text-right">Rp {{ number_format($summary['expenses'], 0, ',', '.') }}</th>
-                </tr>
-            </tfoot>
         </table>
     </div>
     @endif
 
     <div class="footer">
-        <p>Laporan digenerate secara otomatis pada {{ $report_date }}</p>
-        <p>&copy; {{ date('Y') }} {{ $app_name }}. All rights reserved.</p>
+        <p>Laporan ini merupakan dokumen resmi yang digenerate oleh sistem Roxy POS.</p>
+        <p>&copy; {{ date('Y') }} {{ $app_name }}. Dokumen Rahasia.</p>
     </div>
 </body>
 </html>
