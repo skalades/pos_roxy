@@ -36,9 +36,12 @@ class HandleInertiaRequests extends Middleware
             ],
             'app_settings' => [
                 'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
-                'app_logo' => \App\Models\Setting::get('app_logo') 
-                    ? '/storage/' . \App\Models\Setting::get('app_logo') 
-                    : null,
+                'app_logo' => (function() {
+                    $logo = \App\Models\Setting::get('app_logo');
+                    if (!$logo) return null;
+                    if (str_starts_with($logo, 'http')) return $logo;
+                    return asset('storage/' . $logo);
+                })(),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
