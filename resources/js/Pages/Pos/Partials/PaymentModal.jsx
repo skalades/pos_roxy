@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from '@/Components/Modal';
 import * as Icons from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
@@ -13,18 +13,21 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
     const [change, setChange] = useState(0);
     const [isSuccess, setIsSuccess] = useState(false);
     const [printing, setPrinting] = useState(false);
-    const [receiptSnapshot, setReceiptSnapshot] = useState(null);
+    
+    // Gunakan Ref untuk menyimpan snapshot agar tidak terpengaruh re-render
+    const snapshotRef = useRef(null);
 
     useEffect(() => {
         if (!show) {
             setIsSuccess(false);
             setAmountPaid('');
-            setReceiptSnapshot(null);
+            snapshotRef.current = null;
         }
     }, [show]);
 
     useEffect(() => {
-        const paid = parseFloat(amountPaid.replace(/[^0-9]/g, '')) || 0;
+        const paidText = amountPaid.toString().replace(/[^0-9]/g, '');
+        const paid = parseFloat(paidText) || 0;
         setChange(Math.max(0, paid - total));
     }, [amountPaid, total]);
 
@@ -33,42 +36,48 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
     };
 
     const handleConfirm = () => {
-        // Ambil snapshot data SEBELUM onConfirm menghapus cart
-        const snapshot = {
+        const paidAmount = parseFloat(amountPaid.replace(/[^0-9]/g, '')) || total;
+        
+        // AMBIL SNAPSHOT SEKARANG (SEBELUM BACKEND DIPANGGIL)
+        snapshotRef.current = {
             storeName: app_settings.app_name,
             branchName: auth.user.branch?.name || '',
             branchAddress: auth.user.branch?.address || '',
             cashierName: auth.user.name,
             date: `${formatDate(new Date())} ${formatTime(new Date())}`,
-            orderId: `TRX-${Date.now().toString().slice(-6)}`,
-            items: cart.map(item => ({
+            orderId: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+            items: [...cart].map(item => ({
                 name: item.name,
                 quantity: item.quantity,
                 price: item.price
             })),
             total: total,
-            payment: parseFloat(amountPaid) || total,
-            change: change
+            payment: paidAmount,
+            change: Math.max(0, paidAmount - total)
         };
+
+        console.log('Receipt Snapshot Captured:', snapshotRef.current);
 
         const paymentData = { 
             paymentMethod, 
-            amountPaid: parseFloat(amountPaid) || total, 
-            change 
+            amountPaid: paidAmount, 
+            change: Math.max(0, paidAmount - total)
         };
         
         onConfirm(paymentData, () => {
-            setReceiptSnapshot(snapshot);
             setIsSuccess(true);
         });
     };
 
     const handlePrint = async () => {
-        if (!receiptSnapshot) return;
+        if (!snapshotRef.current) {
+            alert('Data struk tidak ditemukan. Silakan coba lagi.');
+            return;
+        }
         
         setPrinting(true);
         try {
-            await printerService.printReceipt(receiptSnapshot, app_settings.app_logo);
+            await printerService.printReceipt(snapshotRef.current, app_settings.app_logo);
         } catch (error) {
             alert('Gagal mencetak: ' + error.message);
         } finally {
@@ -159,7 +168,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                                 <input
                                                     type="text"
                                                     placeholder="0"
-                                                    value={amountPaid ? parseInt(amountPaid).toLocaleString('id-ID') : ''}
+                                                    value={amountPaid ? parseInt(amountPaid.toString().replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
                                                     onChange={(e) => {
                                                         const rawValue = e.target.value.replace(/[^0-9]/g, '');
                                                         setAmountPaid(rawValue);
@@ -201,7 +210,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                 )}
 
                                 <button
-                                    disabled={processing || (paymentMethod === 'cash' && (parseFloat(amountPaid) || 0) < total)}
+                                    disabled={processing || (paymentMethod === 'cash' && (parseFloat(amountPaid.toString().replace(/[^0-9]/g, '')) || 0) < total)}
                                     onClick={handleConfirm}
                                     className="w-full bg-roxy-primary hover:bg-roxy-primary-dark text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-roxy-primary/20 transition-all flex items-center justify-center gap-3 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none uppercase tracking-[0.2em] active:scale-[0.98]"
                                 >
