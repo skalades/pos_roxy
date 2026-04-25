@@ -18,12 +18,21 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
     const [closeData, setCloseData] = useState(null);
 
     const handlePrint = async (type = 'open', data = null) => {
+        // Gunakan data manual jika ada, jika tidak pakai current_shift dari props
         const source = data || current_shift;
-        if (!source) return;
+        
+        if (!source) {
+            console.error('Print Error: No source data found', { type, data, current_shift });
+            return;
+        }
         
         setPrinting(true);
         try {
             const isClosing = type === 'close';
+            
+            // Log untuk debug di console browser
+            console.log(`Printing ${type} report...`, source);
+
             const printData = {
                 storeName: app_settings.app_name,
                 branchName: auth.user.branch?.name || '',
@@ -31,18 +40,18 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                 time: new Date(isClosing ? (source.closed_at || new Date()) : source.opened_at).toLocaleString('id-ID'),
                 openingBalance: parseFloat(source.opening_balance),
                 notes: source.notes,
-                // For close report
-                cashSales: isClosing ? (data ? data.cash_sales : cash_sales) : 0,
-                cashExpenses: isClosing ? (data ? data.cash_expenses : cash_expenses) : 0,
-                expectedBalance: isClosing ? (data ? data.expected_balance : (parseFloat(source.opening_balance) + cash_sales - cash_expenses)) : 0,
-                closingBalance: isClosing ? (data ? data.closing_balance : parseFloat(source.closing_balance || 0)) : 0,
-                difference: isClosing ? (data ? data.difference : parseFloat(source.difference || 0)) : 0,
-                paymentSummary: isClosing ? (data ? data.payment_summary : payment_summary) : {},
-                barberCommissions: isClosing ? (data ? data.barber_commissions : barber_commissions) : [],
-                servicesTotal: isClosing ? (data ? data.services_total : services_total) : 0,
-                productsTotal: isClosing ? (data ? data.products_total : products_total) : 0,
-                servicesBreakdown: isClosing ? (data ? data.services_breakdown : services_breakdown) : [],
-                productsBreakdown: isClosing ? (data ? data.products_breakdown : products_breakdown) : [],
+                // For close report - Mapping keys from snake_case (DB) to camelCase (Printer)
+                cashSales: isClosing ? parseFloat(source.cash_sales || 0) : 0,
+                cashExpenses: isClosing ? parseFloat(source.cash_expenses || 0) : 0,
+                expectedBalance: isClosing ? parseFloat(source.expected_balance || 0) : 0,
+                closingBalance: isClosing ? parseFloat(source.closing_balance || 0) : 0,
+                difference: isClosing ? parseFloat(source.difference || 0) : 0,
+                paymentSummary: isClosing ? (source.payment_summary || {}) : {},
+                barberCommissions: isClosing ? (source.barber_commissions || []) : [],
+                servicesTotal: isClosing ? parseFloat(source.services_total || 0) : 0,
+                productsTotal: isClosing ? parseFloat(source.products_total || 0) : 0,
+                servicesBreakdown: isClosing ? (source.services_breakdown || []) : [],
+                productsBreakdown: isClosing ? (source.products_breakdown || []) : [],
             };
 
             await PrinterService.printShiftReport(printData, type, app_settings.receipt_logo);
