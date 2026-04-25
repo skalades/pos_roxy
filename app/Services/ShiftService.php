@@ -108,6 +108,8 @@ class ShiftService extends BaseService
             })
             ->where('item_type', 'product')
             ->sum('total_price');
+    }
+
     /**
      * Breakdown layanan yang terjual (Nama, Qty, Total).
      */
