@@ -173,15 +173,19 @@
         <table class="summary-table">
             <tr>
                 <td class="summary-card">
-                    <div class="summary-label">Pendapatan (Revenue)</div>
+                    <div class="summary-label">Pendapatan</div>
                     <div class="summary-value">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
                 </td>
                 <td class="summary-card">
-                    <div class="summary-label">Pengeluaran (Expenses)</div>
+                    <div class="summary-label">Pengeluaran</div>
                     <div class="summary-value text-rose">Rp {{ number_format($summary['expenses'], 0, ',', '.') }}</div>
                 </td>
                 <td class="summary-card">
-                    <div class="summary-label">Komisi Barber (Payroll)</div>
+                    <div class="summary-label">Total Gaji Pokok</div>
+                    <div class="summary-value text-rose">Rp {{ number_format($summary['fixed_salaries'], 0, ',', '.') }}</div>
+                </td>
+                <td class="summary-card">
+                    <div class="summary-label">Total Komisi</div>
                     <div class="summary-value text-indigo">Rp {{ number_format($summary['commissions'], 0, ',', '.') }}</div>
                 </td>
                 <td class="summary-card profit">
@@ -219,13 +223,14 @@
             </td>
             <td style="width: 3%; border: none;"></td>
             <td style="width: 62%; padding: 0; border: none; vertical-align: top;">
-                <!-- Barber Commissions -->
+                <!-- Staff Payroll -->
                 <div class="section">
-                    <div class="section-title">Gaji & Komisi Barber</div>
+                    <div class="section-title">Daftar Gaji & Komisi Pegawai</div>
                     <table style="font-size: 9px;">
                         <thead>
                             <tr>
-                                <th>Barber</th>
+                                <th>Nama Pegawai</th>
+                                <th>Role</th>
                                 <th class="text-right">Layanan</th>
                                 <th class="text-right">Gaji Pokok</th>
                                 <th class="text-right">Komisi</th>
@@ -233,17 +238,22 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($barber_commissions as $bc)
+                            @foreach($all_staff as $staff)
                             @php 
-                                $salary = $bc->barber ? (float)$bc->barber->monthly_salary : 0;
-                                $comm = (float)$bc->total_commission;
+                                $isBarber = $staff->role === 'barber';
+                                $barberData = $barber_commissions->where('barber_id', $staff->id)->first();
+                                
+                                $services = $barberData ? $barberData->total_services : 0;
+                                $comm = $barberData ? (float)$barberData->total_commission : 0;
+                                $salary = (float)$staff->monthly_salary;
                             @endphp
                             <tr>
-                                <td class="text-bold" style="white-space: nowrap;">{{ $bc->barber ? $bc->barber->name : 'N/A' }}</td>
-                                <td class="text-right">{{ $bc->total_services }}x</td>
-                                <td class="text-right" style="white-space: nowrap;">Rp{{ number_format($salary, 0, ',', '.') }}</td>
-                                <td class="text-right text-indigo" style="white-space: nowrap;">Rp{{ number_format($comm, 0, ',', '.') }}</td>
-                                <td class="text-right text-bold" style="white-space: nowrap;">Rp{{ number_format($salary + $comm, 0, ',', '.') }}</td>
+                                <td class="text-bold" style="white-space: nowrap;">{{ $staff->name }}</td>
+                                <td style="text-transform: capitalize;">{{ $staff->role }}</td>
+                                <td class="text-right">{{ $services > 0 ? $services.'x' : '-' }}</td>
+                                <td class="text-right">Rp{{ number_format($salary, 0, ',', '.') }}</td>
+                                <td class="text-right text-indigo">Rp{{ number_format($comm, 0, ',', '.') }}</td>
+                                <td class="text-right text-bold">Rp{{ number_format($salary + $comm, 0, ',', '.') }}</td>
                             </tr>
                             @endforeach
                         </tbody>

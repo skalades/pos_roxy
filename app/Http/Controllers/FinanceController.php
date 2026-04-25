@@ -179,6 +179,14 @@ class FinanceController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // 7. Staff & Payroll Summary (including Cashiers)
+        $branchStaff = User::where('is_active', true)
+            ->where('role', '!=', 'super_admin')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->get();
+        
+        $totalFixedSalaries = $branchStaff->sum('monthly_salary');
+
         $data = [
             'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
             'app_logo' => \App\Models\Setting::get('receipt_logo'),
@@ -189,13 +197,15 @@ class FinanceController extends Controller
                 'revenue' => (float)$revenue,
                 'expenses' => (float)$expenses,
                 'commissions' => (float)$commissions,
-                'profit' => (float)($revenue - $expenses - $commissions)
+                'fixed_salaries' => (float)$totalFixedSalaries,
+                'profit' => (float)($revenue - $expenses - $commissions - $totalFixedSalaries)
             ],
             'barber_commissions' => $barberCommissions,
             'payment_distribution' => $paymentDistribution,
             'shifts' => $shifts,
             'transactions' => $transactions,
             'expense_list' => $expenseList,
+            'all_staff' => $branchStaff,
         ];
 
         $pdf = Pdf::loadView('pdf.finance_report', $data);
