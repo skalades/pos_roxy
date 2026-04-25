@@ -35,7 +35,7 @@ class FinanceController extends Controller
         // 1. Core Summary Stats
         $query = Transaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
         if ($branchId) $query->where('branch_id', $branchId);
-        $totalRevenue = (float) $query->sum('total');
+        $totalRevenue = (float) $query->sum('total_amount');
 
         $expenseQuery = CashOperation::where('type', 'cash_out')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
@@ -53,7 +53,7 @@ class FinanceController extends Controller
         // 2. Revenue Trend (Daily)
         $revenueTrend = Transaction::select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total) as total')
+                DB::raw('SUM(total_amount) as total')
             )
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -65,7 +65,7 @@ class FinanceController extends Controller
         $paymentMethods = Transaction::select(
                 'payment_method',
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(total) as total')
+                DB::raw('SUM(total_amount) as total')
             )
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -121,7 +121,7 @@ class FinanceController extends Controller
 
         // Fetch data (simplified for PDF)
         $revenue = Transaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total');
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
         
         $expenses = CashOperation::where('type', 'cash_out')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
@@ -150,7 +150,7 @@ class FinanceController extends Controller
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->with('user')
                 ->get(),
-            'payment_distribution' => Transaction::select('payment_method', DB::raw('SUM(total) as total'))
+            'payment_distribution' => Transaction::select('payment_method', DB::raw('SUM(total_amount) as total'))
                 ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->groupBy('payment_method')
