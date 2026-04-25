@@ -13,6 +13,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
     const [change, setChange] = useState(0);
     const [isSuccess, setIsSuccess] = useState(false);
     const [printing, setPrinting] = useState(false);
+    const [isInternalPrint, setIsInternalPrint] = useState(false);
     
     // Gunakan Ref untuk menyimpan snapshot agar tidak terpengaruh re-render
     const snapshotRef = useRef(null);
@@ -21,6 +22,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
         if (!show) {
             setIsSuccess(false);
             setAmountPaid('');
+            setIsInternalPrint(false);
             snapshotRef.current = null;
         }
     }, [show]);
@@ -61,7 +63,9 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
             items: [...cart].map(item => ({
                 name: item.name,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                barber_name: item.barber_name,
+                commission_rate: item.commission_rate
             })),
             total: total,
             payment: paidAmount,
@@ -90,7 +94,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
         
         setPrinting(true);
         try {
-            await printerService.printReceipt(snapshotRef.current, app_settings.receipt_logo);
+            await printerService.printReceipt(snapshotRef.current, app_settings.receipt_logo, isInternalPrint);
         } catch (error) {
             alert('Gagal mencetak: ' + error.message);
         } finally {
@@ -149,6 +153,7 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                                             { id: 'cash', name: 'Tunai', icon: <Icons.Banknote size={18} /> },
                                             { id: 'qris', name: 'QRIS', icon: <Icons.QrCode size={18} /> },
                                             { id: 'card', name: 'Kartu', icon: <Icons.CreditCard size={18} /> },
+                                            { id: 'edc', name: 'EDC', icon: <Icons.Keyboard size={18} /> },
                                             { id: 'transfer', name: 'Transfer', icon: <Icons.Send size={18} /> },
                                         ].map((method) => (
                                             <button
@@ -245,6 +250,32 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
                         
                         <h2 className="text-3xl font-black text-slate-900 mb-2">Pembayaran Berhasil!</h2>
                         <p className="text-slate-500 font-medium mb-12">Transaksi telah dicatat ke dalam sistem.</p>
+
+                        <div className="flex flex-col gap-4 w-full mb-8">
+                            <button
+                                onClick={() => setIsInternalPrint(!isInternalPrint)}
+                                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                                    isInternalPrint 
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700' 
+                                    : 'bg-white border-slate-100 text-slate-400'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl ${isInternalPrint ? 'bg-amber-200 text-amber-700' : 'bg-slate-50 text-slate-400'}`}>
+                                        <Icons.FileText size={18} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-black text-xs uppercase tracking-widest">Struk Internal</p>
+                                        <p className="text-[10px] font-medium opacity-80">Gunakan untuk arsip toko</p>
+                                    </div>
+                                </div>
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                    isInternalPrint ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200'
+                                }`}>
+                                    {isInternalPrint && <Icons.Check size={14} strokeWidth={4} />}
+                                </div>
+                            </button>
+                        </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                             <button

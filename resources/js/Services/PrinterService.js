@@ -86,14 +86,24 @@ class PrinterService {
      * Print the receipt
      * @param {Object} data Transaction data
      * @param {string} logoUrl URL of the logo image
+     * @param {boolean} isInternal Whether this is an internal use receipt
      */
-    async printReceipt(data, logoUrl) {
+    async printReceipt(data, logoUrl, isInternal = false) {
         if (!this.device || !this.device.gatt.connected) {
             await this.connect();
         }
 
         try {
             this.encoder.initialize();
+
+            // Internal Header
+            if (isInternal) {
+                this.encoder
+                    .align('center')
+                    .line('*** STRUK INTERNAL ***')
+                    .line('Bukan Bukti Pembayaran Sah')
+                    .newline();
+            }
 
             // Logo Handling
             if (logoUrl) {
@@ -123,6 +133,7 @@ class PrinterService {
                 'cash': 'Tunai',
                 'qris': 'QRIS',
                 'card': 'Kartu',
+                'edc': 'EDC',
                 'transfer': 'Transfer'
             };
             const methodLabel = methodMap[data.paymentMethod] || data.paymentMethod || '-';
@@ -130,7 +141,6 @@ class PrinterService {
             this.encoder
                 .align('left')
                 .line(`Kasir : ${data.cashierName}`)
-                .line(`Barber: ${data.barberName}`)
                 .line(`Tgl   : ${data.date}`)
                 .line(`Jam   : ${data.time || ''}`)
                 .line(`Metode: ${methodLabel}`)
@@ -146,6 +156,17 @@ class PrinterService {
                 this.encoder.line(`${name.padEnd(20)} ${qty} ${price}`);
                 if (item.name.length > 20) {
                     this.encoder.line(`  ${item.name.substring(20)}`);
+                }
+                
+                // Barber per item
+                if (item.barber_name) {
+                    this.encoder.line(`  [Barber: ${item.barber_name}]`);
+                    
+                    // Commission for internal receipt
+                    if (isInternal && item.commission_rate > 0) {
+                        const commission = (item.price * item.quantity) * (item.commission_rate / 100);
+                        this.encoder.line(`  [Komisi: Rp ${commission.toLocaleString()}]`);
+                    }
                 }
             });
 
@@ -263,13 +284,18 @@ class PrinterService {
                 
                 resolve({ imgData: imageData, height: height });
             };
-            img.onerror = () => {
-                console.warn('Failed to load logo image from:', url);
-                reject(new Error('Image load failed'));
+            img.onerror = (err) => {
+                console.error('Failed to load logo image:', {
+                    url: url,
+                    error: err,
+                    timestamp: new Date().toISOString()
+                });
+                reject(new Error('Image load failed: ' + url));
             };
             // Tambahkan cache busting
-            console.log('Loading logo from:', url);
-            img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+            const cacheUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+            console.log('Attempting to load logo from:', cacheUrl);
+            img.src = cacheUrl;
         });
     }
 }

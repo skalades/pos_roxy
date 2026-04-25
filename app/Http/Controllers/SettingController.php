@@ -44,7 +44,7 @@ class SettingController extends Controller
                 Storage::disk('public')->delete($cleanPath);
             }
             $path = $request->file('app_logo')->store('logos', 'public');
-            Setting::set('app_logo', Storage::url($path), 'ui');
+            Setting::set('app_logo', Storage::disk('public')->url($path), 'ui');
         }
 
         // Handle Receipt Logo
@@ -55,7 +55,7 @@ class SettingController extends Controller
                 Storage::disk('public')->delete($cleanPath);
             }
             $path = $request->file('receipt_logo')->store('logos', 'public');
-            Setting::set('receipt_logo', Storage::url($path), 'ui');
+            Setting::set('receipt_logo', Storage::disk('public')->url($path), 'ui');
         }
 
         return back()->with('success', 'Pengaturan tampilan berhasil diperbarui!');

@@ -54,10 +54,12 @@ class HandleInertiaRequests extends Middleware
         if (!$logo) return null;
         if (str_starts_with($logo, 'http')) return $logo;
         
-        // Remove /storage/ or storage/ if present
-        $cleanPath = ltrim($logo, '/');
-        $cleanPath = preg_replace('/^storage\//', '', $cleanPath);
+        // Ensure path starts with /storage/ and is relative to root
+        $path = ltrim($logo, '/');
+        if (!str_starts_with($path, 'storage/')) {
+            $path = 'storage/' . $path;
+        }
         
-        return asset('storage/' . $cleanPath);
+        return '/' . $path;
     }
 }

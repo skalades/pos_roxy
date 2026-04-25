@@ -83,7 +83,8 @@ export default function usePos(initialCart = [], taxRate = 10, enableTax = true,
                     type,
                     quantity: 1,
                     barber_id: barber?.id,
-                    barber_name: barber?.name
+                    barber_name: barber?.name,
+                    commission_rate: barber?.commission_rate || 0
                 }];
             }
         });
