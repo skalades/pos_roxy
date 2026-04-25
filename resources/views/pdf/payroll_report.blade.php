@@ -129,7 +129,7 @@
 <body>
     <div class="header clearfix">
         <div class="logo-container">
-            @if($app_logo)
+            @if($app_logo && file_exists(public_path($app_logo)))
                 <img src="{{ public_path($app_logo) }}" class="logo">
             @endif
         </div>
