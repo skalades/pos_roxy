@@ -63,10 +63,8 @@ export default function PosIndex({ services, categories, barbers, current_shift,
         }
     };
 
-    const onCheckout = (paymentData) => {
-        handleCheckout(paymentData, () => {
-            setShowPaymentModal(false);
-        });
+    const onCheckout = (paymentData, onSuccess) => {
+        handleCheckout(paymentData, onSuccess);
     };
 
     return (
@@ -172,6 +170,8 @@ export default function PosIndex({ services, categories, barbers, current_shift,
                 show={showPaymentModal}
                 onClose={() => setShowPaymentModal(false)}
                 total={total}
+                cart={cart}
+                selectedCustomer={selectedCustomer}
                 processing={processing}
                 onConfirm={onCheckout}
             />

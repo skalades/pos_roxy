@@ -1,6 +1,7 @@
-import React from 'react';
-import { ShoppingCart, X, User, ChevronRight, Scissors, Package, Minus, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingCart, X, User, ChevronRight, Scissors, Package, Minus, Plus, Trash2, Printer, Link, Unlink } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
+import printerService from '@/Services/PrinterService';
 
 export default function PosCartDrawer({
     cart,
@@ -20,18 +21,58 @@ export default function PosCartDrawer({
     showMobileCart,
     setShowMobileCart
 }) {
+    const [isConnected, setIsConnected] = useState(false);
+    const [connecting, setConnecting] = useState(false);
+
+    const handleConnect = async () => {
+        setConnecting(true);
+        try {
+            await printerService.connect();
+            setIsConnected(true);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setConnecting(false);
+        }
+    };
+
     return (
         <div className={`w-full landscape:w-[320px] lg:w-[360px] xl:w-[400px] flex flex-col bg-slate-900 lg:rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-800 z-20 ${showMobileCart ? 'fixed inset-0 rounded-none landscape:relative landscape:rounded-[2rem] lg:relative lg:rounded-[2.5rem]' : 'hidden landscape:flex lg:flex'}`}>
             
-            {/* Cart Header (Mobile Only - Portrait) */}
-            <div className="landscape:hidden lg:hidden p-6 bg-slate-800 flex items-center justify-between">
+            {/* Cart Header */}
+            <div className="p-6 bg-slate-800 flex items-center justify-between">
                 <h4 className="text-white font-black flex items-center gap-2">
-                    <ShoppingCart size={20} />
-                    Keranjang Belanja
+                    <ShoppingCart size={20} className="text-teal-400" />
+                    <span className="hidden sm:inline">Keranjang</span>
                 </h4>
-                <button onClick={() => setShowMobileCart(false)} className="text-slate-400 hover:text-white p-2">
-                    <X size={24} />
-                </button>
+                
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleConnect}
+                        disabled={connecting}
+                        className={`p-2 rounded-xl border transition-all flex items-center gap-2 ${
+                            isConnected 
+                            ? 'bg-teal-500/10 border-teal-500/30 text-teal-400' 
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                        title={isConnected ? 'Printer Terhubung' : 'Hubungkan Printer Bluetooth'}
+                    >
+                        {connecting ? (
+                            <Printer size={18} className="animate-pulse" />
+                        ) : isConnected ? (
+                            <div className="flex items-center gap-1.5">
+                                <Printer size={18} />
+                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                            </div>
+                        ) : (
+                            <Printer size={18} />
+                        )}
+                    </button>
+
+                    <button onClick={() => setShowMobileCart(false)} className="landscape:hidden lg:hidden text-slate-400 hover:text-white p-2">
+                        <X size={24} />
+                    </button>
+                </div>
             </div>
 
             {/* Customer Section */}
