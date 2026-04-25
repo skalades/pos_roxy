@@ -28,35 +28,6 @@ export default function PosIndex({ services, categories, barbers, current_shift,
     const [showDiscountModal, setShowDiscountModal] = useState(false);
     const [tempItem, setTempItem] = useState(null);
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [showOpenShiftPrint, setShowOpenShiftPrint] = useState(false);
-    const [printingShift, setPrintingShift] = useState(false);
-
-    useEffect(() => {
-        if (flash.just_opened) {
-            setShowOpenShiftPrint(true);
-        }
-    }, [flash.just_opened]);
-
-    const handlePrintOpenShift = async () => {
-        setPrintingShift(true);
-        try {
-            const printData = {
-                storeName: app_settings.app_name,
-                branchName: auth.user.branch?.name || '',
-                cashierName: auth.user.name,
-                time: new Date(current_shift.opened_at).toLocaleString('id-ID'),
-                openingBalance: parseFloat(current_shift.opening_balance),
-                notes: current_shift.notes,
-            };
-
-            await PrinterService.printShiftReport(printData, 'open', app_settings.receipt_logo);
-            setShowOpenShiftPrint(false);
-        } catch (error) {
-            alert('Gagal mencetak: ' + error.message);
-        } finally {
-            setPrintingShift(false);
-        }
-    };
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -213,46 +184,6 @@ export default function PosIndex({ services, categories, barbers, current_shift,
                 subtotal={subtotal}
                 onConfirm={(data) => setManualDiscount(data)}
             />
-
-            {/* Open Shift Print Dialog */}
-            {showOpenShiftPrint && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="p-8 bg-slate-900 text-white text-center relative overflow-hidden">
-                            <div className="absolute top-[-50%] right-[-10%] w-64 h-64 bg-teal-500/20 blur-[60px] rounded-full"></div>
-                            <div className="relative z-10">
-                                <div className="w-20 h-20 bg-teal-500/20 rounded-3xl flex items-center justify-center text-teal-400 mx-auto mb-6">
-                                    <Printer size={40} />
-                                </div>
-                                <h3 className="text-2xl font-black mb-2">Cetak Laporan Buka Shift</h3>
-                                <p className="text-slate-400 text-sm">Shift Anda telah berhasil dibuka. Ingin mencetak laporan pembukaan laci sekarang?</p>
-                            </div>
-                        </div>
-                        <div className="p-8 space-y-4">
-                            <button
-                                onClick={handlePrintOpenShift}
-                                disabled={printingShift}
-                                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-5 rounded-3xl text-lg font-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-900/20 active:scale-95"
-                            >
-                                {printingShift ? (
-                                    <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <>
-                                        <Printer size={20} />
-                                        Cetak Laporan
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setShowOpenShiftPrint(false)}
-                                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-3xl text-sm font-bold transition-all active:scale-95"
-                            >
-                                Lewati
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Local Error Messages (Validation) */}
             {checkoutError && (

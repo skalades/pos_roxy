@@ -10,9 +10,55 @@ import { formatIDR } from '@/utils/currency';
 import PageHeader from '@/Components/PageHeader';
 
 export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown }) {
-    const { auth, app_settings } = usePage().props;
+    const { auth, app_settings, flash } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [printing, setPrinting] = useState(false);
+    const [showOpenPrintModal, setShowOpenPrintModal] = useState(false);
+    const [showClosePrintModal, setShowClosePrintModal] = useState(false);
+
+    React.useEffect(() => {
+        if (flash.just_opened) {
+            setShowOpenPrintModal(true);
+        }
+        if (flash.just_closed_data) {
+            setShowClosePrintModal(true);
+        }
+    }, [flash]);
+
+    const handlePrintClosedShift = async () => {
+        const data = flash.just_closed_data;
+        if (!data) return;
+
+        setPrinting(true);
+        try {
+            const printData = {
+                storeName: app_settings.app_name,
+                branchName: auth.user.branch?.name || '',
+                cashierName: auth.user.name,
+                time: new Date(data.closed_at).toLocaleString('id-ID'),
+                openingBalance: parseFloat(data.opening_balance),
+                notes: data.notes,
+                cashSales: data.cash_sales,
+                cashExpenses: data.cash_expenses,
+                expectedBalance: parseFloat(data.expected_balance),
+                closingBalance: parseFloat(data.closing_balance),
+                difference: parseFloat(data.difference),
+                paymentSummary: data.payment_summary,
+                barberCommissions: data.barber_commissions,
+                servicesTotal: data.services_total,
+                productsTotal: data.products_total,
+                servicesBreakdown: data.services_breakdown,
+                productsBreakdown: data.products_breakdown,
+            };
+
+            await PrinterService.printShiftReport(printData, 'close', app_settings.receipt_logo);
+            setShowClosePrintModal(false);
+        } catch (error) {
+            alert('Gagal mencetak: ' + error.message);
+        } finally {
+            setPrinting(false);
+        }
+    };
 
     const handlePrint = async (type = 'open') => {
         if (!current_shift) return;
@@ -300,6 +346,65 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                     </div>
                 )}
             </div>
+            {/* Auto Print Modals */}
+            {(showOpenPrintModal || showClosePrintModal) && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className={`p-8 ${showOpenPrintModal ? 'bg-teal-600' : 'bg-rose-600'} text-white text-center relative overflow-hidden`}>
+                            <div className="absolute top-[-50%] right-[-10%] w-64 h-64 bg-white/10 blur-[60px] rounded-full"></div>
+                            <div className="relative z-10">
+                                <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-white mx-auto mb-6">
+                                    <Printer size={40} />
+                                </div>
+                                <h3 className="text-2xl font-black mb-2">
+                                    {showOpenPrintModal ? 'Shift Berhasil Dibuka' : 'Shift Berhasil Ditutup'}
+                                </h3>
+                                <p className="text-white/80 text-sm">
+                                    {showOpenPrintModal 
+                                        ? 'Ingin mencetak laporan pembukaan kasir sekarang?' 
+                                        : 'Ingin mencetak laporan penutupan kasir sekarang?'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="p-8 space-y-4">
+                            <button
+                                onClick={showOpenPrintModal ? () => handlePrint('open') : handlePrintClosedShift}
+                                disabled={printing}
+                                className={`w-full ${showOpenPrintModal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-rose-600 hover:bg-rose-700'} text-white py-5 rounded-3xl text-lg font-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95`}
+                            >
+                                {printing ? (
+                                    <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <>
+                                        <Printer size={20} />
+                                        Cetak Laporan
+                                    </>
+                                )}
+                            </button>
+                            
+                            <div className="flex gap-3">
+                                {showOpenPrintModal && (
+                                    <a
+                                        href={route('pos.index')}
+                                        className="flex-1 bg-slate-900 text-white py-4 rounded-3xl text-sm font-bold transition-all text-center hover:bg-slate-800"
+                                    >
+                                        Lanjut ke POS
+                                    </a>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setShowOpenPrintModal(false);
+                                        setShowClosePrintModal(false);
+                                    }}
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-3xl text-sm font-bold transition-all"
+                                >
+                                    {showOpenPrintModal ? 'Nanti Saja' : 'Tutup'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }

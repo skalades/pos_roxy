@@ -98,7 +98,7 @@ class ShiftController extends Controller
             'notes' => $validated['notes'],
         ]);
 
-        return redirect()->route('pos.index')->with('success', 'Shift berhasil dibuka.')->with('just_opened', true);
+        return redirect()->route('shifts.index')->with('success', 'Shift berhasil dibuka.')->with('just_opened', true);
     }
 
     public function close(CloseShiftRequest $request)
@@ -121,6 +121,25 @@ class ShiftController extends Controller
             'notes' => $shift->notes . "\nClose notes: " . $validated['notes'],
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Shift berhasil ditutup.');
+        // Kirim data untuk cetak laporan penutup
+        $closeReportData = [
+            'opening_balance' => $shift->opening_balance,
+            'cash_sales' => $this->shiftService->calculateCashSales($shift),
+            'cash_expenses' => $this->shiftService->calculateCashExpenses($shift),
+            'expected_balance' => $expectedBalance,
+            'closing_balance' => $shift->closing_balance,
+            'difference' => $shift->difference,
+            'notes' => $shift->notes,
+            'opened_at' => $shift->opened_at,
+            'closed_at' => $shift->closed_at,
+            'payment_summary' => $this->shiftService->getPaymentMethodsSummary($shift),
+            'barber_commissions' => $this->shiftService->getBarberCommissions($shift),
+            'services_total' => $this->shiftService->getServicesTotal($shift),
+            'products_total' => $this->shiftService->getProductsTotal($shift),
+            'services_breakdown' => $this->shiftService->getServicesBreakdown($shift),
+            'products_breakdown' => $this->shiftService->getProductsBreakdown($shift),
+        ];
+
+        return redirect()->route('shifts.index')->with('success', 'Shift berhasil ditutup.')->with('just_closed_data', $closeReportData);
     }
 }
