@@ -13,12 +13,12 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
     const { auth, app_settings, flash } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [printing, setPrinting] = useState(false);
+    const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+    const [isSuccessClose, setIsSuccessClose] = useState(false);
+    const [closeData, setCloseData] = useState(null);
 
     const handlePrint = async (type = 'open', data = null) => {
-        // Jika data tidak dikirim manual, pakai props (untuk active shift)
-        const activeShift = current_shift;
-        const source = data || activeShift;
-        
+        const source = data || current_shift;
         if (!source) return;
         
         setPrinting(true);
@@ -47,8 +47,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
 
             await PrinterService.printShiftReport(printData, type, app_settings.receipt_logo);
         } catch (error) {
-            console.error('Auto print failed:', error);
-            // Tetap lanjut meskipun print gagal agar tidak stuck
+            alert('Gagal mencetak: ' + error.message);
         } finally {
             setPrinting(false);
         }
@@ -70,11 +69,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
         e.preventDefault();
         openForm.post(route('shifts.open'), {
             onSuccess: () => {
-                // Cetak otomatis setelah berhasil
-                handlePrint('open').then(() => {
-                    // Redirect manual ke POS setelah cetak (biar user tidak bingung)
-                    window.location.href = route('pos.index');
-                });
+                setIsSuccessOpen(true);
             }
         });
     };
@@ -83,12 +78,8 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
         e.preventDefault();
         closeForm.post(route('shifts.close'), {
             onSuccess: (page) => {
-                // Ambil data laporan penutup dari flash session yang dikirim controller
-                const closeData = page.props.flash.just_closed_data;
-                handlePrint('close', closeData).then(() => {
-                    // Redirect ke dashboard setelah cetak
-                    window.location.href = route('dashboard');
-                });
+                setCloseData(page.props.flash.just_closed_data);
+                setIsSuccessClose(true);
             }
         });
     };
@@ -108,7 +99,8 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
     };
 
     return (
-        <AuthenticatedLayout
+        <>
+            <AuthenticatedLayout
             header={
                 <PageHeader 
                     title="Manajemen Shift"
@@ -324,5 +316,65 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                 )}
             </div>
         </AuthenticatedLayout>
+
+        {/* Success Modal (POS Style) */}
+        {(isSuccessOpen || isSuccessClose) && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="flex flex-col items-center justify-center py-12 px-8 text-center">
+                        <div className={`w-24 h-24 ${isSuccessOpen ? 'bg-teal-500' : 'bg-rose-500'} text-white rounded-full flex items-center justify-center shadow-2xl mb-8 animate-bounce`}>
+                            <CheckCircle size={48} strokeWidth={3} />
+                        </div>
+                        
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">
+                            {isSuccessOpen ? 'Shift Berhasil Dibuka!' : 'Shift Berhasil Ditutup!'}
+                        </h2>
+                        <p className="text-slate-500 font-medium mb-12">
+                            {isSuccessOpen 
+                                ? 'Shift Anda telah aktif. Silakan cetak laporan pembukaan jika diperlukan.' 
+                                : 'Shift telah berakhir. Silakan cetak laporan penutupan untuk arsip.'}
+                        </p>
+
+                        <div className="grid grid-cols-1 gap-4 w-full">
+                            <button
+                                onClick={() => handlePrint(isSuccessOpen ? 'open' : 'close', isSuccessClose ? closeData : null)}
+                                disabled={printing}
+                                className={`flex items-center justify-center gap-3 ${isSuccessOpen ? 'bg-teal-600 hover:bg-teal-700' : 'bg-rose-600 hover:bg-rose-700'} text-white py-5 rounded-2xl font-black text-sm transition-all active:scale-95 disabled:opacity-50`}
+                            >
+                                {printing ? (
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <Printer size={20} />
+                                )}
+                                CETAK LAPORAN
+                            </button>
+                            
+                            {isSuccessOpen ? (
+                                <a
+                                    href={route('pos.index')}
+                                    className="flex items-center justify-center gap-3 bg-slate-900 text-white py-5 rounded-2xl font-black text-sm hover:bg-slate-800 transition-all active:scale-95"
+                                >
+                                    <ArrowRight size={20} />
+                                    LANJUT KE POS
+                                </a>
+                            ) : (
+                                <a
+                                    href={route('dashboard')}
+                                    className="flex items-center justify-center gap-3 bg-white text-slate-900 border-2 border-slate-100 py-5 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all active:scale-95"
+                                >
+                                    <CheckCircle size={20} />
+                                    SELESAI
+                                </a>
+                            )}
+                        </div>
+
+                        <p className="mt-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                            Printer: RP02N (Bluetooth)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }
