@@ -69,10 +69,10 @@ class UserService extends BaseService
 
         if (in_array($role, ['super_admin', 'admin', 'manager'])) {
             $items[] = [
-                'title' => 'Laporan Penjualan',
-                'description' => 'Analisa omzet & performa',
+                'title' => 'Laporan Keuangan',
+                'description' => 'Analisa omzet & profit',
                 'icon' => 'BarChart3',
-                'href' => '#',
+                'href' => '/reports/finance',
                 'color' => 'blue',
             ];
             $items[] = [
