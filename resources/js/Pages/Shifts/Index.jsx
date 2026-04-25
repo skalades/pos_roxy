@@ -38,7 +38,7 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                 storeName: app_settings.app_name,
                 branchName: auth.user.branch?.name || '',
                 cashierName: auth.user.name,
-                time: new Date(isClosing ? (source.closed_at || new Date()) : source.opened_at).toLocaleString('id-ID'),
+                time: `${new Date(isClosing ? (source.closed_at || new Date()) : source.opened_at).toLocaleDateString('id-ID')} ${new Date(isClosing ? (source.closed_at || new Date()) : source.opened_at).toLocaleTimeString('id-ID').replace(/\./g, ':')}`,
                 openingBalance: parseFloat(source.opening_balance),
                 notes: source.notes,
                 // For close report - Mapping keys from snake_case (DB) to camelCase (Printer)
