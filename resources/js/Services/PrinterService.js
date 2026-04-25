@@ -71,16 +71,16 @@ class PrinterService {
             // Logo Handling
             if (logoUrl) {
                 try {
-                    // Gunakan snapshot logoUrl yang valid
-                    const imgData = await this._loadImage(logoUrl);
+                    // Gunakan size 120 agar tidak terlalu besar dan lebih tajam
+                    const logoSize = 120;
+                    const imgData = await this._loadImage(logoUrl, logoSize);
                     if (imgData) {
                         this.encoder.align('center')
-                            .image(imgData, 160, 160, 'atkinson')
+                            .image(imgData, logoSize, logoSize, 'threshold') // Threshold = Solid Hitam Putih (Tajam)
                             .newline();
                     }
                 } catch (e) {
                     console.error('Logo print error:', e);
-                    // Lanjut tanpa logo jika gagal
                 }
             }
 
@@ -160,28 +160,29 @@ class PrinterService {
     }
 
     /**
-     * Helper to load image as HTMLImageElement
+     * Helper to load image as HTMLImageElement with custom size
      */
-    _loadImage(url) {
+    _loadImage(url, size = 160) {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                // Resize to fixed size for thermal consistency
-                const size = 160;
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
                 
-                // Draw white background (thermal doesn't do transparency)
+                // Background putih solid
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, size, size);
                 
-                // Draw image centered
+                // Gambar ditengah
                 const scale = Math.min(size / img.width, size / img.height);
                 const x = (size / 2) - (img.width / 2) * scale;
                 const y = (size / 2) - (img.height / 2) * scale;
+                
+                // Gunakan imageSmoothingEnabled false agar garis tetap tajam saat resize
+                ctx.imageSmoothingEnabled = false;
                 ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
                 
                 resolve(ctx.getImageData(0, 0, size, size));
@@ -190,7 +191,6 @@ class PrinterService {
                 console.warn('Failed to load logo image from:', url);
                 reject(new Error('Image load failed'));
             };
-            // Add cache buster to avoid CORS issues with cached images
             img.src = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
         });
     }
