@@ -15,20 +15,46 @@ class PrinterService {
      */
     async connect() {
         try {
-            console.log('Searching for printer RP02N...');
-            
-            this.device = await navigator.bluetooth.requestDevice({
-                filters: [
-                    { name: 'RP02N' },
-                    { services: ['000018f0-0000-1000-8000-00805f9b34fb'] } // Common for thermal printers
-                ],
-                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-            });
+            // 1. Coba cari device yang sudah pernah di-pair (Chrome 85+)
+            if (navigator.bluetooth && navigator.bluetooth.getDevices) {
+                const devices = await navigator.bluetooth.getDevices();
+                const pairedDevice = devices.find(d => 
+                    d.name === 'RP02N' || 
+                    (d.uuids && d.uuids.includes('000018f0-0000-1000-8000-00805f9b34fb'))
+                );
+                
+                if (pairedDevice) {
+                    console.log('Found already paired device:', pairedDevice.name);
+                    this.device = pairedDevice;
+                }
+            }
 
-            const server = await this.device.gatt.connect();
+            // 2. Jika tidak ada device yang sudah di-pair, baru panggil requestDevice
+            if (!this.device) {
+                console.log('Searching for printer RP02N via requestDevice...');
+                this.device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { name: 'RP02N' },
+                        { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }
+                    ],
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+                });
+
+                // Add disconnect listener only for new devices
+                this.device.addEventListener('gattserverdisconnected', () => {
+                    console.warn('Printer disconnected');
+                    this.characteristic = null;
+                });
+            }
+
+            // 3. Pastikan terkoneksi ke GATT
+            if (!this.device.gatt.connected) {
+                await this.device.gatt.connect();
+            }
+
+            const server = this.device.gatt;
             const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
             
-            // Find the characteristic that supports writing
             const characteristics = await service.getCharacteristics();
             this.characteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
 
@@ -40,6 +66,7 @@ class PrinterService {
             return true;
         } catch (error) {
             console.error('Connection failed:', error);
+            this.device = null; // Reset on failure to allow retry
             throw error;
         }
     }
@@ -92,12 +119,21 @@ class PrinterService {
                 .line('-'.repeat(32));
 
             // Info
+            const methodMap = {
+                'cash': 'Tunai',
+                'qris': 'QRIS',
+                'card': 'Kartu',
+                'transfer': 'Transfer'
+            };
+            const methodLabel = methodMap[data.paymentMethod] || data.paymentMethod || '-';
+
             this.encoder
                 .align('left')
                 .line(`Kasir : ${data.cashierName}`)
                 .line(`Barber: ${data.barberName}`)
                 .line(`Tgl   : ${data.date}`)
                 .line(`Jam   : ${data.time || ''}`)
+                .line(`Metode: ${methodLabel}`)
                 .line(`No    : ${data.orderId}`)
                 .line('-'.repeat(32));
 
@@ -116,15 +152,15 @@ class PrinterService {
             this.encoder.line('-'.repeat(32));
 
             // Totals
-            const totalLabel = 'Total'.padEnd(20);
-            const totalValue = data.total.toLocaleString().padStart(12);
-            const payLabel = 'Bayar'.padEnd(20);
-            const payValue = data.payment.toLocaleString().padStart(12);
-            const changeLabel = 'Kembali'.padEnd(20);
-            const changeValue = data.change.toLocaleString().padStart(12);
+            const totalLabel = 'Total'.padEnd(15);
+            const totalValue = data.total.toLocaleString().padStart(17);
+            const payLabel = 'Bayar'.padEnd(15);
+            const payValue = data.payment.toLocaleString().padStart(17);
+            const changeLabel = 'Kembali'.padEnd(15);
+            const changeValue = data.change.toLocaleString().padStart(17);
 
             this.encoder
-                .align('right')
+                .align('left') // Gunakan left tapi value di pad-right
                 .line(`${totalLabel}${totalValue}`)
                 .line(`${payLabel}${payValue}`)
                 .line(`${changeLabel}${changeValue}`)
@@ -232,6 +268,7 @@ class PrinterService {
                 reject(new Error('Image load failed'));
             };
             // Tambahkan cache busting
+            console.log('Loading logo from:', url);
             img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
         });
     }

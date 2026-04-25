@@ -65,7 +65,8 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
             })),
             total: total,
             payment: paidAmount,
-            change: Math.max(0, paidAmount - total)
+            change: Math.max(0, paidAmount - total),
+            paymentMethod: paymentMethod // Tambahkan metode pembayaran
         };
 
         console.log('Receipt Snapshot Captured:', snapshotRef.current);
