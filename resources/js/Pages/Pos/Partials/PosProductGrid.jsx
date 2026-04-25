@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Scissors, Package, Plus, Loader2 } from 'lucide-react';
+import { Search, Scissors, Package, Plus, Loader2, CheckCircle2 } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
 import axios from 'axios';
 
@@ -13,10 +12,15 @@ export default function PosProductGrid({
     selectedCategory, 
     setSelectedCategory, 
     onItemClick,
-    showMobileCart
+    showMobileCart,
+    cart = []
 }) {
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
+
+    const isInCart = (id, type) => {
+        return cart.some(item => item.id === id && item.type === type);
+    };
 
     useEffect(() => {
         if (activeTab === 'products') {
@@ -100,32 +104,43 @@ export default function PosProductGrid({
 
             {/* Grid Items */}
             <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-4 pb-24 lg:pb-4">
-                {filteredItems.map(item => (
-                    <button 
-                        key={item.id}
-                        onClick={() => onItemClick(item, activeTab === 'services' ? 'service' : 'product')}
-                        className="group relative bg-white border border-slate-100 p-4 lg:p-4 rounded-[2rem] text-left hover:border-roxy-primary hover:shadow-xl hover:shadow-roxy-primary/5 transition-all duration-300 flex flex-col gap-3 active:scale-95 active:bg-slate-50"
-                    >
-                        <div className="w-full aspect-square bg-slate-50 rounded-[1.5rem] overflow-hidden mb-1">
-                            {item.image ? (
-                                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                    {activeTab === 'services' ? <Scissors size={24} className="lg:w-8 lg:h-8" /> : <Package size={24} className="lg:w-8 lg:h-8" />}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex-1">
-                            <h5 className="font-bold text-slate-800 text-[12px] lg:text-sm line-clamp-2 leading-tight h-10">{item.name}</h5>
-                            <p className="text-roxy-primary font-black text-[13px] lg:text-sm mt-1">{formatIDR(item.price)}</p>
-                        </div>
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="bg-roxy-primary text-white p-1.5 rounded-lg lg:rounded-xl shadow-lg">
-                                <Plus size={14} className="lg:w-4 lg:h-4" />
+                {filteredItems.map(item => {
+                    const selected = isInCart(item.id, activeTab === 'services' ? 'service' : 'product');
+                    return (
+                        <button 
+                            key={item.id}
+                            onClick={() => onItemClick(item, activeTab === 'services' ? 'service' : 'product')}
+                            className={`group relative bg-white border p-4 lg:p-4 rounded-[2rem] text-left hover:border-roxy-primary hover:shadow-xl hover:shadow-roxy-primary/5 transition-all duration-300 flex flex-col gap-3 active:scale-95 active:bg-slate-50 ${selected ? 'border-teal-500 ring-2 ring-teal-500/20' : 'border-slate-100'}`}
+                        >
+                            <div className="w-full aspect-square bg-slate-50 rounded-[1.5rem] overflow-hidden mb-1 relative">
+                                {item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                        {activeTab === 'services' ? <Scissors size={24} className="lg:w-8 lg:h-8" /> : <Package size={24} className="lg:w-8 lg:h-8" />}
+                                    </div>
+                                )}
+                                
+                                {selected && (
+                                    <div className="absolute inset-0 bg-teal-500/10 backdrop-blur-[1px] flex items-center justify-center">
+                                        <div className="bg-white text-teal-500 p-2 rounded-full shadow-lg scale-110 animate-in zoom-in">
+                                            <CheckCircle2 size={24} strokeWidth={3} />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    </button>
-                ))}
+                            <div className="flex-1">
+                                <h5 className={`font-bold text-[12px] lg:text-sm line-clamp-2 leading-tight h-10 ${selected ? 'text-teal-600' : 'text-slate-800'}`}>{item.name}</h5>
+                                <p className="text-roxy-primary font-black text-[13px] lg:text-sm mt-1">{formatIDR(item.price)}</p>
+                            </div>
+                            <div className={`absolute top-2 right-2 transition-opacity ${selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                <div className={`${selected ? 'bg-teal-500' : 'bg-roxy-primary'} text-white p-1.5 rounded-lg lg:rounded-xl shadow-lg`}>
+                                    {selected ? <Plus size={14} className="lg:w-4 lg:h-4" /> : <Plus size={14} className="lg:w-4 lg:h-4" />}
+                                </div>
+                            </div>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

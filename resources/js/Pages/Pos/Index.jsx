@@ -96,6 +96,7 @@ export default function PosIndex({ services, categories, barbers, current_shift,
                     setSelectedCategory={setSelectedCategory}
                     onItemClick={handleItemClick}
                     showMobileCart={showMobileCart}
+                    cart={cart}
                 />
 
                 <PosCartDrawer 

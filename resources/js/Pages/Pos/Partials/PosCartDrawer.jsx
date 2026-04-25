@@ -105,39 +105,39 @@ export default function PosCartDrawer({
                     </div>
                 ) : (
                     cart.map((item, index) => (
-                        <div key={`${item.type}-${item.id}-${index}`} className="flex items-center gap-3 lg:gap-4 group">
-                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg lg:rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 shrink-0">
-                                {item.type === 'service' ? <Scissors size={18} /> : <Package size={18} />}
+                        <div key={`${item.type}-${item.id}-${index}`} className="flex items-center gap-2 lg:gap-4 group bg-white/5 lg:bg-transparent p-3 lg:p-0 rounded-2xl lg:rounded-none border border-white/5 lg:border-none">
+                            <div className="w-8 h-8 lg:w-12 lg:h-12 rounded-lg lg:rounded-xl bg-white/10 lg:bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 shrink-0">
+                                {item.type === 'service' ? <Scissors size={16} className="lg:w-5 lg:h-5" /> : <Package size={16} className="lg:w-5 lg:h-5" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h6 className="text-xs lg:text-sm font-bold text-white truncate">{item.name}</h6>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[10px] lg:text-xs text-teal-400 font-black">{formatIDR(item.price)}</p>
+                                <h6 className="text-[11px] lg:text-sm font-bold text-white truncate leading-tight">{item.name}</h6>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                                    <p className="text-[10px] lg:text-xs text-teal-400 font-black shrink-0">{formatIDR(item.price)}</p>
                                     {item.barber_name && (
-                                        <span className="text-[8px] lg:text-[10px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-1">
+                                        <span className="text-[7px] lg:text-[10px] bg-teal-500/10 text-teal-300 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-1 border border-teal-500/20">
                                             <User size={8} /> {item.barber_name}
                                         </span>
                                     )}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 lg:gap-2 bg-white/5 rounded-lg lg:rounded-xl p-1 border border-white/5">
+                            <div className="flex items-center gap-1 lg:gap-2 bg-white/10 lg:bg-white/5 rounded-lg lg:rounded-xl p-1 border border-white/10 shrink-0">
                                 <button 
                                     onClick={() => updateQuantity(index, -1)}
-                                    className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md lg:rounded-lg hover:bg-white/10 text-slate-400"
+                                    className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md lg:rounded-lg hover:bg-white/20 text-slate-300"
                                 >
-                                    <Minus size={12} />
+                                    <Minus size={10} />
                                 </button>
-                                <span className="w-5 lg:w-6 text-center text-[10px] lg:text-xs font-bold text-white">{item.quantity}</span>
+                                <span className="w-4 lg:w-6 text-center text-[10px] lg:text-xs font-bold text-white">{item.quantity}</span>
                                 <button 
                                     onClick={() => updateQuantity(index, 1)}
-                                    className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md lg:rounded-lg hover:bg-white/10 text-slate-400"
+                                    className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md lg:rounded-lg hover:bg-white/20 text-slate-300"
                                 >
-                                    <Plus size={12} />
+                                    <Plus size={10} />
                                 </button>
                             </div>
                             <button 
                                 onClick={() => removeFromCart(index)}
-                                className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 lg:opacity-0 lg:group-hover:opacity-100 transition-all"
+                                className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 transition-all shrink-0 lg:opacity-0 lg:group-hover:opacity-100"
                             >
                                 <Trash2 size={14} />
                             </button>
