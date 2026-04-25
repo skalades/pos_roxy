@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\CashOperation;
+use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Carbon\Carbon;
