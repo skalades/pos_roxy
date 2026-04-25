@@ -99,6 +99,68 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
             <Head title="Laporan Keuangan" />
 
             <div className="space-y-8 mt-8">
+                {/* Quick Filters */}
+                <div className="flex flex-wrap gap-2">
+                    {[
+                        { label: 'Hari Ini', value: 'today' },
+                        { label: 'Kemarin', value: 'yesterday' },
+                        { label: 'Minggu Ini', value: 'this_week' },
+                        { label: 'Bulan Ini', value: 'this_month' },
+                        { label: 'Bulan Lalu', value: 'last_month' },
+                    ].map((qf) => (
+                        <button
+                            key={qf.value}
+                            onClick={() => {
+                                const now = new Date();
+                                let start = new Date();
+                                let end = new Date();
+
+                                switch(qf.value) {
+                                    case 'today':
+                                        start = now;
+                                        end = now;
+                                        break;
+                                    case 'yesterday':
+                                        start = new Date(now);
+                                        start.setDate(now.getDate() - 1);
+                                        end = new Date(start);
+                                        break;
+                                    case 'this_week':
+                                        const day = now.getDay();
+                                        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                                        start = new Date(now.setDate(diff));
+                                        end = new Date();
+                                        break;
+                                    case 'this_month':
+                                        start = new Date(now.getFullYear(), now.getMonth(), 1);
+                                        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                                        break;
+                                    case 'last_month':
+                                        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                        end = new Date(now.getFullYear(), now.getMonth(), 0);
+                                        break;
+                                }
+
+                                const startStr = start.toISOString().split('T')[0];
+                                const endStr = end.toISOString().split('T')[0];
+                                
+                                setStartDate(startStr);
+                                setEndDate(endStr);
+                                
+                                // Direct router call for better UX
+                                router.get(route('reports.finance'), {
+                                    start_date: startStr,
+                                    end_date: endStr,
+                                    branch_id: branchId
+                                }, { preserveState: true });
+                            }}
+                            className="px-4 py-2 bg-white/50 backdrop-blur-md border border-white text-slate-600 rounded-xl text-xs font-black hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
+                        >
+                            {qf.label}
+                        </button>
+                    ))}
+                </div>
+
                 {/* Filter Bar */}
                 <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-3xl shadow-sm flex flex-wrap items-end gap-4">
                     <div className="flex-1 min-w-[200px]">
