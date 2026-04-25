@@ -108,5 +108,33 @@ class ShiftService extends BaseService
             })
             ->where('item_type', 'product')
             ->sum('total_price');
+    /**
+     * Breakdown layanan yang terjual (Nama, Qty, Total).
+     */
+    public function getServicesBreakdown(Shift $shift): array
+    {
+        return \App\Models\TransactionItem::whereHas('transaction', function($query) use ($shift) {
+                $query->where('shift_id', $shift->id)->where('status', 'completed');
+            })
+            ->where('item_type', 'service')
+            ->select('item_name', \DB::raw('SUM(quantity) as qty'), \DB::raw('SUM(total_price) as total'))
+            ->groupBy('item_name')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Breakdown produk yang terjual (Nama, Qty, Total).
+     */
+    public function getProductsBreakdown(Shift $shift): array
+    {
+        return \App\Models\TransactionItem::whereHas('transaction', function($query) use ($shift) {
+                $query->where('shift_id', $shift->id)->where('status', 'completed');
+            })
+            ->where('item_type', 'product')
+            ->select('item_name', \DB::raw('SUM(quantity) as qty'), \DB::raw('SUM(total_price) as total'))
+            ->groupBy('item_name')
+            ->get()
+            ->toArray();
     }
 }

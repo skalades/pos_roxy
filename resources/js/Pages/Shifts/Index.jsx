@@ -9,7 +9,7 @@ import CurrencyInput from '@/Components/CurrencyInput';
 import { formatIDR } from '@/utils/currency';
 import PageHeader from '@/Components/PageHeader';
 
-export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total }) {
+export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown }) {
     const { auth, app_settings } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [printing, setPrinting] = useState(false);
@@ -36,6 +36,8 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                 barberCommissions: barber_commissions,
                 servicesTotal: services_total,
                 productsTotal: products_total,
+                servicesBreakdown: services_breakdown,
+                productsBreakdown: products_breakdown,
             };
 
             await PrinterService.printShiftReport(printData, type, app_settings.receipt_logo);

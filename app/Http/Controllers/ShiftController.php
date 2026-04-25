@@ -28,6 +28,8 @@ class ShiftController extends Controller
         $barberCommissions = [];
         $servicesTotal = 0;
         $productsTotal = 0;
+        $servicesBreakdown = [];
+        $productsBreakdown = [];
 
         if ($shift) {
             $cashSales = $this->shiftService->calculateCashSales($shift);
@@ -36,6 +38,8 @@ class ShiftController extends Controller
             $barberCommissions = $this->shiftService->getBarberCommissions($shift);
             $servicesTotal = $this->shiftService->getServicesTotal($shift);
             $productsTotal = $this->shiftService->getProductsTotal($shift);
+            $servicesBreakdown = $this->shiftService->getServicesBreakdown($shift);
+            $productsBreakdown = $this->shiftService->getProductsBreakdown($shift);
         }
 
         return Inertia::render('Shifts/Index', [
@@ -46,6 +50,8 @@ class ShiftController extends Controller
             'barber_commissions' => $barberCommissions,
             'services_total' => $servicesTotal,
             'products_total' => $productsTotal,
+            'services_breakdown' => $servicesBreakdown,
+            'products_breakdown' => $productsBreakdown,
         ]);
     }
 

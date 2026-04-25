@@ -309,10 +309,28 @@ class PrinterService {
                 });
 
                 this.encoder.line('-'.repeat(32))
-                    .line('Penjualan Item:')
-                    .line(`Layanan    : ${data.servicesTotal.toLocaleString('id-ID').padStart(19)}`)
-                    .line(`Produk     : ${data.productsTotal.toLocaleString('id-ID').padStart(19)}`)
-                    .line('-'.repeat(32))
+                    .line('Rincian Layanan:')
+                    .align('left');
+
+                (data.servicesBreakdown || []).forEach(s => {
+                    const name = s.item_name.substring(0, 20).padEnd(20);
+                    const qty = s.qty.toString().padStart(3);
+                    const total = s.total.toLocaleString('id-ID').padStart(9);
+                    this.encoder.line(`${name}${qty}${total}`);
+                });
+
+                this.encoder.line('-'.repeat(32))
+                    .line('Rincian Produk:')
+                    .align('left');
+
+                (data.productsBreakdown || []).forEach(p => {
+                    const name = p.item_name.substring(0, 20).padEnd(20);
+                    const qty = p.qty.toString().padStart(3);
+                    const total = p.total.toLocaleString('id-ID').padStart(9);
+                    this.encoder.line(`${name}${qty}${total}`);
+                });
+
+                this.encoder.line('-'.repeat(32))
                     .line('Komisi Barber:');
 
                 (data.barberCommissions || []).forEach(b => {
@@ -321,7 +339,8 @@ class PrinterService {
                     this.encoder.line(`${label}${val}`);
                 });
 
-                this.encoder.newline()
+                this.encoder.line('-'.repeat(32))
+                    .newline()
                     .line('Catatan:')
                     .line(data.notes || '-')
                     .newline();
