@@ -36,18 +36,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'app_settings' => [
                 'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
-                'app_logo' => (function() {
-                    $logo = \App\Models\Setting::get('app_logo');
-                    if (!$logo) return null;
-                    if (str_starts_with($logo, 'http')) return $logo;
-                    return asset('storage/' . $logo);
-                })(),
-                'receipt_logo' => (function() {
-                    $logo = \App\Models\Setting::get('receipt_logo');
-                    if (!$logo) return null;
-                    if (str_starts_with($logo, 'http')) return $logo;
-                    return asset('storage/' . $logo);
-                })(),
+                'app_logo' => $this->getLogoUrl(\App\Models\Setting::get('app_logo')),
+                'receipt_logo' => $this->getLogoUrl(\App\Models\Setting::get('receipt_logo')),
                 'app_website' => \App\Models\Setting::get('app_website'),
                 'app_instagram' => \App\Models\Setting::get('app_instagram'),
                 'app_whatsapp' => \App\Models\Setting::get('app_whatsapp'),
@@ -57,5 +47,16 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
         ];
+    }
+
+    private function getLogoUrl($logo)
+    {
+        if (!$logo) return null;
+        if (str_starts_with($logo, 'http')) return $logo;
+        
+        // Pastikan ada prefix logos/ jika belum ada
+        $path = str_starts_with($logo, 'logos/') ? $logo : 'logos/' . $logo;
+        
+        return asset('storage/' . $path);
     }
 }
