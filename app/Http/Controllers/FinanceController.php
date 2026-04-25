@@ -110,6 +110,9 @@ class FinanceController extends Controller
 
     public function exportPdf(Request $request)
     {
+        ini_set('memory_limit', '256M');
+        set_time_limit(120);
+
         $user = $request->user();
         if (!$user->hasRole(['super_admin', 'admin', 'manager'])) abort(403);
 
