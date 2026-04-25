@@ -124,8 +124,8 @@ class FinanceController extends Controller
         $branch = $branchId ? Branch::find($branchId) : null;
         $dateRange = [$startDate . ' 00:00:00', $endDate . ' 23:59:59'];
 
-        // Resolve logo path for dompdf
-        $logoUrl = \App\Models\Setting::get('receipt_logo');
+        // Resolve logo path for dompdf (Use App Logo for Premium Look)
+        $logoUrl = \App\Models\Setting::get('app_logo');
         $logoPath = null;
         if ($logoUrl) {
             $parsedUrl = parse_url($logoUrl, PHP_URL_PATH);
