@@ -22,6 +22,8 @@ class ShiftController extends Controller
     {
         $shift = $this->shiftService->getActiveShift($request->user()->id);
 
+        $cashSales = 0;
+        $cashExpenses = 0;
         $paymentSummary = [];
         $barberCommissions = [];
         $servicesTotal = 0;
