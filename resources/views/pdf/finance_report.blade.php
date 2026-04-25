@@ -63,20 +63,21 @@
             text-transform: uppercase;
         }
         
-        .summary-grid {
+        .summary-table {
             width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px 0;
+            margin-left: -10px;
             margin-bottom: 20px;
         }
-        .summary-box {
-            width: 23%;
-            float: left;
+        .summary-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             padding: 15px;
             border-radius: 12px;
-            margin-right: 2%;
+            vertical-align: top;
         }
-        .summary-box.profit {
+        .summary-card.profit {
             background: #6366f1;
             color: #ffffff;
             border-color: #4f46e5;
@@ -169,24 +170,26 @@
     <!-- Summary Stats -->
     <div class="section">
         <div class="section-title">Ringkasan Performa</div>
-        <div class="summary-grid clearfix">
-            <div class="summary-box">
-                <div class="summary-label">Pendapatan (Revenue)</div>
-                <div class="summary-value">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
-            </div>
-            <div class="summary-box">
-                <div class="summary-label">Pengeluaran (Expenses)</div>
-                <div class="summary-value text-rose">Rp {{ number_format($summary['expenses'], 0, ',', '.') }}</div>
-            </div>
-            <div class="summary-box">
-                <div class="summary-label">Komisi Barber (Payroll)</div>
-                <div class="summary-value text-indigo">Rp {{ number_format($summary['commissions'], 0, ',', '.') }}</div>
-            </div>
-            <div class="summary-box profit" style="margin-right: 0;">
-                <div class="summary-label">Laba Bersih</div>
-                <div class="summary-value">Rp {{ number_format($summary['profit'], 0, ',', '.') }}</div>
-            </div>
-        </div>
+        <table class="summary-table">
+            <tr>
+                <td class="summary-card">
+                    <div class="summary-label">Pendapatan (Revenue)</div>
+                    <div class="summary-value">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
+                </td>
+                <td class="summary-card">
+                    <div class="summary-label">Pengeluaran (Expenses)</div>
+                    <div class="summary-value text-rose">Rp {{ number_format($summary['expenses'], 0, ',', '.') }}</div>
+                </td>
+                <td class="summary-card">
+                    <div class="summary-label">Komisi Barber (Payroll)</div>
+                    <div class="summary-value text-indigo">Rp {{ number_format($summary['commissions'], 0, ',', '.') }}</div>
+                </td>
+                <td class="summary-card profit">
+                    <div class="summary-label">Laba Bersih</div>
+                    <div class="summary-value">Rp {{ number_format($summary['profit'], 0, ',', '.') }}</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <table style="width: 100%; border: none; margin-bottom: 0;">

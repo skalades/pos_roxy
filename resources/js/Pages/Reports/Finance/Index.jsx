@@ -68,10 +68,12 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
 
     // Prepare data for Pie Chart
     const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-    const pieData = payment_methods.map(item => ({
-        name: item.payment_method.toUpperCase(),
-        value: parseFloat(item.total)
-    }));
+    const pieData = payment_methods
+        .filter(item => item.payment_method && item.payment_method.trim() !== '')
+        .map(item => ({
+            name: item.payment_method.toUpperCase(),
+            value: parseFloat(item.total)
+        }));
 
     return (
         <AuthenticatedLayout
