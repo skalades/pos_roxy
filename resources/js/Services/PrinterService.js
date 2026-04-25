@@ -71,12 +71,11 @@ class PrinterService {
             // Logo Handling
             if (logoUrl) {
                 try {
-                    // Gunakan size 120 agar tidak terlalu besar dan lebih tajam
-                    const logoSize = 120;
+                    const logoSize = 160; // Kembali ke 160 karena stabil
                     const imgData = await this._loadImage(logoUrl, logoSize);
                     if (imgData) {
                         this.encoder.align('center')
-                            .image(imgData, logoSize, logoSize, 'threshold') // Threshold = Solid Hitam Putih (Tajam)
+                            .image(imgData, logoSize, logoSize, 'threshold') 
                             .newline();
                     }
                 } catch (e) {
@@ -172,20 +171,31 @@ class PrinterService {
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
                 
-                // Background putih solid
+                // Background putih
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, size, size);
                 
-                // Gambar ditengah
                 const scale = Math.min(size / img.width, size / img.height);
                 const x = (size / 2) - (img.width / 2) * scale;
                 const y = (size / 2) - (img.height / 2) * scale;
                 
-                // Gunakan imageSmoothingEnabled false agar garis tetap tajam saat resize
                 ctx.imageSmoothingEnabled = false;
                 ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
                 
-                resolve(ctx.getImageData(0, 0, size, size));
+                // Logika High-Contrast (Threshold Manual)
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    // Jika warna keabu-abuan, jadikan hitam pekat (solid)
+                    const val = avg < 200 ? 0 : 255; 
+                    data[i] = val;     // R
+                    data[i + 1] = val; // G
+                    data[i + 2] = val; // B
+                }
+                ctx.putImageData(imageData, 0, 0);
+                
+                resolve(imageData);
             };
             img.onerror = () => {
                 console.warn('Failed to load logo image from:', url);
