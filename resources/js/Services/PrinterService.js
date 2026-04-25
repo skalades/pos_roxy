@@ -94,9 +94,10 @@ class PrinterService {
             // Info
             this.encoder
                 .align('left')
-                .line(`Kasir: ${data.cashierName}`)
-                .line(`Tgl  : ${data.date}`)
-                .line(`No   : ${data.orderId}`)
+                .line(`Kasir  : ${data.cashierName}`)
+                .line(`Barber : ${data.barberName}`)
+                .line(`Tgl    : ${data.date}`)
+                .line(`No     : ${data.orderId}`)
                 .line('-'.repeat(32));
 
             // Items
@@ -127,6 +128,23 @@ class PrinterService {
                 .line(`${payLabel}${payValue}`)
                 .line(`${changeLabel}${changeValue}`)
                 .newline();
+
+            // Dynamic Social Media Footer
+            this.encoder.align('center');
+            
+            if (data.website) {
+                this.encoder.line(data.website);
+            }
+            if (data.instagram) {
+                this.encoder.line(`IG: ${data.instagram}`);
+            }
+            if (data.whatsapp) {
+                this.encoder.line(`WA: ${data.whatsapp}`);
+            }
+
+            if (data.website || data.instagram || data.whatsapp) {
+                this.encoder.newline();
+            }
 
             // Footer
             this.encoder

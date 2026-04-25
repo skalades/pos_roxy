@@ -42,6 +42,15 @@ class HandleInertiaRequests extends Middleware
                     if (str_starts_with($logo, 'http')) return $logo;
                     return asset('storage/' . $logo);
                 })(),
+                'receipt_logo' => (function() {
+                    $logo = \App\Models\Setting::get('receipt_logo');
+                    if (!$logo) return null;
+                    if (str_starts_with($logo, 'http')) return $logo;
+                    return asset('storage/' . $logo);
+                })(),
+                'app_website' => \App\Models\Setting::get('app_website'),
+                'app_instagram' => \App\Models\Setting::get('app_instagram'),
+                'app_whatsapp' => \App\Models\Setting::get('app_whatsapp'),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

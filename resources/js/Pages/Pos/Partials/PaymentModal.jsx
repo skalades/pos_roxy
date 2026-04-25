@@ -38,12 +38,23 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
     const handleConfirm = () => {
         const paidAmount = parseFloat(amountPaid.replace(/[^0-9]/g, '')) || total;
         
+        // Ambil nama-nama barber yang melayani (unik)
+        const uniqueBarbers = [...new Set(cart
+            .filter(item => item.barber)
+            .map(item => item.barber.name)
+        )];
+        const barberName = uniqueBarbers.length > 0 ? uniqueBarbers.join(', ') : '-';
+
         // AMBIL SNAPSHOT SEKARANG (SEBELUM BACKEND DIPANGGIL)
         snapshotRef.current = {
             storeName: app_settings.app_name,
             branchName: auth.user.branch?.name || '',
             branchAddress: auth.user.branch?.address || '',
             cashierName: auth.user.name,
+            barberName: barberName,
+            website: app_settings.app_website,
+            instagram: app_settings.app_instagram,
+            whatsapp: app_settings.app_whatsapp,
             date: `${formatDate(new Date())} ${formatTime(new Date())}`,
             orderId: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
             items: [...cart].map(item => ({

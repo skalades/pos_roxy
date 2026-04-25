@@ -69,6 +69,9 @@ function BrandingTab({ settings }) {
     const [preview, setPreview] = useState(settings.app_logo || null);
     const { data, setData, post, processing, recentlySuccessful } = useForm({
         app_name: settings.app_name || 'Roxy POS',
+        app_website: settings.app_website || '',
+        app_instagram: settings.app_instagram || '',
+        app_whatsapp: settings.app_whatsapp || '',
         app_logo: null,
     });
 
@@ -92,8 +95,8 @@ function BrandingTab({ settings }) {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tampilan Sistem</h3>
-                <p className="text-sm text-slate-500 font-medium mt-1">Sesuaikan identitas aplikasi Anda</p>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tampilan & Informasi Struk</h3>
+                <p className="text-sm text-slate-500 font-medium mt-1">Sesuaikan identitas aplikasi dan informasi pada struk belanja</p>
             </div>
 
             <form onSubmit={submit} className="space-y-8">
@@ -130,14 +133,49 @@ function BrandingTab({ settings }) {
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Aplikasi</label>
-                    <input
-                        type="text"
-                        value={data.app_name}
-                        onChange={e => setData('app_name', e.target.value)}
-                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Aplikasi</label>
+                        <input
+                            type="text"
+                            value={data.app_name}
+                            onChange={e => setData('app_name', e.target.value)}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
+                        />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Website</label>
+                        <input
+                            type="text"
+                            placeholder="www.roxybarber.com"
+                            value={data.app_website}
+                            onChange={e => setData('app_website', e.target.value)}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
+                        />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instagram</label>
+                        <input
+                            type="text"
+                            placeholder="@roxybarber"
+                            value={data.app_instagram}
+                            onChange={e => setData('app_instagram', e.target.value)}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
+                        />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</label>
+                        <input
+                            type="text"
+                            placeholder="08123456789"
+                            value={data.app_whatsapp}
+                            onChange={e => setData('app_whatsapp', e.target.value)}
+                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
+                        />
+                    </div>
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 flex items-center gap-4">
