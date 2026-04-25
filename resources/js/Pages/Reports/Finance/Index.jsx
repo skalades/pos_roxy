@@ -284,7 +284,10 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip 
+                                            formatter={(value) => formatCurrency(value)}
+                                            contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold'}}
+                                        />
                                         <Legend verticalAlign="bottom" wrapperStyle={{paddingTop: '20px', fontWeight: 'bold', fontSize: '10px'}} />
                                     </PieChart>
                                 </ResponsiveContainer>
