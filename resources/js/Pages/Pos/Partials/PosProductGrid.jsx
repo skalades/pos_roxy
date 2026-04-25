@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Search, Scissors, Package, Plus, Loader2, CheckCircle2 } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
 import axios from 'axios';
