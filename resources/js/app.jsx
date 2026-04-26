@@ -29,8 +29,19 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('SW registered: ', registration);
+            // Paksa update jika ada versi baru di server
+            registration.update();
         }).catch(registrationError => {
             console.log('SW registration failed: ', registrationError);
         });
+    });
+
+    // Reload halaman otomatis jika Service Worker baru mengambil alih
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            window.location.reload();
+            refreshing = true;
+        }
     });
 }
