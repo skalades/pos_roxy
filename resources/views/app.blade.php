@@ -15,6 +15,26 @@
         @viteReactRefresh
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
+
+        <script>
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (let registration of registrations) {
+                        registration.unregister().then(function(boolean) {
+                            if (boolean) {
+                                console.log('Old Service Worker successfully unregistered.');
+                                window.location.reload();
+                            }
+                        });
+                    }
+                });
+            }
+            if (window.caches) {
+                caches.keys().then(function(names) {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+        </script>
     </head>
     <body class="font-sans antialiased">
         @inertia
