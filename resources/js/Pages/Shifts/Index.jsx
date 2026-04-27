@@ -251,12 +251,28 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                                                 <span className="text-slate-500 font-medium">Total Penjualan Tunai</span>
                                                 <span className="text-slate-800 font-bold">{formatIDR(cash_sales)}</span>
                                             </div>
+                                            {/* Non-Cash Payment Methods */}
+                                            {Object.entries(payment_summary)
+                                                .filter(([method]) => method !== 'cash')
+                                                .map(([method, total]) => (
+                                                    <div key={method} className="flex justify-between text-sm animate-in fade-in slide-in-from-right-2 duration-300">
+                                                        <span className="text-slate-500 font-medium uppercase text-[11px] flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                            {method.replace('_', ' ')}
+                                                        </span>
+                                                        <span className="text-slate-800 font-bold">{formatIDR(total)}</span>
+                                                    </div>
+                                                ))}
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-slate-500 font-medium text-rose-500">Total Pengeluaran</span>
                                                 <span className="text-rose-600 font-bold">-{formatIDR(cash_expenses)}</span>
                                             </div>
+                                            <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between text-sm italic">
+                                                <span className="text-slate-400 font-medium">Total Omset (Semua Metode)</span>
+                                                <span className="text-slate-500 font-bold">{formatIDR(Object.values(payment_summary).reduce((a, b) => a + parseFloat(b), 0))}</span>
+                                            </div>
                                             <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
-                                                <span className="text-slate-800 font-bold">Total Seharusnya</span>
+                                                <span className="text-slate-800 font-bold">Total Seharusnya (Kas)</span>
                                                 <span className="text-lg font-black text-emerald-600">{formatIDR(parseFloat(current_shift.opening_balance) + cash_sales - cash_expenses)}</span>
                                             </div>
                                         </div>
