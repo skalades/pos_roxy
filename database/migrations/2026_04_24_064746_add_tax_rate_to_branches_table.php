@@ -8,11 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('branches', function (Blueprint $table) {
-            $table->decimal('tax_rate', 5, 2)->default(10.00)
-                ->after('closing_time')
-                ->comment('Tax rate percentage for this branch (e.g. 10.00 = 10%)');
-        });
+        if (!Schema::hasColumn('branches', 'tax_rate')) {
+            Schema::table('branches', function (Blueprint $table) {
+                $table->decimal('tax_rate', 5, 2)->default(10.00)
+                    ->after('closing_time')
+                    ->comment('Tax rate percentage for this branch (e.g. 10.00 = 10%)');
+            });
+        }
     }
 
     public function down(): void

@@ -18,6 +18,7 @@ import {
     Scissors,
     Package,
     ArrowLeft,
+    Building2,
     PieChart as PieChartIcon
 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';

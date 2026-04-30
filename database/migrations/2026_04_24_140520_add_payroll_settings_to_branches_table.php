@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('branches', function (Blueprint $table) {
-            $table->boolean('enable_attendance_deduction')->default(false)->after('tax_rate');
-            $table->decimal('late_penalty_amount', 15, 2)->default(0)->after('enable_attendance_deduction');
+            if (!Schema::hasColumn('branches', 'enable_attendance_deduction')) {
+                $table->boolean('enable_attendance_deduction')->default(false)->after('tax_rate');
+            }
+            if (!Schema::hasColumn('branches', 'late_penalty_amount')) {
+                $table->decimal('late_penalty_amount', 15, 2)->default(0)->after('enable_attendance_deduction');
+            }
         });
     }
 

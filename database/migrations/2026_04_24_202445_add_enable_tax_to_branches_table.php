@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('branches', function (Blueprint $table) {
-            $table->boolean('enable_tax')->default(true)->after('tax_rate');
-        });
+        if (!Schema::hasColumn('branches', 'enable_tax')) {
+            Schema::table('branches', function (Blueprint $table) {
+                $table->boolean('enable_tax')->default(true)->after('tax_rate');
+            });
+        }
     }
 
     /**
