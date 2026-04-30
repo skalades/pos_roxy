@@ -28,6 +28,7 @@ class FinanceController extends Controller
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
         $branchId = $request->input('branch_id');
+        $barberId = $request->input('barber_id');
 
         // Enforcement of branch visibility for Managers
         if ($user->hasRole('manager')) {
@@ -105,12 +106,50 @@ class FinanceController extends Controller
             })
             ->groupBy('item_name')
             ->get();
+        // 6. Barber Performance
+        $barbers = User::where('role', 'barber')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->select('id', 'name')
+            ->get();
+
+        $selectedBarberPerformance = null;
+        if ($barberId) {
+            $barber = User::find($barberId);
+            if ($barber) {
+                $serviceBreakdown = TransactionItem::select(
+                        'item_name',
+                        DB::raw('SUM(quantity) as qty'),
+                        DB::raw('SUM(total_price) as total'),
+                        DB::raw('SUM(commission_amount) as total_commission')
+                    )
+                    ->where('barber_id', $barberId)
+                    ->whereHas('transaction', function($q) use ($startDate, $endDate, $branchId) {
+                        $q->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                          ->where('status', 'completed');
+                        if ($branchId) $q->where('branch_id', $branchId);
+                    })
+                    ->groupBy('item_name')
+                    ->get();
+                    
+                $selectedBarberPerformance = [
+                    'barber' => [
+                        'id' => $barber->id,
+                        'name' => $barber->name,
+                    ],
+                    'total_commission' => (float)$serviceBreakdown->sum('total_commission'),
+                    'total_services' => (int)$serviceBreakdown->sum('qty'),
+                    'total_revenue' => (float)$serviceBreakdown->sum('total'),
+                    'services' => $serviceBreakdown
+                ];
+            }
+        }
 
         return Inertia::render('Reports/Finance/Index', [
             'filters' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'branch_id' => $branchId,
+                'barber_id' => $barberId,
             ],
             'summary' => [
                 'total_revenue' => $totalRevenue,
@@ -125,6 +164,8 @@ class FinanceController extends Controller
             'top_items' => $topItems,
             'pending_items' => $pendingItems,
             'branches' => $user->hasRole(['super_admin', 'admin']) ? Branch::all() : [],
+            'barbers' => $barbers,
+            'selected_barber_performance' => $selectedBarberPerformance,
         ]);
     }
 

@@ -38,11 +38,12 @@ import {
     Legend
 } from 'recharts';
 
-export default function FinanceIndex({ filters, summary, revenue_trend, payment_methods, top_items, pending_items, branches }) {
+export default function FinanceIndex({ filters, summary, revenue_trend, payment_methods, top_items, pending_items, branches, barbers, selected_barber_performance }) {
     const { auth } = usePage().props;
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
     const [branchId, setBranchId] = useState(filters.branch_id || '');
+    const [barberId, setBarberId] = useState(filters.barber_id || '');
 
     const isAdmin = auth.user.role === 'super_admin' || auth.user.role === 'admin';
 
@@ -50,7 +51,8 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
         router.get(route('reports.finance'), {
             start_date: startDate,
             end_date: endDate,
-            branch_id: branchId
+            branch_id: branchId,
+            barber_id: barberId
         }, { preserveState: true });
     };
 
@@ -153,7 +155,8 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                                 router.get(route('reports.finance'), {
                                     start_date: startStr,
                                     end_date: endStr,
-                                    branch_id: branchId
+                                    branch_id: branchId,
+                                    barber_id: barberId
                                 }, { preserveState: true });
                             }}
                             className="px-4 py-2 bg-white/50 backdrop-blur-md border border-white text-slate-600 rounded-xl text-xs font-black hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
@@ -207,6 +210,22 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                             </div>
                         </div>
                     )}
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Barber</label>
+                        <div className="relative">
+                            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <select 
+                                value={barberId}
+                                onChange={(e) => setBarberId(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 appearance-none"
+                            >
+                                <option value="">Pilih Barber</option>
+                                {barbers.map(barber => (
+                                    <option key={barber.id} value={barber.id}>{barber.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                     <button 
                         onClick={handleFilter}
                         className="bg-indigo-600 text-white p-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
@@ -283,7 +302,7 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                             <Wallet size={80} className="text-white" />
                         </div>
                         <div className="relative z-10">
-                            <div className="p-3 bg-white/20 text-white rounded-2xl w-fit mb-4 backdrop-blur-md">
+                            <div className="p-3 bg-indigo-600 text-white rounded-2xl w-fit mb-4 backdrop-blur-md">
                                 <Wallet size={24} />
                             </div>
                             <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Laba Bersih (Aktual)</p>
@@ -291,6 +310,84 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                         </div>
                     </div>
                 </div>
+
+                {/* Barber Performance Section */}
+                {selected_barber_performance && (
+                    <div className="bg-white/80 backdrop-blur-xl border border-white p-8 rounded-[40px] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                                        <Users size={20} />
+                                    </div>
+                                    Performa: {selected_barber_performance.barber.name}
+                                </h3>
+                                <p className="text-slate-500 text-sm font-medium mt-1">Ringkasan kontribusi dan rincian layanan dalam periode terpilih</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Komisi</p>
+                                    <p className="text-xl font-black text-indigo-600">{formatCurrency(selected_barber_performance.total_commission)}</p>
+                                </div>
+                                <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Layanan</p>
+                                    <p className="text-xl font-black text-slate-900">{selected_barber_performance.total_services}x</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 overflow-hidden">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Rincian Layanan</label>
+                                <div className="overflow-x-auto rounded-3xl border border-slate-100">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Layanan</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Qty</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Omzet</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Komisi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {selected_barber_performance.services.map((svc, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <p className="font-bold text-slate-800">{svc.item_name}</p>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center font-black text-slate-600">{svc.qty}</td>
+                                                    <td className="px-6 py-4 text-right font-bold text-slate-600">{formatCurrency(svc.total)}</td>
+                                                    <td className="px-6 py-4 text-right font-black text-indigo-600">{formatCurrency(svc.total_commission)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div className="bg-indigo-50/50 border border-indigo-100 p-6 rounded-3xl flex flex-col justify-between">
+                                <div>
+                                    <h4 className="font-black text-slate-900 mb-2">Insight Barber</h4>
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        Barber ini menyumbangkan kontribusi omzet sebesar <b>{formatCurrency(selected_barber_performance.total_revenue)}</b> selama periode ini. 
+                                        Rata-rata komisi per layanan adalah <b>{formatCurrency(selected_barber_performance.total_commission / (selected_barber_performance.total_services || 1))}</b>.
+                                    </p>
+                                </div>
+                                <div className="mt-8 pt-8 border-t border-indigo-100 space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">Omzet Bruto:</span>
+                                        <span className="font-black text-slate-900">{formatCurrency(selected_barber_performance.total_revenue)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">Persentase Komisi:</span>
+                                        <span className="font-black text-indigo-600">
+                                            {((selected_barber_performance.total_commission / (selected_barber_performance.total_revenue || 1)) * 100).toFixed(1)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
