@@ -216,11 +216,12 @@ class FinanceController extends Controller
         $barberCommissions = TransactionItem::select(
                 'barber_id',
                 DB::raw('SUM(commission_amount) as total_commission'),
-                DB::raw('COUNT(*) as total_services')
+                DB::raw('SUM(quantity) as total_services')
             )
             ->whereNotNull('barber_id')
             ->whereHas('transaction', function($q) use ($dateRange, $branchId) {
-                $q->whereBetween('created_at', $dateRange);
+                $q->whereBetween('created_at', $dateRange)
+                  ->where('status', 'completed');
                 if ($branchId) $q->where('branch_id', $branchId);
             })
             ->with('barber')
