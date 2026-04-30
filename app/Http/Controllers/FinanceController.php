@@ -35,9 +35,12 @@ class FinanceController extends Controller
         }
 
         // 1. Core Summary Stats
-        $query = Transaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-        if ($branchId) $query->where('branch_id', $branchId);
-        $totalRevenue = (float) $query->sum('total_amount');
+        $baseQuery = Transaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        if ($branchId) $baseQuery->where('branch_id', $branchId);
+
+        $totalRevenue = (float) (clone $baseQuery)->sum('total_amount');
+        $actualRevenue = (float) (clone $baseQuery)->where('status', 'completed')->sum('total_amount');
+        $pendingRevenue = (float) (clone $baseQuery)->where('status', 'pending')->sum('total_amount');
 
         $expenseQuery = CashOperation::where('type', 'cash_out')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
@@ -89,6 +92,20 @@ class FinanceController extends Controller
             ->limit(5)
             ->get();
 
+        // 5. Pending Items Breakdown
+        $pendingItems = TransactionItem::select(
+                'item_name',
+                DB::raw('SUM(quantity) as qty'),
+                DB::raw('SUM(total_price) as total')
+            )
+            ->whereHas('transaction', function($q) use ($startDate, $endDate, $branchId) {
+                $q->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                  ->where('status', 'pending');
+                if ($branchId) $q->where('branch_id', $branchId);
+            })
+            ->groupBy('item_name')
+            ->get();
+
         return Inertia::render('Reports/Finance/Index', [
             'filters' => [
                 'start_date' => $startDate,
@@ -97,13 +114,16 @@ class FinanceController extends Controller
             ],
             'summary' => [
                 'total_revenue' => $totalRevenue,
+                'actual_revenue' => $actualRevenue,
+                'pending_revenue' => $pendingRevenue,
                 'total_expenses' => $totalExpenses,
                 'total_commissions' => $totalCommissions,
-                'net_profit' => $netProfit,
+                'net_profit' => $actualRevenue - $totalExpenses - $totalCommissions,
             ],
             'revenue_trend' => $revenueTrend,
             'payment_methods' => $paymentMethods,
             'top_items' => $topItems,
+            'pending_items' => $pendingItems,
             'branches' => $user->hasRole(['super_admin', 'admin']) ? Branch::all() : [],
         ]);
     }
@@ -135,6 +155,11 @@ class FinanceController extends Controller
 
         // 1. Financial Summary
         $revenue = Transaction::whereBetween('created_at', $dateRange)
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
+            
+        $pendingRevenue = Transaction::whereBetween('created_at', $dateRange)
+            ->where('status', 'pending')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
         
         $expenses = CashOperation::where('type', 'cash_out')
@@ -142,7 +167,8 @@ class FinanceController extends Controller
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('amount');
 
         $commissions = TransactionItem::whereHas('transaction', function($q) use ($dateRange, $branchId) {
-            $q->whereBetween('created_at', $dateRange);
+            $q->whereBetween('created_at', $dateRange)
+              ->where('status', 'completed');
             if ($branchId) $q->where('branch_id', $branchId);
         })->sum('commission_amount');
 
@@ -208,6 +234,7 @@ class FinanceController extends Controller
             'branch' => $branch ? $branch->name : 'Semua Cabang',
             'summary' => [
                 'revenue' => (float)$revenue,
+                'pending_revenue' => (float)$pendingRevenue,
                 'expenses' => (float)$expenses,
                 'commissions' => (float)$commissions,
                 'fixed_salaries' => (float)$totalFixedSalaries,

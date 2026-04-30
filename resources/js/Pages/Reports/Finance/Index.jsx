@@ -14,10 +14,13 @@ import {
     LayoutDashboard,
     Briefcase,
     ChevronDown,
-    Building2,
     Search,
+    Scissors,
+    Package,
+    ArrowLeft,
     PieChart as PieChartIcon
 } from 'lucide-react';
+import PageHeader from '@/Components/PageHeader';
 import { 
     AreaChart, 
     Area, 
@@ -34,7 +37,7 @@ import {
     Legend
 } from 'recharts';
 
-export default function FinanceIndex({ filters, summary, revenue_trend, payment_methods, top_items, branches }) {
+export default function FinanceIndex({ filters, summary, revenue_trend, payment_methods, top_items, pending_items, branches }) {
     const { auth } = usePage().props;
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
@@ -78,14 +81,12 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                            <LayoutDashboard className="text-indigo-600" size={32} />
-                            Laporan Keuangan
-                        </h2>
-                        <p className="text-slate-500 font-medium mt-1">Analisis performa bisnis dan profitabilitas</p>
-                    </div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <PageHeader 
+                        title="Laporan Keuangan"
+                        backHref={route('dashboard')}
+                        subtitle="Analisis performa bisnis dan profitabilitas"
+                    />
                     <button 
                         onClick={handleExport}
                         className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
@@ -221,11 +222,29 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                             <TrendingUp size={80} className="text-indigo-600" />
                         </div>
                         <div className="relative z-10">
-                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl w-fit mb-4">
-                                <TrendingUp size={24} />
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl w-fit">
+                                    <TrendingUp size={24} />
+                                </div>
+                                {summary.pending_revenue > 0 && (
+                                    <div className="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[10px] font-black animate-pulse">
+                                        ADA PENDING
+                                    </div>
+                                )}
                             </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Pendapatan</p>
-                            <h3 className="text-2xl font-black text-slate-900">{formatCurrency(summary.total_revenue)}</h3>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pendapatan Aktual (Selesai)</p>
+                            <h3 className="text-2xl font-black text-slate-900">{formatCurrency(summary.actual_revenue)}</h3>
+                            
+                            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
+                                <span className="text-[10px] font-bold text-slate-400">Potensi (Gross):</span>
+                                <span className="text-xs font-black text-slate-600">{formatCurrency(summary.total_revenue)}</span>
+                            </div>
+                            {summary.pending_revenue > 0 && (
+                                <div className="mt-1 flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-rose-400">Total Pending:</span>
+                                    <span className="text-xs font-black text-rose-500">-{formatCurrency(summary.pending_revenue)}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -266,7 +285,7 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                             <div className="p-3 bg-white/20 text-white rounded-2xl w-fit mb-4 backdrop-blur-md">
                                 <Wallet size={24} />
                             </div>
-                            <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Laba Bersih</p>
+                            <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Laba Bersih (Aktual)</p>
                             <h3 className="text-2xl font-black text-white">{formatCurrency(summary.net_profit)}</h3>
                         </div>
                     </div>
@@ -393,6 +412,46 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                         </div>
                     </div>
 
+                    {/* Pending Items Breakdown */}
+                    {pending_items && pending_items.length > 0 ? (
+                        <div className="bg-rose-50 border border-rose-100 p-8 rounded-[40px] shadow-sm">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xl font-black text-rose-900">Item/Layanan Pending</h3>
+                                <div className="p-2 bg-rose-100 text-rose-600 rounded-xl animate-pulse">
+                                    <Scissors size={20} />
+                                </div>
+                            </div>
+                            <div className="space-y-6">
+                                {pending_items.map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-4 bg-white/50 p-4 rounded-2xl border border-rose-200/50">
+                                        <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-black text-sm">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-rose-900 text-sm truncate">{item.item_name}</h4>
+                                            <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">{item.qty} Belum Selesai</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-black text-rose-900 text-sm">{formatCurrency(item.total)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="p-4 bg-rose-600 text-white rounded-2xl mt-4">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Total Nilai Tertunda</p>
+                                    <p className="text-xl font-black">{formatCurrency(pending_items.reduce((acc, curr) => acc + parseFloat(curr.total), 0))}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-teal-50 border border-teal-100 p-10 rounded-[40px] shadow-sm flex flex-col items-center justify-center text-center">
+                            <div className="w-16 h-16 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center mb-4">
+                                <Package size={32} />
+                            </div>
+                            <h3 className="text-xl font-black text-teal-900">Semua Transaksi Selesai</h3>
+                            <p className="text-teal-600/70 font-medium text-sm mt-2">Tidak ada item atau layanan yang berstatus pending pada periode ini.</p>
+                        </div>
+                    )}
+
                     {/* Summary Recommendation/Status */}
                     <div className="bg-slate-900 p-10 rounded-[40px] shadow-xl relative overflow-hidden text-white flex flex-col justify-center">
                         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/20 blur-[100px] rounded-full"></div>
@@ -403,7 +462,7 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                             </h3>
                             <p className="text-slate-400 font-medium mb-8 text-lg leading-relaxed">
                                 {summary.net_profit > 0 
-                                    ? `Bisnis sedang dalam kondisi profit. Rasio laba bersih terhadap omzet adalah ${((summary.net_profit / summary.total_revenue) * 100).toFixed(1)}%.`
+                                    ? `Bisnis sedang dalam kondisi profit. Rasio laba bersih (aktual) terhadap omzet aktual adalah ${((summary.net_profit / summary.actual_revenue) * 100 || 0).toFixed(1)}%.`
                                     : "Omzet belum menutupi pengeluaran operasional dan komisi. Evaluasi pengeluaran Anda."}
                             </p>
                             <div className="grid grid-cols-2 gap-4">

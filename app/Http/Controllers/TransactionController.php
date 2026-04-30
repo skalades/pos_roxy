@@ -49,6 +49,14 @@ class TransactionController extends Controller
                     $query->whereMonth('created_at', $now->month)
                           ->whereYear('created_at', $now->year);
                     break;
+                case 'custom':
+                    if ($request->filled('start_date') && $request->filled('end_date')) {
+                        $query->whereBetween('created_at', [
+                            Carbon::parse($request->start_date)->startOfDay(),
+                            Carbon::parse($request->end_date)->endOfDay()
+                        ]);
+                    }
+                    break;
             }
         }
 
@@ -56,7 +64,7 @@ class TransactionController extends Controller
 
         return Inertia::render('Transactions/Index', [
             'transactions' => $transactions,
-            'filters' => $request->only(['search', 'date_filter']),
+            'filters' => $request->only(['search', 'date_filter', 'start_date', 'end_date']),
         ]);
     }
 
@@ -66,5 +74,23 @@ class TransactionController extends Controller
             ->findOrFail($id);
             
         return response()->json($transaction);
+    }
+
+    public function destroy($id, Request $request)
+    {
+        $user = $request->user();
+        
+        // Authorization check: Only Super Admin, Admin, and Manager can delete
+        if (!$user->hasRole(['super_admin', 'admin', 'manager'])) {
+            return back()->with('error', 'Anda tidak memiliki akses untuk menghapus transaksi.');
+        }
+
+        $transaction = Transaction::findOrFail($id);
+        
+        // Soft delete items first (optional but good practice)
+        $transaction->items()->delete();
+        $transaction->delete();
+
+        return back()->with('success', 'Transaksi berhasil dihapus.');
     }
 }

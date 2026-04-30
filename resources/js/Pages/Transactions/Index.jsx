@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2, Loader2 } from 'lucide-react';
+import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2, Loader2, Trash2 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 import { formatIDR } from '@/utils/currency';
 import Modal from '@/Components/Modal';
@@ -14,12 +14,16 @@ const FILTER_OPTIONS = [
     { id: 'today', label: 'Hari Ini' },
     { id: 'this_week', label: 'Minggu Ini' },
     { id: 'this_month', label: 'Bulan Ini' },
+    { id: 'custom', label: 'Kustom' },
 ];
 
 export default function TransactionIndex({ transactions, filters }) {
-    const { app_settings } = usePage().props;
+    const { auth, app_settings } = usePage().props;
+    const canDelete = auth.user.role === 'super_admin' || auth.user.role === 'admin' || auth.user.role === 'manager';
     const [search, setSearch] = useState(filters.search || '');
     const [activeFilter, setActiveFilter] = useState(filters.date_filter || 'all');
+    const [startDate, setStartDate] = useState(filters.start_date || '');
+    const [endDate, setEndDate] = useState(filters.end_date || '');
     const [showFilter, setShowFilter] = useState(false);
     const [selectedTrx, setSelectedTrx] = useState(null);
     const [showModal, setShowModal] = useState(false);
@@ -29,6 +33,8 @@ export default function TransactionIndex({ transactions, filters }) {
         const params = {
             search,
             date_filter: activeFilter,
+            start_date: startDate,
+            end_date: endDate,
             ...overrides
         };
         // Remove empty params
@@ -94,6 +100,16 @@ export default function TransactionIndex({ transactions, filters }) {
             alert('Gagal mencetak: ' + error.message);
         } finally {
             setPrinting(false);
+        }
+    };
+
+    const handleDelete = (id) => {
+        if (confirm('Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')) {
+            router.delete(route('transactions.destroy', id), {
+                onSuccess: () => {
+                    // Success flash message will be handled by Laravel
+                },
+            });
         }
     };
 
@@ -167,6 +183,38 @@ export default function TransactionIndex({ transactions, filters }) {
                             ))}
                         </div>
                     )}
+
+                    {/* Custom Date Picker */}
+                    {showFilter && activeFilter === 'custom' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 animate-in fade-in duration-300">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tanggal Mulai</label>
+                                <input 
+                                    type="date" 
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-roxy-primary transition-all"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tanggal Selesai</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="date" 
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold focus:border-roxy-primary transition-all"
+                                    />
+                                    <button 
+                                        onClick={() => applyFilters()}
+                                        className="bg-roxy-primary text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-roxy-primary/90 transition-all active:scale-95 shadow-lg shadow-roxy-primary/20"
+                                    >
+                                        Terapkan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Content */}
@@ -179,6 +227,7 @@ export default function TransactionIndex({ transactions, filters }) {
                                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">No. Transaksi</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pelanggan</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Metode</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
                                     <th className="px-8 py-5"></th>
                                 </tr>
@@ -204,6 +253,11 @@ export default function TransactionIndex({ transactions, filters }) {
                                         <td className="px-8 py-6">
                                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${trx.payment_method === 'cash' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
                                                 {trx.payment_method}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-center">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${trx.status === 'completed' ? 'bg-teal-100 text-teal-600' : 'bg-rose-100 text-rose-600'}`}>
+                                                {trx.status}
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
@@ -234,6 +288,15 @@ export default function TransactionIndex({ transactions, filters }) {
                                                 >
                                                     <Printer size={18} />
                                                 </button>
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(trx.id)}
+                                                        className="p-2 hover:bg-rose-50 text-rose-400 hover:text-rose-600 rounded-xl transition-all"
+                                                        title="Hapus Transaksi"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -265,8 +328,22 @@ export default function TransactionIndex({ transactions, filters }) {
                                         <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${trx.payment_method === 'cash' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
                                             {trx.payment_method}
                                         </span>
+                                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${trx.status === 'completed' ? 'bg-teal-100 text-teal-600' : 'bg-rose-100 text-rose-600'}`}>
+                                            {trx.status}
+                                        </span>
                                     </div>
                                 </div>
+                                {canDelete && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(trx.id);
+                                        }}
+                                        className="p-2 bg-rose-50 text-rose-500 rounded-xl shrink-0 active:scale-90 transition-all"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
                                 <ChevronRight className="text-slate-300 mt-1 shrink-0" size={18} />
                             </button>
                         ))}
@@ -337,6 +414,12 @@ export default function TransactionIndex({ transactions, filters }) {
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Waktu</p>
                                 <p className="text-sm font-black text-slate-800">{new Date(selectedTrx.created_at).toLocaleString('id-ID')}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${selectedTrx.status === 'completed' ? 'bg-teal-100 text-teal-600' : 'bg-rose-100 text-rose-600'}`}>
+                                    {selectedTrx.status}
+                                </span>
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Metode Bayar</p>

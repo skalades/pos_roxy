@@ -173,8 +173,12 @@
         <table class="summary-table">
             <tr>
                 <td class="summary-card">
-                    <div class="summary-label">Pendapatan</div>
-                    <div class="summary-value">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
+                    <div class="summary-label">Pendapatan (Aktual)</div>
+                    <div class="summary-value text-emerald">Rp {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
+                </td>
+                <td class="summary-card">
+                    <div class="summary-label">Uang Pending</div>
+                    <div class="summary-value text-rose">Rp {{ number_format($summary['pending_revenue'], 0, ',', '.') }}</div>
                 </td>
                 <td class="summary-card">
                     <div class="summary-label">Pengeluaran</div>
@@ -308,10 +312,11 @@
         <table>
             <thead>
                 <tr>
-                    <th width="15%">No. Trx</th>
-                    <th width="15%">Waktu</th>
-                    <th width="15%">Pelanggan</th>
-                    <th width="35%">Item & Layanan</th>
+                    <th width="12%">No. Trx</th>
+                    <th width="12%">Waktu</th>
+                    <th width="12%">Pelanggan</th>
+                    <th width="32%">Item & Layanan</th>
+                    <th width="12%">Status</th>
                     <th width="20%" class="text-right">Total Akhir</th>
                 </tr>
             </thead>
@@ -327,6 +332,11 @@
                                 • {{ $item->item_name }} ({{ $item->quantity }}x) <br>
                             @endforeach
                         </div>
+                    </td>
+                    <td>
+                        <span class="badge {{ $trx->status === 'completed' ? 'badge-success' : 'badge-warning' }}">
+                            {{ $trx->status }}
+                        </span>
                     </td>
                     <td class="text-right text-bold">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
                 </tr>

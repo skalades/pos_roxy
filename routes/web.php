@@ -36,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Transaction Routes
     Route::get('/transactions', [\App\Http\Controllers\TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'show'])->name('transactions.show');
+    Route::delete('/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'destroy'])->name('transactions.destroy');
 
     // Barber Commission Routes
     Route::get('/my-commissions', [\App\Http\Controllers\BarberCommissionController::class, 'index'])->name('barber.commissions');
