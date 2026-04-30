@@ -116,19 +116,18 @@ class FinanceController extends Controller
         if ($barberId) {
             $barber = User::find($barberId);
             if ($barber) {
-                $serviceBreakdown = TransactionItem::select(
-                        'item_name',
-                        DB::raw('SUM(quantity) as qty'),
-                        DB::raw('SUM(total_price) as total'),
-                        DB::raw('SUM(commission_amount) as total_commission')
+                $serviceBreakdown = TransactionItem::join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+                    ->select(
+                        'transaction_items.item_name',
+                        DB::raw('SUM(transaction_items.quantity) as qty'),
+                        DB::raw('SUM(transaction_items.total_price) as total'),
+                        DB::raw('SUM(transaction_items.commission_amount) as total_commission')
                     )
-                    ->where('barber_id', $barberId)
-                    ->whereHas('transaction', function($q) use ($startDate, $endDate, $branchId) {
-                        $q->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                          ->where('status', 'completed');
-                        if ($branchId) $q->where('branch_id', $branchId);
-                    })
-                    ->groupBy('item_name')
+                    ->where('transaction_items.barber_id', $barberId)
+                    ->where('transactions.status', 'completed')
+                    ->whereBetween('transactions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                    ->when($branchId, fn($q) => $q->where('transactions.branch_id', $branchId))
+                    ->groupBy('transaction_items.item_name')
                     ->get();
                     
                 $selectedBarberPerformance = [
