@@ -8,6 +8,7 @@ use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
+use App\Services\PayrollService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -142,6 +143,46 @@ class FinanceController extends Controller
                 ];
             }
         }
+        // Attendance Monitoring
+        $payrollService = new PayrollService();
+        $usersQuery = User::whereIn('role', ['barber', 'staff', 'manager']);
+        if ($branchId) {
+            $usersQuery->where('branch_id', $branchId);
+        }
+        $usersToCalculate = $usersQuery->with('branch')->get();
+
+        $attendanceStats = [
+            'total_late_staff' => 0,
+            'total_late_count' => 0,
+            'total_late_minutes' => 0,
+            'total_deduction' => 0,
+            'staff_details' => []
+        ];
+
+        foreach ($usersToCalculate as $staff) {
+            $payroll = $payrollService->calculateUserPayroll($staff, $startDate, $endDate);
+            if ($payroll['late_count'] > 0 || $payroll['late_total_minutes'] > 0) {
+                $attendanceStats['total_late_staff']++;
+                $attendanceStats['total_late_count'] += $payroll['late_count'];
+                $attendanceStats['total_late_minutes'] += $payroll['late_total_minutes'];
+                $attendanceStats['total_deduction'] += $payroll['total_deduction'];
+                
+                $attendanceStats['staff_details'][] = [
+                    'id' => $staff->id,
+                    'name' => $staff->name,
+                    'role' => $staff->role,
+                    'branch' => $staff->branch ? $staff->branch->name : '-',
+                    'late_count' => $payroll['late_count'],
+                    'late_minutes' => $payroll['late_total_minutes'],
+                    'deduction' => $payroll['total_deduction']
+                ];
+            }
+        }
+
+        // Urutkan berdasarkan menit telat terbanyak
+        usort($attendanceStats['staff_details'], function($a, $b) {
+            return $b['late_minutes'] <=> $a['late_minutes'];
+        });
 
         return Inertia::render('Reports/Finance/Index', [
             'filters' => [
@@ -165,6 +206,7 @@ class FinanceController extends Controller
             'branches' => $user->hasRole(['super_admin', 'admin']) ? Branch::all() : [],
             'barbers' => $barbers,
             'selected_barber_performance' => $selectedBarberPerformance,
+            'attendance_stats' => $attendanceStats,
         ]);
     }
 
@@ -264,29 +306,51 @@ class FinanceController extends Controller
             ->where('role', '!=', 'super_admin')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->get();
-        
+
         $totalFixedSalaries = $branchStaff->sum('monthly_salary');
 
+        // Calculate late deductions per staff using PayrollService
+        $payrollService = app(PayrollService::class);
+        $staffPayroll = $branchStaff->map(function ($staff) use ($payrollService, $startDate, $endDate) {
+            $calc = $payrollService->calculateUserPayroll($staff, $startDate, $endDate);
+            return [
+                'user'                 => $staff,
+                'total_commission'     => $calc['total_commission'],
+                'total_deduction'      => $calc['total_deduction'],
+                'late_count'          => $calc['late_count'],
+                'late_total_minutes'  => $calc['late_total_minutes'],
+                'late_deduction_items' => $calc['late_deduction_items'],
+                'net_salary'          => $calc['net_salary'],
+            ];
+        });
+
+        $totalLateDeductions = $staffPayroll->sum('total_deduction');
+        // Net salary cost = gaji pokok - potongan telat (komisi sudah dihitung terpisah)
+        $totalNetSalaryCost  = $branchStaff->sum('monthly_salary') - $totalLateDeductions;
+
         $data = [
-            'app_name' => \App\Models\Setting::get('app_name', 'Roxy POS'),
-            'app_logo' => $logoPath,
-            'report_date' => now()->format('d M Y H:i'),
-            'period' => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
-            'branch' => $branch ? $branch->name : 'Semua Cabang',
-            'summary' => [
-                'revenue' => (float)$revenue,
-                'pending_revenue' => (float)$pendingRevenue,
-                'expenses' => (float)$expenses,
-                'commissions' => (float)$commissions,
-                'fixed_salaries' => (float)$totalFixedSalaries,
-                'profit' => (float)($revenue - $expenses - $commissions - $totalFixedSalaries)
+            'app_name'              => \App\Models\Setting::get('app_name', 'Roxy POS'),
+            'app_logo'              => $logoPath,
+            'report_date'           => now()->format('d M Y H:i'),
+            'period'                => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
+            'branch'                => $branch ? $branch->name : 'Semua Cabang',
+            'summary'               => [
+                'revenue'            => (float) $revenue,
+                'pending_revenue'    => (float) $pendingRevenue,
+                'expenses'           => (float) $expenses,
+                'commissions'        => (float) $commissions,
+                'fixed_salaries'     => (float) $totalFixedSalaries,
+                'late_deductions'    => (float) $totalLateDeductions,
+                'net_salary_cost'    => (float) $totalNetSalaryCost,
+                'profit'             => (float) ($revenue - $expenses - $commissions - $totalNetSalaryCost),
             ],
-            'barber_commissions' => $barberCommissions,
-            'payment_distribution' => $paymentDistribution,
-            'shifts' => $shifts,
-            'transactions' => $transactions,
-            'expense_list' => $expenseList,
-            'all_staff' => $branchStaff,
+            'barber_commissions'    => $barberCommissions,
+            'payment_distribution'  => $paymentDistribution,
+            'shifts'                => $shifts,
+            'transactions'          => $transactions,
+            'expense_list'          => $expenseList,
+            'all_staff'             => $branchStaff,
+            'staff_payroll'         => $staffPayroll,
         ];
 
         $pdf = Pdf::loadView('pdf.finance_report', $data);

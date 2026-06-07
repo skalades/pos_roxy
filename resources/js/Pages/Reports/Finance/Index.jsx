@@ -19,7 +19,9 @@ import {
     Package,
     ArrowLeft,
     Building2,
-    PieChart as PieChartIcon
+    PieChart as PieChartIcon,
+    Clock,
+    ShieldCheck
 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 import { 
@@ -38,12 +40,13 @@ import {
     Legend
 } from 'recharts';
 
-export default function FinanceIndex({ filters, summary, revenue_trend, payment_methods, top_items, pending_items, branches, barbers, selected_barber_performance }) {
+export default function FinanceIndex({ filters, summary, revenue_trend, payment_methods, top_items, pending_items, branches, barbers, selected_barber_performance, attendance_stats }) {
     const { auth } = usePage().props;
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
     const [branchId, setBranchId] = useState(filters.branch_id || '');
     const [barberId, setBarberId] = useState(filters.barber_id || '');
+    const [activeTab, setActiveTab] = useState('finance'); // 'finance' or 'attendance'
 
     const isAdmin = auth.user.role === 'super_admin' || auth.user.role === 'admin';
 
@@ -102,7 +105,23 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
         >
             <Head title="Laporan Keuangan" />
 
-            <div className="space-y-8 mt-8">
+            {/* Tabs */}
+            <div className="flex space-x-4 mt-8 border-b border-slate-200">
+                <button
+                    onClick={() => setActiveTab('finance')}
+                    className={`pb-4 px-4 font-bold transition-all ${activeTab === 'finance' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    Laporan Keuangan
+                </button>
+                <button
+                    onClick={() => setActiveTab('attendance')}
+                    className={`pb-4 px-4 font-bold transition-all ${activeTab === 'attendance' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    Monitoring Kehadiran
+                </button>
+            </div>
+
+            <div className="space-y-8 mt-6">
                 {/* Quick Filters */}
                 <div className="flex flex-wrap gap-2">
                     {[
@@ -234,9 +253,12 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                     </button>
                 </div>
 
-                {/* Summary Stat Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {/* Revenue Card */}
+                {/* Main Content Areas based on Tab */}
+                {activeTab === 'finance' && (
+                    <>
+                        {/* Summary Stat Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {/* Revenue Card */}
                     <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-[32px] shadow-sm relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                             <TrendingUp size={80} className="text-indigo-600" />
@@ -575,7 +597,96 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
+                    </>
+                )}
+
+                {activeTab === 'attendance' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        {/* Attendance Stats Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-[32px] shadow-sm">
+                                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl w-fit mb-4">
+                                    <Users size={24} />
+                                </div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Staff Telat</p>
+                                <h3 className="text-2xl font-black text-slate-900">{attendance_stats.total_late_staff} Orang</h3>
+                            </div>
+                            <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-[32px] shadow-sm">
+                                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl w-fit mb-4">
+                                    <Calendar size={24} />
+                                </div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Kejadian</p>
+                                <h3 className="text-2xl font-black text-slate-900">{attendance_stats.total_late_count} Kali</h3>
+                            </div>
+                            <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-[32px] shadow-sm">
+                                <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl w-fit mb-4">
+                                    <Clock size={24} />
+                                </div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Menit Telat</p>
+                                <h3 className="text-2xl font-black text-slate-900">{attendance_stats.total_late_minutes} Menit</h3>
+                            </div>
+                            <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-[32px] shadow-sm">
+                                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl w-fit mb-4">
+                                    <Wallet size={24} />
+                                </div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Potongan</p>
+                                <h3 className="text-2xl font-black text-slate-900">{formatCurrency(attendance_stats.total_deduction)}</h3>
+                            </div>
+                        </div>
+
+                        {/* Detailed Attendance Table */}
+                        <div className="bg-white/80 backdrop-blur-xl border border-white p-8 rounded-[40px] shadow-sm">
+                            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                                <Users className="text-indigo-600" />
+                                Rincian Keterlambatan Staff
+                            </h3>
+                            
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Staff</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabang</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Kejadian Telat</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Total Menit</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Potongan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {attendance_stats.staff_details.length > 0 ? (
+                                            attendance_stats.staff_details.map((staff, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <p className="font-bold text-slate-800">{staff.name}</p>
+                                                        <p className="text-[10px] font-black text-indigo-500 uppercase">{staff.role}</p>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium text-slate-600">{staff.branch}</td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-xs font-black">
+                                                            {staff.late_count}x
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center font-black text-slate-700">{staff.late_minutes} mnt</td>
+                                                    <td className="px-6 py-4 text-right font-black text-rose-600">{formatCurrency(staff.deduction)}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <ShieldCheck size={32} className="opacity-20" />
+                                                        <span className="font-bold text-sm">Tidak ada staf yang terlambat pada periode ini.</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

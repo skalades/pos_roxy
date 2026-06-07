@@ -40,7 +40,11 @@ class UpdateBranchRequest extends FormRequest
             'require_attendance_for_shift' => 'boolean',
             'strict_attendance_policy' => 'boolean',
             'enable_attendance_deduction' => 'boolean',
-            'late_penalty_amount' => 'nullable|numeric|min:0',
+            'late_penalty_amount'         => 'nullable|numeric|min:0',
+            'late_penalty_interval'       => 'nullable|integer|min:1|max:120',
+            'late_penalty_per_interval'   => 'nullable|numeric|min:0',
+            'late_grace_period_minutes'   => 'nullable|integer|min:0|max:60',
+            'late_penalty_apply_from'     => 'nullable|date',
         ];
     }
 }

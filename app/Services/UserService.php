@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Shift;
 use App\Models\Transaction;
+use App\Models\FeatureAccess;
 use Illuminate\Support\Collection;
 
 class UserService extends BaseService
@@ -28,6 +29,7 @@ class UserService extends BaseService
             'nav_cards' => $this->getMenuItemsByRole($role),
             'stats' => $this->getStatsByRole($role, $user),
             'active_shift' => $activeShift,
+            'expenses_enabled' => FeatureAccess::isEnabled('expenses', $role),
         ];
 
         return $config;
@@ -46,117 +48,175 @@ class UserService extends BaseService
 
     private function getMenuItemsByRole(string $role): array
     {
-        // This will be more dynamic once Permissions are implemented
+        $registry = config('features.registry', []);
         $items = [];
 
-        if (in_array($role, ['admin', 'manager', 'cashier'])) {
-            $items[] = [
-                'title' => 'Kasir POS',
+        // ── Feature-based menu items ────────────────────────────
+        // Each menu item is linked to a feature_key from config/features.php.
+        // Items are only shown if the feature is enabled for the user's role.
+        
+        $featureMenuMap = [
+            'pos' => [
+                'title'       => 'Kasir POS',
                 'description' => 'Mulai transaksi baru',
-                'icon' => 'ShoppingBag',
-                'href' => '/pos',
-                'color' => 'teal',
-            ];
-        }
-
-        $items[] = [
-            'title' => 'Absen Selfie',
-            'description' => 'Masuk & Pulang',
-            'icon' => 'Camera',
-            'href' => '/attendance',
-            'color' => 'emerald',
-        ];
-
-        if (in_array($role, ['super_admin', 'admin', 'manager'])) {
-            $items[] = [
-                'title' => 'Laporan Keuangan',
+                'icon'        => 'ShoppingBag',
+                'href'        => '/pos',
+                'color'       => 'teal',
+                'roles'       => ['admin', 'manager', 'cashier'],
+            ],
+            'attendance' => [
+                'title'       => 'Absen Selfie',
+                'description' => 'Masuk & Pulang',
+                'icon'        => 'Camera',
+                'href'        => '/attendance',
+                'color'       => 'emerald',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier', 'barber'],
+            ],
+            'finance_reports' => [
+                'title'       => 'Laporan Keuangan',
                 'description' => 'Analisa omzet & profit',
-                'icon' => 'BarChart3',
-                'href' => '/reports/finance',
-                'color' => 'blue',
-            ];
-            $items[] = [
-                'title' => 'Manajemen Layanan',
+                'icon'        => 'BarChart3',
+                'href'        => '/reports/finance',
+                'color'       => 'blue',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'services' => [
+                'title'       => 'Manajemen Layanan',
                 'description' => 'Kelola jasa & komisi',
-                'icon' => 'Scissors',
-                'href' => '/services',
-                'color' => 'indigo',
-            ];
-            $items[] = [
-                'title' => 'Manajemen Produk',
+                'icon'        => 'Scissors',
+                'href'        => '/services',
+                'color'       => 'indigo',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'products' => [
+                'title'       => 'Manajemen Produk',
                 'description' => 'Stok & inventaris',
-                'icon' => 'Package',
-                'href' => '/products',
-                'color' => 'blue',
-            ];
-            $items[] = [
-                'title' => 'Kategori',
+                'icon'        => 'Package',
+                'href'        => '/products',
+                'color'       => 'blue',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'categories' => [
+                'title'       => 'Kategori',
                 'description' => 'Grup produk & jasa',
-                'icon' => 'Tag',
-                'href' => '/categories',
-                'color' => 'amber',
-            ];
-            $items[] = [
-                'title' => 'Manajemen User',
+                'icon'        => 'Tag',
+                'href'        => '/categories',
+                'color'       => 'amber',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'users' => [
+                'title'       => 'Manajemen User',
                 'description' => 'Kelola staff & akses',
-                'icon' => 'Users',
-                'href' => '/users',
-                'color' => 'indigo',
-            ];
-            $items[] = [
-                'title' => 'Manajemen Cabang',
+                'icon'        => 'Users',
+                'href'        => '/users',
+                'color'       => 'indigo',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'branches' => [
+                'title'       => 'Manajemen Cabang',
                 'description' => 'Kelola outlet & lokasi',
-                'icon' => 'MapPin',
-                'href' => '/branches',
-                'color' => 'cyan',
-            ];
-            $items[] = [
-                'title' => 'HR & Payroll',
+                'icon'        => 'MapPin',
+                'href'        => '/branches',
+                'color'       => 'cyan',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'payroll' => [
+                'title'       => 'HR & Payroll',
                 'description' => 'Manajemen gaji & absen',
-                'icon' => 'Wallet',
-                'href' => '/payroll',
-                'color' => 'rose',
-            ];
-            $items[] = [
-                'title' => 'Peringkat',
+                'icon'        => 'Wallet',
+                'href'        => '/payroll',
+                'color'       => 'rose',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'ranking' => [
+                'title'       => 'Peringkat',
                 'description' => 'Analisa performa bisnis',
-                'icon' => 'Trophy',
-                'href' => '/ranking',
-                'color' => 'amber',
-            ];
-            $items[] = [
-                'title' => 'Pengaturan Sistem',
+                'icon'        => 'Trophy',
+                'href'        => '/ranking',
+                'color'       => 'amber',
+                'roles'       => ['super_admin', 'admin', 'manager', 'cashier'],
+            ],
+            'settings' => [
+                'title'       => 'Pengaturan Sistem',
                 'description' => 'Branding & Operasional',
-                'icon' => 'Settings',
-                'href' => '/settings',
-                'color' => 'slate',
-            ];
-        }
-
-        $items[] = [
-            'title' => $role === 'barber' ? 'Riwayat Komisi' : 'Riwayat Transaksi',
-            'description' => 'Cek histori kerja',
-            'icon' => 'History',
-            'href' => $role === 'barber' ? '/my-commissions' : '/transactions',
-            'color' => 'rose',
+                'icon'        => 'Settings',
+                'href'        => '/settings',
+                'color'       => 'slate',
+                'roles'       => ['super_admin', 'admin', 'manager'],
+            ],
         ];
 
-        if ($role === 'cashier') {
+        // Build menu items filtered by role + feature access
+        foreach ($featureMenuMap as $featureKey => $menuItem) {
+            // Skip if role is not in the allowed roles for this menu item
+            if (!in_array($role, $menuItem['roles'])) {
+                continue;
+            }
+
+            // Check feature access (super_admin & admin always pass)
+            if (!FeatureAccess::isEnabled($featureKey, $role)) {
+                continue;
+            }
+
             $items[] = [
-                'title' => 'Shift Kasir',
-                'description' => 'Buka/Tutup laci kas',
-                'icon' => 'Store',
-                'href' => '/shifts',
-                'color' => 'amber',
+                'title'       => $menuItem['title'],
+                'description' => $menuItem['description'],
+                'icon'        => $menuItem['icon'],
+                'href'        => $menuItem['href'],
+                'color'       => $menuItem['color'],
             ];
         }
 
+        // ── Transaction/Commission History (always available) ───
+        if ($role === 'barber') {
+            $items[] = [
+                'title'       => 'Riwayat Komisi',
+                'description' => 'Cek histori kerja',
+                'icon'        => 'History',
+                'href'        => '/my-commissions',
+                'color'       => 'rose',
+            ];
+        } elseif (FeatureAccess::isEnabled('transactions', $role)) {
+            $items[] = [
+                'title'       => 'Riwayat Transaksi',
+                'description' => 'Cek histori kerja',
+                'icon'        => 'History',
+                'href'        => '/transactions',
+                'color'       => 'rose',
+            ];
+        }
+
+        // ── Shift Kasir (cashier-specific, but toggleable) ──────
+        if (FeatureAccess::isEnabled('shifts', $role)) {
+            if ($role === 'cashier') {
+                $items[] = [
+                    'title'       => 'Shift Kasir',
+                    'description' => 'Buka/Tutup laci kas',
+                    'icon'        => 'Store',
+                    'href'        => '/shifts',
+                    'color'       => 'amber',
+                ];
+            }
+        }
+
+        // ── Feature Access Control (super_admin only) ───────────
+        if ($role === 'super_admin') {
+            $items[] = [
+                'title'       => 'Kontrol Akses',
+                'description' => 'Kelola fitur per role',
+                'icon'        => 'ShieldCheck',
+                'href'        => '/feature-access',
+                'color'       => 'purple',
+            ];
+        }
+
+        // ── Profile (always available for everyone) ─────────────
         $items[] = [
-            'title' => 'Profil Saya',
+            'title'       => 'Profil Saya',
             'description' => 'Pengaturan akun',
-            'icon' => 'User',
-            'href' => '/profile',
-            'color' => 'violet',
+            'icon'        => 'User',
+            'href'        => '/profile',
+            'color'       => 'violet',
         ];
 
         return $items;

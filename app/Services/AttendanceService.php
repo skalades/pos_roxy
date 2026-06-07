@@ -39,24 +39,39 @@ class AttendanceService extends BaseService
         $imageName = $this->savePhoto($data['photo'], 'attendance/in/' . $user->id . '_' . time() . '.jpg');
 
         $now = Carbon::now();
-        $onTime = $now->format('H:i:s') <= ($user->work_start_time ?? '09:30:00');
+        $workStartTime = $user->work_start_time ?? '09:30:00';
+
+        // Parse work start time into today's Carbon instance
+        $scheduledStart = Carbon::today()->setTimeFromTimeString($workStartTime);
+
+        // Hitung menit telat (negatif = datang sebelum jadwal = on time)
+        $rawLateMinutes = (int) $scheduledStart->diffInMinutes($now, false);
+
+        // Ambil grace period dari cabang (default 0 menit)
+        $gracePeriod = (int) ($branch->late_grace_period_minutes ?? 0);
+
+        // Karyawan dianggap telat jika melebihi grace period
+        $effectiveLateMinutes = max(0, $rawLateMinutes - $gracePeriod);
+        $onTime = $rawLateMinutes <= 0 || $effectiveLateMinutes === 0;
 
         return Attendance::updateOrCreate(
             [
                 'user_id' => $user->id,
-                'date' => $now->toDateString(),
+                'date'    => $now->toDateString(),
             ],
             [
-                'branch_id' => $branch->id,
-                'clock_in_at' => $now,
-                'clock_in_latitude' => $data['latitude'],
+                'branch_id'          => $branch->id,
+                'clock_in_at'        => $now,
+                'clock_in_latitude'  => $data['latitude'],
                 'clock_in_longitude' => $data['longitude'],
-                'clock_in_photo' => $imageName,
-                'clock_in_distance' => round($distance),
-                'clock_in_on_time' => $onTime,
-                'status' => $onTime ? 'present' : 'late',
+                'clock_in_photo'     => $imageName,
+                'clock_in_distance'  => round($distance),
+                'clock_in_on_time'   => $onTime,
+                'late_minutes'       => $effectiveLateMinutes,
+                'status'             => $onTime ? 'present' : 'late',
             ]
         );
+
     }
 
     /**

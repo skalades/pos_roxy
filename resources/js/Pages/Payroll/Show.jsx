@@ -157,7 +157,9 @@ export default function Show({ payroll, commissions, lates, filters }) {
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-800">Denda Terlambat</p>
-                                            <p className="text-[10px] text-slate-400 font-medium">{payroll.late_count} Kali Terlambat</p>
+                                            <p className="text-[10px] text-slate-400 font-medium">
+                                                {payroll.late_count} kali &bull; {payroll.late_total_minutes ?? 0} mnt total
+                                            </p>
                                         </div>
                                     </div>
                                     <p className="font-black text-rose-600">-{formatIDR(payroll.total_deduction)}</p>
@@ -201,24 +203,39 @@ export default function Show({ payroll, commissions, lates, filters }) {
                                 <tr>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jam Masuk</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
+                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Menit Telat</th>
+                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Interval</th>
+                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Potongan</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {lates.map((late, i) => (
+                                {(payroll.late_deduction_items ?? []).map((item, i) => (
                                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-8 py-5 font-bold text-slate-700">{format(new Date(late.date), 'dd MMMM yyyy', { locale: id })}</td>
-                                        <td className="px-8 py-5 font-black text-slate-800">{late.clock_in_at ? format(new Date(late.clock_in_at), 'HH:mm') : '-'}</td>
-                                        <td className="px-8 py-5 text-right">
-                                            <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                                Terlambat
+                                        <td className="px-8 py-5 font-bold text-slate-700">
+                                            {format(new Date(item.date), 'dd MMMM yyyy', { locale: id })}
+                                        </td>
+                                        <td className="px-8 py-5 font-black text-slate-800">
+                                            {item.clock_in ?? '-'}
+                                        </td>
+                                        <td className="px-8 py-5 text-center">
+                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-black">
+                                                <Clock size={10} />
+                                                {item.minutes} mnt
                                             </span>
+                                        </td>
+                                        <td className="px-8 py-5 text-center">
+                                            <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black">
+                                                {item.intervals}×
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-5 text-right font-black text-rose-600">
+                                            -{formatIDR(item.deduction)}
                                         </td>
                                     </tr>
                                 ))}
-                                {lates.length === 0 && (
+                                {(payroll.late_deduction_items ?? []).length === 0 && (
                                     <tr>
-                                        <td colSpan="3" className="px-8 py-10 text-center text-slate-400 font-medium">Tidak ada catatan keterlambatan bulan ini. Hebat! 🚀</td>
+                                        <td colSpan="5" className="px-8 py-10 text-center text-slate-400 font-medium">Tidak ada catatan keterlambatan bulan ini. Hebat! 🚀</td>
                                     </tr>
                                 )}
                             </tbody>

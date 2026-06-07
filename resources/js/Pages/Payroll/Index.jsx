@@ -252,7 +252,7 @@ export default function Index({ payrollData, branches, filters }) {
                                         </div>
                                         <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                             <Clock size={10} className="text-rose-500" />
-                                            Late: {data.late_count}
+                                            Late: {data.late_count}× &bull; {data.late_total_minutes ?? 0} mnt
                                         </div>
                                     </div>
                                 </Link>

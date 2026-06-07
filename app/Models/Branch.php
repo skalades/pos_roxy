@@ -33,6 +33,10 @@ class Branch extends Model
         'enable_tax',
         'enable_attendance_deduction',
         'late_penalty_amount',
+        'late_penalty_interval',
+        'late_penalty_per_interval',
+        'late_grace_period_minutes',
+        'late_penalty_apply_from',
     ];
 
     protected function casts(): array
@@ -50,6 +54,9 @@ class Branch extends Model
             'is_active' => 'boolean',
             'enable_attendance_deduction' => 'boolean',
             'late_penalty_amount' => 'decimal:2',
+            'late_penalty_interval' => 'integer',
+            'late_penalty_per_interval' => 'decimal:2',
+            'late_grace_period_minutes' => 'integer',
         ];
     }
 

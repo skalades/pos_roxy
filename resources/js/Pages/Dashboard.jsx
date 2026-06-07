@@ -59,7 +59,7 @@ export default function Dashboard({ config }) {
                             />
                         ))}
                         {/* Dynamic Injection of Expenses for operational ease */}
-                        {auth.user.role === 'cashier' && (
+                        {auth.user.role === 'cashier' && config.expenses_enabled && (
                             <NavAppCard 
                                 icon="Banknote" 
                                 title="Pengeluaran" 
