@@ -29,7 +29,7 @@ class PayrollService extends BaseService
         $lateTotalMinutes   = 0;
         $lateDeductionItems = [];
 
-        if ($user->branch && $user->branch->enable_attendance_deduction) {
+        if ($user->branch) {
             $lateAttendances = Attendance::where('user_id', $user->id)
                 ->whereDate('date', '>=', $startDate)
                 ->whereDate('date', '<=', $endDate)
@@ -38,7 +38,7 @@ class PayrollService extends BaseService
 
             // Ambil pengaturan interval dari cabang
             $interval        = max(1, (int) ($user->branch->late_penalty_interval ?? 5));
-            $penaltyPerInterval = (float) ($user->branch->late_penalty_per_interval ?? 0);
+            $penaltyPerInterval = $user->branch->enable_attendance_deduction ? (float) ($user->branch->late_penalty_per_interval ?? 0) : 0.0;
             $applyFrom       = $user->branch->late_penalty_apply_from ? Carbon::parse($user->branch->late_penalty_apply_from)->startOfDay() : null;
 
             foreach ($lateAttendances as $attendance) {
