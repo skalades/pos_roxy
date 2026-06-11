@@ -8,7 +8,6 @@ import {
     Edit2, 
     Trash2, 
     Clock,
-    Wallet,
     Tag,
     Image as ImageIcon
 } from 'lucide-react';
@@ -152,20 +151,13 @@ export default function Index({ services, categories, branches, filters }) {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                <div className="grid grid-cols-1 gap-4 mb-8">
                                     <div className="bg-slate-50 p-4 rounded-2xl">
                                         <div className="flex items-center gap-2 text-slate-400 mb-1">
                                             <Clock size={12} />
                                             <span className="text-[10px] font-black uppercase tracking-widest">Durasi</span>
                                         </div>
                                         <p className="text-sm font-black text-slate-800">{service.duration_minutes} Menit</p>
-                                    </div>
-                                    <div className="bg-slate-50 p-4 rounded-2xl">
-                                        <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                            <Wallet size={12} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Komisi</span>
-                                        </div>
-                                        <p className="text-sm font-black text-indigo-600">{service.commission_rate}%</p>
                                     </div>
                                 </div>
 

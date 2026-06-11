@@ -54,7 +54,9 @@ class ServiceController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
-            'commission_rate' => 'required|numeric|min:0|max:100',
+            // commission_rate disimpan sebagai referensi, TIDAK dipakai untuk kalkulasi transaksi.
+            // Komisi transaksi dihitung dari users.commission_rate (setting per barber).
+            'commission_rate' => 'nullable|numeric|min:0|max:100',
             'is_active' => 'boolean',
             'image' => 'nullable|string',
         ]);
@@ -75,7 +77,9 @@ class ServiceController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
-            'commission_rate' => 'required|numeric|min:0|max:100',
+            // commission_rate disimpan sebagai referensi, TIDAK dipakai untuk kalkulasi transaksi.
+            // Komisi transaksi dihitung dari users.commission_rate (setting per barber).
+            'commission_rate' => 'nullable|numeric|min:0|max:100',
             'is_active' => 'boolean',
             'image' => 'nullable|string',
         ]);

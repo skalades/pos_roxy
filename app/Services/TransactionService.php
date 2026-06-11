@@ -80,7 +80,11 @@ class TransactionService extends BaseService
 
     /**
      * Buat item transaksi dan hitung komisi.
-     * Komisi berdasarkan users.commission_rate (pengaturan user).
+     *
+     * ATURAN KOMISI:
+     * Komisi SELALU dihitung dari users.commission_rate (rate komisi per barber),
+     * BUKAN dari services.commission_rate.
+     * Pengaturan komisi barber ada di menu Manajemen User.
      */
     private function createTransactionItems(Transaction $transaction, array $items): float
     {
@@ -93,8 +97,8 @@ class TransactionService extends BaseService
             if ($item['type'] === 'service') {
                 $barber = User::find($item['barber_id']);
                 if ($barber) {
-                    // Komisi berdasarkan pengaturan user (users.commission_rate)
-                    $commissionRate = $barber->commission_rate;
+                    // Komisi dari setting barber (users.commission_rate), bukan dari layanan
+                    $commissionRate = (float) $barber->commission_rate;
                     $commissionAmount = ($item['price'] * $item['quantity']) * ($commissionRate / 100);
                 }
             }

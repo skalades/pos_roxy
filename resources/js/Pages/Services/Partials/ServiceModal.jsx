@@ -15,7 +15,6 @@ export default function ServiceModal({ show, onClose, service = null, categories
         description: '',
         price: 0,
         duration_minutes: 30,
-        commission_rate: 10,
         is_active: true,
         image: '',
     });
@@ -29,7 +28,6 @@ export default function ServiceModal({ show, onClose, service = null, categories
                 description: service.description || '',
                 price: service.price || 0,
                 duration_minutes: service.duration_minutes || 30,
-                commission_rate: service.commission_rate || 10,
                 is_active: service.is_active ?? true,
                 image: service.image || '',
             });
@@ -153,7 +151,7 @@ export default function ServiceModal({ show, onClose, service = null, categories
                                 <InputError message={errors.price} />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-1 text-center block">Durasi (Menit)</label>
                                     <input
@@ -165,17 +163,16 @@ export default function ServiceModal({ show, onClose, service = null, categories
                                     />
                                     <InputError message={errors.duration_minutes} />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-1 text-center block">Komisi (%)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary focus:bg-white transition-all font-bold text-indigo-600 text-center"
-                                        value={data.commission_rate}
-                                        onChange={e => setData('commission_rate', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.commission_rate} />
+                            </div>
+
+                            {/* Info: Komisi diambil dari setting barber */}
+                            <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+                                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-500">
+                                    <Wallet size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black text-amber-700 uppercase tracking-widest">Komisi Otomatis</p>
+                                    <p className="text-[11px] text-amber-600 font-medium mt-0.5">Komisi dihitung otomatis dari <span className="font-black">Rate Komisi Barber</span> yang melayani. Atur di menu <span className="font-black">Manajemen User</span>.</p>
                                 </div>
                             </div>
 
