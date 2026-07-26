@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
+use App\Models\TransactionItem;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
@@ -74,6 +78,109 @@ class TransactionController extends Controller
             ->findOrFail($id);
             
         return response()->json($transaction);
+    }
+
+    public function edit($id, Request $request)
+    {
+        $user = $request->user();
+
+        // Hanya superadmin yang boleh edit transaksi
+        if ($user->role !== 'super_admin') {
+            abort(403, 'Hanya Super Admin yang dapat mengedit transaksi.');
+        }
+
+        $transaction = Transaction::with([
+            'customer',
+            'cashier',
+            'branch',
+            'items.barber',
+            'items.item',
+        ])->findOrFail($id);
+
+        // Ambil semua barber aktif (superadmin bisa lihat semua cabang)
+        $barbers = User::where('role', 'barber')
+            ->where('is_active', true)
+            ->when($transaction->branch_id, function ($q) use ($transaction) {
+                $q->where('branch_id', $transaction->branch_id);
+            })
+            ->select('id', 'name', 'commission_rate')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Transactions/Edit', [
+            'transaction' => $transaction,
+            'barbers'     => $barbers,
+        ]);
+    }
+
+    public function update($id, Request $request)
+    {
+        $user = $request->user();
+
+        // Hanya superadmin yang boleh update transaksi
+        if ($user->role !== 'super_admin') {
+            abort(403, 'Hanya Super Admin yang dapat mengedit transaksi.');
+        }
+
+        $request->validate([
+            'items'            => ['required', 'array'],
+            'items.*.id'       => ['required', 'integer', 'exists:transaction_items,id'],
+            'items.*.barber_id'=> ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $transaction = Transaction::with('items')->findOrFail($id);
+
+        DB::transaction(function () use ($transaction, $request, $user) {
+            $totalCommission = 0;
+
+            foreach ($request->items as $itemData) {
+                /** @var TransactionItem $item */
+                $item = $transaction->items->firstWhere('id', $itemData['id']);
+
+                if (!$item || $item->item_type !== 'service') {
+                    // Produk tidak diedit
+                    $totalCommission += (float) ($item->commission_amount ?? 0);
+                    continue;
+                }
+
+                $barberId      = $itemData['barber_id'] ?? null;
+                $commissionRate   = 0;
+                $commissionAmount = 0;
+
+                if ($barberId) {
+                    $barber = User::find($barberId);
+                    if ($barber) {
+                        $commissionRate   = (float) $barber->commission_rate;
+                        $commissionAmount = (float) $item->total_price * ($commissionRate / 100);
+                    }
+                }
+
+                $item->update([
+                    'barber_id'        => $barberId,
+                    'commission_rate'  => $commissionRate,
+                    'commission_amount'=> $commissionAmount,
+                ]);
+
+                $totalCommission += $commissionAmount;
+            }
+
+            // Audit trail di field notes
+            $editNote = '[EDITED by superadmin (' . $user->name . ') pada ' . now()->format('d/m/Y H:i') . ']';
+            $existingNotes = $transaction->notes ? $transaction->notes . ' ' : '';
+            $transaction->update([
+                'total_commission' => $totalCommission,
+                'notes'            => $existingNotes . $editNote,
+            ]);
+        });
+
+        Log::info('Transaction edited by superadmin', [
+            'transaction_id' => $transaction->id,
+            'editor_id'      => $user->id,
+            'items'          => $request->items,
+        ]);
+
+        return redirect()->route('transactions.index')
+            ->with('success', 'Transaksi berhasil diperbarui. Komisi barber telah dihitung ulang.');
     }
 
     public function destroy($id, Request $request)

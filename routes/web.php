@@ -50,6 +50,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ── Transaction Routes ──
     Route::middleware('feature:transactions')->group(function () {
         Route::get('/transactions', [\App\Http\Controllers\TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/{id}/edit', [\App\Http\Controllers\TransactionController::class, 'edit'])->name('transactions.edit');
+        Route::put('/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'update'])->name('transactions.update');
         Route::get('/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'show'])->name('transactions.show');
         Route::delete('/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'destroy'])->name('transactions.destroy');
     });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2, Loader2, Trash2 } from 'lucide-react';
+import { Search, Filter, List, Calendar, CalendarRange, CalendarDays, Eye, ChevronRight, FileText, X, Scissors, Package, Printer, Share2, Loader2, Trash2, Pencil } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 import { formatIDR } from '@/utils/currency';
 import Modal from '@/Components/Modal';
@@ -20,6 +20,7 @@ const FILTER_OPTIONS = [
 export default function TransactionIndex({ transactions, filters }) {
     const { auth, app_settings } = usePage().props;
     const canDelete = auth.user.role === 'super_admin' || auth.user.role === 'admin' || auth.user.role === 'manager';
+    const canEdit = auth.user.role === 'super_admin';
     const [search, setSearch] = useState(filters.search || '');
     const [activeFilter, setActiveFilter] = useState(filters.date_filter || 'all');
     const [startDate, setStartDate] = useState(filters.start_date || '');
@@ -288,6 +289,15 @@ export default function TransactionIndex({ transactions, filters }) {
                                                 >
                                                     <Printer size={18} />
                                                 </button>
+                                                {canEdit && (
+                                                    <button
+                                                        onClick={() => router.visit(route('transactions.edit', trx.id))}
+                                                        className="p-2 hover:bg-violet-50 text-violet-400 hover:text-violet-600 rounded-xl transition-all"
+                                                        title="Edit Barber & Komisi"
+                                                    >
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                )}
                                                 {canDelete && (
                                                     <button
                                                         onClick={() => handleDelete(trx.id)}
@@ -342,6 +352,18 @@ export default function TransactionIndex({ transactions, filters }) {
                                         className="p-2 bg-rose-50 text-rose-500 rounded-xl shrink-0 active:scale-90 transition-all"
                                     >
                                         <Trash2 size={18} />
+                                    </button>
+                                )}
+                                {canEdit && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.visit(route('transactions.edit', trx.id));
+                                        }}
+                                        className="p-2 bg-violet-50 text-violet-500 rounded-xl shrink-0 active:scale-90 transition-all"
+                                        title="Edit Barber & Komisi"
+                                    >
+                                        <Pencil size={18} />
                                     </button>
                                 )}
                                 <ChevronRight className="text-slate-300 mt-1 shrink-0" size={18} />
