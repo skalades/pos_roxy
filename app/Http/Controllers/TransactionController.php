@@ -93,9 +93,14 @@ class TransactionController extends Controller
             'customer',
             'cashier',
             'branch',
-            'items.barber',
-            'items.item',
         ])->findOrFail($id);
+
+        // Superadmin harus bisa lihat SEMUA item termasuk yang soft-deleted
+        // agar bisa koreksi barber meski item ter-soft-delete secara tidak sengaja
+        $transaction->setRelation(
+            'items',
+            $transaction->items()->withTrashed()->with(['barber'])->get()
+        );
 
         // Ambil semua barber aktif (superadmin bisa lihat semua cabang)
         $barbers = User::where('role', 'barber')
