@@ -23,7 +23,7 @@ class SettingController extends Controller
     public function updateBranding(Request $request)
     {
         $validated = $request->validate([
-            'app_name' => 'required|string|max:50',
+            'app_name' => 'nullable|string|max:50',
             'app_logo' => 'nullable|image|max:2048',
             'receipt_logo' => 'nullable|image|max:2048',
             'app_website' => 'nullable|string|max:100',
@@ -71,6 +71,9 @@ class SettingController extends Controller
             'timezone' => 'nullable|string',
             'opening_time' => 'nullable|string',
             'closing_time' => 'nullable|string',
+            'website' => 'nullable|string|max:100',
+            'instagram' => 'nullable|string|max:100',
+            'whatsapp' => 'nullable|string|max:50',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'geofence_radius' => 'nullable|numeric',

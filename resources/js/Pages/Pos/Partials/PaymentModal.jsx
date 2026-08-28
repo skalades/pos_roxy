@@ -49,14 +49,14 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
 
         // AMBIL SNAPSHOT SEKARANG (SEBELUM BACKEND DIPANGGIL)
         snapshotRef.current = {
-            storeName: app_settings.app_name,
+            storeName: app_settings.app_name || auth.user.branch?.name || 'ROXY',
             branchName: auth.user.branch?.name || '',
             branchAddress: auth.user.branch?.address || '',
             cashierName: auth.user.name,
             barberName: barberName,
-            website: app_settings.app_website,
-            instagram: app_settings.app_instagram,
-            whatsapp: app_settings.app_whatsapp,
+            website: auth.user.branch?.website || app_settings.app_website,
+            instagram: auth.user.branch?.instagram || app_settings.app_instagram,
+            whatsapp: auth.user.branch?.whatsapp || app_settings.app_whatsapp,
             date: formatDate(new Date()),
             time: formatTime(new Date()),
             orderId: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,

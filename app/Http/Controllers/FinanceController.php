@@ -212,8 +212,8 @@ class FinanceController extends Controller
 
     public function exportPdf(Request $request)
     {
-        ini_set('memory_limit', '256M');
-        set_time_limit(120);
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
 
         $user = $request->user();
         if (!$user->hasRole(['super_admin', 'admin', 'manager'])) abort(403);
@@ -286,12 +286,18 @@ class FinanceController extends Controller
             ->orderBy('opened_at', 'desc')
             ->get();
 
-        // 5. Detailed Transactions
+        // 5. Detailed Transactions (dibatasi 200 terbaru agar tidak OOM di DomPDF)
         $transactions = Transaction::whereBetween('created_at', $dateRange)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with(['items', 'cashier', 'customer'])
+            ->with(['items:id,transaction_id,item_name,quantity', 'customer:id,name'])
+            ->select(['id', 'transaction_number', 'created_at', 'status', 'total_amount', 'customer_id', 'branch_id'])
             ->orderBy('created_at', 'desc')
+            ->limit(200)
             ->get();
+
+        $totalTransactionCount = Transaction::whereBetween('created_at', $dateRange)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->count();
 
         // 6. Detailed Expenses
         $expenseList = CashOperation::where('type', 'cash_out')

@@ -107,7 +107,11 @@ class PosController extends Controller
     public function searchProducts(Request $request)
     {
         $branchId = $request->user()->branch_id;
-        $query = Product::where('branch_id', $branchId)
+        // Fix: sertakan produk global (branch_id IS NULL) selain produk cabang sendiri
+        $query = Product::where(function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                  ->orWhereNull('branch_id');
+            })
             ->where('is_active', true);
 
         if ($request->filled('search')) {

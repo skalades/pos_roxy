@@ -217,14 +217,19 @@ function BrandingTab({ settings }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Aplikasi</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                            <span>Nama Aplikasi</span>
+                            <span className="text-slate-300 font-medium normal-case tracking-normal">(Opsional)</span>
+                        </label>
                         <input
                             type="text"
+                            placeholder="Biarkan kosong untuk menggunakan Nama Cabang di struk"
                             value={data.app_name}
                             onChange={e => setData('app_name', e.target.value)}
                             className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-roxy-primary/10 focus:border-roxy-primary transition-all"
                         />
                         {errors.app_name && <p className="text-xs text-rose-500 font-bold mt-1">{errors.app_name}</p>}
+                        <p className="text-[10px] text-slate-400 font-medium">Jika dikosongkan, nama cabang akan digunakan di struk</p>
                     </div>
 
                     <div className="space-y-4">
@@ -290,6 +295,9 @@ function BranchForm({ branch }) {
         name: branch.name,
         phone: branch.phone || '',
         email: branch.email || '',
+        website: branch.website || '',
+        instagram: branch.instagram || '',
+        whatsapp: branch.whatsapp || '',
         address: branch.address || '',
         opening_time: branch.opening_time || '09:00',
         closing_time: branch.closing_time || '21:00',
@@ -377,7 +385,49 @@ function BranchForm({ branch }) {
                     />
                 </div>
 
-                <div className="md:col-span-2 space-y-2">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                        <span>Website Cabang</span>
+                        <span className="text-slate-300 font-medium normal-case tracking-normal">(Opsional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Fallback ke global jika kosong"
+                        value={data.website}
+                        onChange={e => setData('website', e.target.value)}
+                        className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                    />
+                </div>
+                
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                        <span>Instagram Cabang</span>
+                        <span className="text-slate-300 font-medium normal-case tracking-normal">(Opsional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Fallback ke global jika kosong"
+                        value={data.instagram}
+                        onChange={e => setData('instagram', e.target.value)}
+                        className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                        <span>WhatsApp Cabang</span>
+                        <span className="text-slate-300 font-medium normal-case tracking-normal">(Opsional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Fallback ke global jika kosong"
+                        value={data.whatsapp}
+                        onChange={e => setData('whatsapp', e.target.value)}
+                        className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                    />
+                </div>
+
+                <div className="md:col-span-1 xl:col-span-2 space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alamat Lengkap</label>
                     <textarea
                         value={data.address}

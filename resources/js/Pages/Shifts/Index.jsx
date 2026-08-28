@@ -10,7 +10,7 @@ import { formatIDR } from '@/utils/currency';
 import PageHeader from '@/Components/PageHeader';
 
 export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown }) {
-    const { auth, app_settings, flash } = usePage().props;
+    const { auth, app_settings, flash, errors } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [printing, setPrinting] = useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -143,6 +143,20 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                         </div>
 
                         <form onSubmit={submitOpen} className="p-6 sm:p-10 space-y-8">
+
+                            {/* Error Banner — tampil ketika ada error dari server (misal: belum absen) */}
+                            {(errors?.shift || openForm.errors?.shift) && (
+                                <div className="flex items-start gap-4 bg-rose-50 border border-rose-200 rounded-2xl p-4">
+                                    <div className="w-8 h-8 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                                        <AlertTriangle size={16} />
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-rose-700 text-sm">Tidak Dapat Membuka Shift</p>
+                                        <p className="text-rose-600 text-xs mt-1">{errors?.shift || openForm.errors?.shift}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 <InputLabel htmlFor="opening_balance" value="Modal Awal (Cash in Drawer)" className="text-slate-500 font-bold uppercase tracking-wider text-[10px]" />
                                 <CurrencyInput
