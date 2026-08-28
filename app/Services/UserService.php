@@ -30,9 +30,38 @@ class UserService extends BaseService
             'stats' => $this->getStatsByRole($role, $user),
             'active_shift' => $activeShift,
             'expenses_enabled' => FeatureAccess::isEnabled('expenses', $role),
+            'branch_summaries' => $role === 'super_admin' ? $this->getBranchSummaries() : null,
         ];
 
         return $config;
+    }
+
+    private function getBranchSummaries(): array
+    {
+        $today = now()->startOfDay();
+        $branches = \App\Models\Branch::where('is_active', true)->get();
+        
+        $summaries = [];
+        foreach ($branches as $branch) {
+            $revenue = Transaction::where('branch_id', $branch->id)
+                ->where('status', 'completed')
+                ->where('created_at', '>=', $today)
+                ->sum('total_amount');
+                
+            $customers = Transaction::where('branch_id', $branch->id)
+                ->where('status', 'completed')
+                ->where('created_at', '>=', $today)
+                ->count();
+                
+            $summaries[] = [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'revenue' => 'Rp ' . number_format($revenue, 0, ',', '.'),
+                'customers' => $customers
+            ];
+        }
+        
+        return $summaries;
     }
 
     private function getDashboardTitle(string $role): string

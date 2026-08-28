@@ -291,6 +291,8 @@ function BrandingTab({ settings }) {
 
 
 function BranchForm({ branch }) {
+    const [previewReceipt, setPreviewReceipt] = useState(branch.receipt_logo || null);
+
     const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
         name: branch.name,
         phone: branch.phone || '',
@@ -303,16 +305,47 @@ function BranchForm({ branch }) {
         closing_time: branch.closing_time || '21:00',
         timezone: branch.timezone || 'Asia/Jakarta',
         tax_rate: branch.tax_rate,
+        receipt_logo: null,
+        remove_receipt_logo: false,
     });
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData('receipt_logo', file);
+            setData('remove_receipt_logo', false);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewReceipt(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDeleteLogo = () => {
+        if (confirm('Apakah Anda yakin ingin menghapus logo struk cabang ini?')) {
+            setPreviewReceipt(null);
+            setData('receipt_logo', null);
+            setData('remove_receipt_logo', true);
+            const el = document.getElementById(`branch-receipt-logo-${branch.id}`);
+            if (el) el.value = '';
+        }
+    };
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('settings.branch', branch.id));
+        post(route('settings.branch', branch.id), {
+            forceFormData: true,
+            onSuccess: () => {
+                setData('receipt_logo', null);
+                setData('remove_receipt_logo', false);
+            }
+        });
     };
 
     return (
         <form onSubmit={submit} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
                         <Store size={24} />
@@ -320,6 +353,46 @@ function BranchForm({ branch }) {
                     <div>
                         <h4 className="text-lg font-black text-slate-800">{branch.name}</h4>
                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Cabang ID: {branch.code}</p>
+                    </div>
+                </div>
+                
+                {/* Branch Logo Uploader */}
+                <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
+                        {previewReceipt ? (
+                            <img src={previewReceipt} alt="Logo Cabang" className="w-full h-full object-contain p-1 grayscale" />
+                        ) : (
+                            <Printer size={20} className="text-slate-300" />
+                        )}
+                    </div>
+                    <div className="space-y-1 pr-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <input
+                                type="file"
+                                id={`branch-receipt-logo-${branch.id}`}
+                                className="hidden"
+                                onChange={handleFileChange}
+                                accept="image/*"
+                            />
+                            <label
+                                htmlFor={`branch-receipt-logo-${branch.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-900 rounded-lg font-bold text-[9px] uppercase tracking-widest text-white hover:bg-slate-800 cursor-pointer transition-all"
+                            >
+                                <Upload size={12} />
+                                Logo Struk Cabang
+                            </label>
+                            {previewReceipt && (
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteLogo}
+                                    className="p-1.5 bg-rose-50 text-rose-500 rounded-lg border border-rose-100 hover:bg-rose-100 transition-all"
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-[9px] text-slate-400 font-medium">Opsional. Akan menimpa logo global.</p>
+                        {errors.receipt_logo && <p className="text-[9px] text-rose-500 font-bold">{errors.receipt_logo}</p>}
                     </div>
                 </div>
             </div>

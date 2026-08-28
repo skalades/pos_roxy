@@ -92,8 +92,8 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
             return;
         }
         
-        // FIX 2: Gunakan receipt_logo, fallback ke app_logo jika receipt_logo belum di-upload
-        const logoForPrint = app_settings.receipt_logo || app_settings.app_logo;
+        // Prioritas Logo: Logo Struk Cabang -> Logo Struk Global -> Logo App Global
+        const logoForPrint = auth.user.branch?.receipt_logo || app_settings.receipt_logo || app_settings.app_logo;
         if (!logoForPrint) {
             console.warn('[PrinterService] Tidak ada logo yang dikonfigurasi (receipt_logo & app_logo keduanya null). Struk dicetak tanpa logo.');
         } else {

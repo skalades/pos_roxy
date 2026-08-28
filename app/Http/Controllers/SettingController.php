@@ -82,7 +82,27 @@ class SettingController extends Controller
             'enable_tax' => 'nullable|boolean',
             'late_penalty_amount' => 'nullable|numeric|min:0',
             'enable_attendance_deduction' => 'nullable|boolean',
+            'receipt_logo' => 'nullable|image|max:2048',
+            'remove_receipt_logo' => 'nullable|boolean',
         ]);
+
+        if ($request->remove_receipt_logo) {
+            if ($branch->receipt_logo) {
+                $cleanPath = ltrim(str_replace(Storage::url(''), '', $branch->receipt_logo), '/');
+                Storage::disk('public')->delete($cleanPath);
+            }
+            $validated['receipt_logo'] = null;
+        } elseif ($request->hasFile('receipt_logo')) {
+            if ($branch->receipt_logo) {
+                $cleanPath = ltrim(str_replace(Storage::url(''), '', $branch->receipt_logo), '/');
+                Storage::disk('public')->delete($cleanPath);
+            }
+            $path = $request->file('receipt_logo')->store('logos/branches', 'public');
+            $validated['receipt_logo'] = Storage::disk('public')->url($path);
+        }
+        
+        // Remove virtual field from validated data before update
+        unset($validated['remove_receipt_logo']);
 
         $branch->update($validated);
 

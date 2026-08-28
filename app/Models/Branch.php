@@ -27,6 +27,7 @@ class Branch extends Model
         'website',
         'instagram',
         'whatsapp',
+        'receipt_logo',
         'manager_id',
         'is_active',
         'opening_time',

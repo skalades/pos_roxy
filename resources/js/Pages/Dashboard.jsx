@@ -39,6 +39,39 @@ export default function Dashboard({ config }) {
                     ))}
                 </div>
 
+                {/* Branch Summaries for Super Admin */}
+                {config.branch_summaries && config.branch_summaries.length > 0 && (
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-4 px-2">
+                            <div className="w-1.5 h-6 bg-roxy-primary rounded-full"></div>
+                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-widest">Ringkasan Per Cabang</h3>
+                            <div className="h-px flex-1 bg-slate-100"></div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {config.branch_summaries.map((branch, index) => (
+                                <div key={index} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center font-black uppercase shadow-inner border border-slate-100">
+                                            {branch.name.charAt(0)}
+                                        </div>
+                                        <h4 className="font-black text-slate-800 text-lg tracking-tight">{branch.name}</h4>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Revenue</span>
+                                            <span className="font-black text-emerald-600">{branch.revenue}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Customers</span>
+                                            <span className="font-black text-blue-600">{branch.customers}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Main Navigation Grid */}
                 <div className="space-y-8">
                     <div className="flex items-center gap-4 px-2">
