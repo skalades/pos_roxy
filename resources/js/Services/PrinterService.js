@@ -122,10 +122,10 @@ class PrinterService {
                     if (imgData && height > 0) {
                         this.encoder
                             .align('center')
-                            .image(imgData, logoWidth, height, 'floyd-steinberg')
+                            .image(imgData, logoWidth, height, 'threshold')
                             .newline();
                         
-                        console.log('Logo added to encoder with floyd-steinberg');
+                        console.log('Logo added to encoder with threshold');
                     } else {
                         console.warn('Logo processed but has no content (height 0)');
                     }
@@ -260,7 +260,7 @@ class PrinterService {
                     if (imgData && height > 0) {
                         this.encoder
                             .align('center')
-                            .image(imgData, logoWidth, height, 'floyd-steinberg')
+                            .image(imgData, logoWidth, height, 'threshold')
                             .newline();
                     }
                 } catch (e) {
