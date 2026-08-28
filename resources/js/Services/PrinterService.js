@@ -458,16 +458,23 @@ class PrinterService {
                     return;
                 }
 
+                // FIX 5: ESC/POS encoder mensyaratkan height kelipatan 8
+                // Bulatkan ke atas ke kelipatan 8 terdekat (misal: 110 -> 112)
+                const alignedHeight = Math.ceil(trimmedHeight / 8) * 8;
+
                 const trimmedCanvas = document.createElement('canvas');
                 trimmedCanvas.width = width;
-                trimmedCanvas.height = trimmedHeight;
+                trimmedCanvas.height = alignedHeight;
                 const tCtx = trimmedCanvas.getContext('2d');
-                
+
+                // Isi dengan putih dulu (padding baris bawah jika alignedHeight > trimmedHeight)
+                tCtx.fillStyle = 'white';
+                tCtx.fillRect(0, 0, width, alignedHeight);
                 tCtx.putImageData(imageData, 0, -top);
-                const finalData = tCtx.getImageData(0, 0, width, trimmedHeight);
+                const finalData = tCtx.getImageData(0, 0, width, alignedHeight);
                 
-                console.log(`Logo processed: ${width}x${trimmedHeight} (Original: ${height}px)`);
-                resolve({ imgData: finalData, height: trimmedHeight });
+                console.log(`Logo processed: ${width}x${alignedHeight} (trimmed: ${trimmedHeight}px, original: ${height}px)`);
+                resolve({ imgData: finalData, height: alignedHeight });
             };
             img.onerror = (err) => {
                 console.error('Failed to load logo image:', url, err);
