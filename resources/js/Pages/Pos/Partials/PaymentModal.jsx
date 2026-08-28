@@ -92,15 +92,24 @@ export default function PaymentModal({ show, onClose, total, onConfirm, processi
             return;
         }
         
+        // FIX 2: Gunakan receipt_logo, fallback ke app_logo jika receipt_logo belum di-upload
+        const logoForPrint = app_settings.receipt_logo || app_settings.app_logo;
+        if (!logoForPrint) {
+            console.warn('[PrinterService] Tidak ada logo yang dikonfigurasi (receipt_logo & app_logo keduanya null). Struk dicetak tanpa logo.');
+        } else {
+            console.log('[PrinterService] Logo untuk struk:', logoForPrint);
+        }
+
         setPrinting(true);
         try {
-            await printerService.printReceipt(snapshotRef.current, app_settings.receipt_logo, isInternalPrint);
+            await printerService.printReceipt(snapshotRef.current, logoForPrint, isInternalPrint);
         } catch (error) {
             alert('Gagal mencetak: ' + error.message);
         } finally {
             setPrinting(false);
         }
     };
+
 
     // Generate smart quick amounts
     const generateQuickAmounts = () => {

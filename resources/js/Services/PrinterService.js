@@ -23,7 +23,8 @@ class PrinterService {
                 console.log('Found ' + devices.length + ' paired devices:', devices.map(d => d.name));
                 
                 const pairedDevice = devices.find(d => 
-                    (d.name && d.name.includes('RP02N')) || 
+                    (d.name && d.name.includes('RP02N')) ||   // RP02N (Roxybarber)
+                    (d.name && d.name.includes('RPP02N')) ||  // RPP02N (VSC)
                     (d.name && d.name.toLowerCase().includes('printer')) ||
                     (d.uuids && d.uuids.includes('000018f0-0000-1000-8000-00805f9b34fb'))
                 );
@@ -39,7 +40,8 @@ class PrinterService {
                 console.log('No paired device found, requesting new device picker...');
                 this.device = await navigator.bluetooth.requestDevice({
                     filters: [
-                        { name: 'RP02N' },
+                        { name: 'RP02N' },    // Printer lama (Roxybarber)
+                        { name: 'RPP02N' },   // Printer VSC (cabang baru)
                         { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }
                     ],
                     optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
@@ -392,13 +394,11 @@ class PrinterService {
         return new Promise((resolve, reject) => {
             console.log('Loading image from URL:', url);
             const img = new Image();
-            
-            // Cek apakah URL adalah cross-domain
-            const isCrossDomain = url.startsWith('http') && !url.startsWith(window.location.origin);
-            if (isCrossDomain) {
-                img.crossOrigin = 'Anonymous';
-            }
-            
+
+            // FIX 1: Set crossOrigin untuk semua URL agar Canvas tidak terkena tainted error
+            // (SecurityError: getImageData tainted canvas) — berlaku untuk URL relatif maupun absolut
+            img.crossOrigin = 'anonymous';
+
             img.onload = () => {
                 const aspect = img.height / img.width;
                 const height = Math.round(width * aspect);
@@ -419,7 +419,7 @@ class PrinterService {
                 const imageData = ctx.getImageData(0, 0, width, height);
                 const data = imageData.data;
 
-                // Simple Thresholding with a balanced threshold
+                // FIX 3 (thresholding): Binarize proper ke hitam/putih murni
                 for (let i = 0; i < data.length; i += 4) {
                     const alpha = data[i+3];
                     if (alpha < 50) { // Transparent -> White
@@ -427,21 +427,22 @@ class PrinterService {
                     } else {
                         // Grayscale conversion
                         const grayscale = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
-                        // Boost contrast: values near white become white, values near black become black
-                        const val = grayscale < 200 ? (grayscale < 100 ? 0 : grayscale) : 255;
+                        // Binarize: < 128 -> hitam, >= 128 -> putih (tidak ada abu-abu)
+                        const val = grayscale < 128 ? 0 : 255;
                         data[i] = data[i+1] = data[i+2] = val;
                     }
-                    data[i+3] = 255; 
+                    data[i+3] = 255;
                 }
 
-                // 3. AUTO-TRIM: Find the actual content boundaries
+                // 3. AUTO-TRIM: Temukan batas konten yang sebenarnya
                 let top = 0;
                 let bottom = height - 1;
 
+                // FIX 3 (trim): Threshold 250 — lebih toleran dari 240 sebelumnya
                 const isRowWhite = (y) => {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
-                        if (data[idx] < 240) return false; // Not white enough
+                        if (data[idx] < 250) return false; // Hanya pixel nyaris putih sempurna
                     }
                     return true;
                 };
@@ -449,10 +450,10 @@ class PrinterService {
                 while (top < bottom && isRowWhite(top)) top++;
                 while (bottom > top && isRowWhite(bottom)) bottom--;
 
-                // Apply trim if needed
                 const trimmedHeight = Math.max(0, (bottom - top) + 1);
                 
                 if (trimmedHeight === 0) {
+                    console.warn('Logo image is entirely white after processing — logo will be skipped.');
                     resolve({ imgData: null, height: 0 });
                     return;
                 }
@@ -470,11 +471,11 @@ class PrinterService {
             };
             img.onerror = (err) => {
                 console.error('Failed to load logo image:', url, err);
-                reject(new Error('Image load failed'));
+                reject(new Error('Image load failed: ' + url));
             };
-            // Cache busting
-            const cacheUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-            img.src = cacheUrl;
+            // FIX 4: Hapus cache-busting query string — bisa menyebabkan 404 pada static file serve.
+            // Logo jarang berubah; cukup ganti file saat upload untuk invalidasi cache.
+            img.src = url;
         });
     }
 }
