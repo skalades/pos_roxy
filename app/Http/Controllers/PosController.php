@@ -131,7 +131,14 @@ class PosController extends Controller
 
     public function searchCustomers(Request $request)
     {
-        $query = Customer::where('is_active', true);
+        $branchId = $request->user()->branch_id;
+        
+        $query = Customer::where('is_active', true)
+            ->where(function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                  ->orWhereNull('branch_id'); // Optional: in case some customers are global
+            })
+            ->withCount('transactions');
 
         if ($request->filled('search')) {
             $search = $request->get('search');

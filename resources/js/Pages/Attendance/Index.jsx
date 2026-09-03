@@ -124,7 +124,7 @@ export default function AttendanceIndex({ attendance, branch, allAttendances = [
                 <PageHeader 
                     title="Presensi Karyawan"
                     backHref={route('dashboard')}
-                    badge={isAdmin ? "Superadmin" : "Online"}
+                    badge={isAdmin ? "Monitoring" : "Online"}
                     badgeColor={isAdmin ? "primary" : "emerald"}
                     showClock={true}
                 />

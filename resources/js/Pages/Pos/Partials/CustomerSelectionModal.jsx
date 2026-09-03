@@ -162,7 +162,10 @@ export default function CustomerSelectionModal({ show, onClose, onSelect }) {
                                     </div>
                                     <div className="flex-1 min-w-0 relative z-10">
                                         <p className="font-black text-slate-800 text-base truncate">{capitalize(customer.name)}</p>
-                                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">{customer.phone || 'Tanpa Nomor HP'}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">
+                                            {customer.phone || 'Tanpa Nomor HP'} 
+                                            {customer.transactions_count !== undefined && ` • ${customer.transactions_count} Kali Visit`}
+                                        </p>
                                     </div>
                                     <div className="relative z-10 text-teal-500 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                                         <Icons.CheckCircle2 size={24} />

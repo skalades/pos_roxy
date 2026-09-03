@@ -30,22 +30,30 @@ class AttendanceController extends Controller
             ->where('date', $today->toDateString())
             ->first();
 
-        $isAdmin = $user->role === 'super_admin'; // Consistent with other roles
+        $isManager = in_array($user->role, ['manager', 'super_admin']);
+        $isAdmin = $user->role === 'super_admin' || $user->can_access_all_branches;
         $allAttendances = [];
 
-        if ($isAdmin) {
-            $allAttendances = Attendance::with(['user', 'branch'])
+        if ($isManager) {
+            $query = Attendance::with(['user', 'branch'])
                 ->orderBy('date', 'desc')
-                ->orderBy('clock_in_at', 'desc')
-                ->limit(100)
-                ->get();
+                ->orderBy('clock_in_at', 'desc');
+                
+            if (!$isAdmin) {
+                // Manajer hanya melihat absensi di cabangnya sendiri
+                $query->whereHas('user', function($q) use ($user) {
+                    $q->where('branch_id', $user->branch_id);
+                });
+            }
+            
+            $allAttendances = $query->limit(100)->get();
         }
 
         return Inertia::render('Attendance/Index', [
             'attendance' => $attendance,
             'branch' => $user->branch,
             'allAttendances' => $allAttendances,
-            'isAdmin' => $isAdmin
+            'isAdmin' => $isManager // Provide this to frontend to show the monitoring section
         ]);
     }
 
