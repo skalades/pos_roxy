@@ -70,9 +70,18 @@ export default function Dashboard({ config }) {
                                                 <span className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest">On Time</span>
                                                 <span className="font-black text-emerald-600">{branch.ontime}</span>
                                             </div>
-                                            <div className="flex-1 flex items-center justify-between p-3 bg-rose-50 rounded-2xl border border-rose-100/50">
-                                                <span className="text-[10px] font-black text-rose-600/70 uppercase tracking-widest">Telat</span>
-                                                <span className="font-black text-rose-600">{branch.late}</span>
+                                            <div className="flex-1 flex flex-col p-3 bg-rose-50 rounded-2xl border border-rose-100/50">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="text-[10px] font-black text-rose-600/70 uppercase tracking-widest">Telat</span>
+                                                    <span className="font-black text-rose-600">{branch.late}</span>
+                                                </div>
+                                                {branch.late_names && branch.late_names.length > 0 && (
+                                                    <div className="mt-1 pt-1 border-t border-rose-100/50 text-[9px] font-bold text-rose-500 flex flex-col gap-0.5">
+                                                        {branch.late_names.map((name, i) => (
+                                                            <span key={i}>• {name}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

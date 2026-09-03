@@ -58,9 +58,12 @@ class UserService extends BaseService
                 $q->where('branch_id', $branch->id);
             })->where('date', $todayStr)->where('clock_in_on_time', true)->count();
 
-            $late = \App\Models\Attendance::whereHas('user', function($q) use ($branch) {
+            $lateAttendances = \App\Models\Attendance::with('user')->whereHas('user', function($q) use ($branch) {
                 $q->where('branch_id', $branch->id);
-            })->where('date', $todayStr)->where('clock_in_on_time', false)->count();
+            })->where('date', $todayStr)->where('clock_in_on_time', false)->get();
+            
+            $lateCount = $lateAttendances->count();
+            $lateNames = $lateAttendances->pluck('user.name')->toArray();
                 
             $summaries[] = [
                 'id' => $branch->id,
@@ -68,7 +71,8 @@ class UserService extends BaseService
                 'revenue' => 'Rp ' . number_format($revenue, 0, ',', '.'),
                 'customers' => $customers,
                 'ontime' => $onTime,
-                'late' => $late,
+                'late' => $lateCount,
+                'late_names' => $lateNames,
             ];
         }
         
