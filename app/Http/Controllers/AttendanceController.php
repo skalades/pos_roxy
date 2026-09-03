@@ -34,10 +34,12 @@ class AttendanceController extends Controller
         $isAdmin = $user->role === 'super_admin' || $user->can_access_all_branches;
         $allAttendances = [];
         $branches = [];
+        
+        $selectedDate = $request->input('date', $today->toDateString());
 
         if ($isManager) {
             $query = Attendance::with(['user', 'branch'])
-                ->orderBy('date', 'desc')
+                ->where('date', $selectedDate)
                 ->orderBy('clock_in_at', 'desc');
                 
             if (!$isAdmin) {
@@ -65,7 +67,8 @@ class AttendanceController extends Controller
             'isSuperAdmin' => $isAdmin,
             'branches' => $branches,
             'filters' => [
-                'branch_id' => $request->branch_id
+                'branch_id' => $request->branch_id,
+                'date' => $selectedDate,
             ]
         ]);
     }

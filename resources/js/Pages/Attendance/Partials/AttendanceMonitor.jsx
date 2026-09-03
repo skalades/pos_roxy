@@ -22,44 +22,84 @@ export default function AttendanceMonitor({ attendances, isSuperAdmin, branches,
     };
 
     const handleFilterChange = (e) => {
-        router.get(route('attendance.index'), { branch_id: e.target.value }, { preserveState: true });
+        router.get(route('attendance.index'), { ...filters, branch_id: e.target.value }, { preserveState: true });
     };
 
-    const todayDate = new Date().toLocaleDateString('id-ID', {
-        weekday: 'long',
-        day: 'numeric',
+    const handleDateClick = (dateStr) => {
+        router.get(route('attendance.index'), { ...filters, date: dateStr }, { preserveState: true });
+    };
+
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+    const selectedDateStr = filters?.date || todayStr;
+    const selectedDate = new Date(selectedDateStr);
+
+    const currentMonthYear = selectedDate.toLocaleDateString('id-ID', {
         month: 'long',
         year: 'numeric'
     });
 
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const dates = Array.from({ length: daysInMonth }, (_, i) => {
+        const d = new Date(year, month, i + 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    });
+
     return (
         <div className="space-y-6">
-            {/* Header: Date and Filter */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-roxy-primary/10 text-roxy-primary rounded-full flex items-center justify-center">
-                        <Calendar size={24} />
+            {/* Header: Date Strip and Filter */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-roxy-primary/10 text-roxy-primary rounded-full flex items-center justify-center">
+                            <Calendar size={24} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Monitor Absensi</p>
+                            <h2 className="text-xl md:text-2xl font-black text-roxy-accent">{currentMonthYear}</h2>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Monitor Absensi</p>
-                        <h2 className="text-xl md:text-2xl font-black text-roxy-accent">{todayDate}</h2>
-                    </div>
+
+                    {isSuperAdmin && branches && (
+                        <div className="w-full md:w-auto">
+                            <select 
+                                value={filters?.branch_id || ''}
+                                onChange={handleFilterChange}
+                                className="w-full md:w-48 bg-slate-50 border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-roxy-primary focus:border-roxy-primary font-medium"
+                            >
+                                <option value="">Semua Cabang</option>
+                                {branches.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
-                {isSuperAdmin && branches && (
-                    <div className="w-full md:w-auto">
-                        <select 
-                            value={filters?.branch_id || ''}
-                            onChange={handleFilterChange}
-                            className="w-full md:w-48 bg-slate-50 border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-roxy-primary focus:border-roxy-primary font-medium"
-                        >
-                            <option value="">Semua Cabang</option>
-                            {branches.map(b => (
-                                <option key={b.id} value={b.id}>{b.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
+                {/* Horizontal Date Strip */}
+                <div className="flex gap-2 overflow-x-auto pb-2 pt-2 snap-x hide-scrollbar scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {dates.map(dateStr => {
+                        const isSelected = dateStr === selectedDateStr;
+                        const d = new Date(dateStr);
+                        const dayNum = d.getDate();
+                        const dayName = d.toLocaleDateString('id-ID', { weekday: 'short' });
+                        return (
+                            <button
+                                key={dateStr}
+                                onClick={() => handleDateClick(dateStr)}
+                                className={`flex-shrink-0 snap-center w-14 flex flex-col items-center py-3 rounded-2xl transition-all ${isSelected ? 'bg-roxy-primary text-white shadow-md shadow-roxy-primary/30 scale-110' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isSelected ? 'opacity-90' : 'opacity-80'}`}>{dayName}</span>
+                                <span className="text-xl font-black mt-1">{dayNum}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {(!attendances || attendances.length === 0) ? (
