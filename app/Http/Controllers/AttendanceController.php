@@ -21,7 +21,7 @@ class AttendanceController extends Controller
         $this->attendanceService = $attendanceService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         $today = Carbon::today();
@@ -33,6 +33,7 @@ class AttendanceController extends Controller
         $isManager = in_array($user->role, ['manager', 'super_admin']);
         $isAdmin = $user->role === 'super_admin' || $user->can_access_all_branches;
         $allAttendances = [];
+        $branches = [];
 
         if ($isManager) {
             $query = Attendance::with(['user', 'branch'])
@@ -44,6 +45,13 @@ class AttendanceController extends Controller
                 $query->whereHas('user', function($q) use ($user) {
                     $q->where('branch_id', $user->branch_id);
                 });
+            } else {
+                $branches = Branch::orderBy('name')->get();
+                if ($request->filled('branch_id')) {
+                    $query->whereHas('user', function($q) use ($request) {
+                        $q->where('branch_id', $request->branch_id);
+                    });
+                }
             }
             
             $allAttendances = $query->limit(100)->get();
@@ -53,7 +61,12 @@ class AttendanceController extends Controller
             'attendance' => $attendance,
             'branch' => $user->branch,
             'allAttendances' => $allAttendances,
-            'isAdmin' => $isManager // Provide this to frontend to show the monitoring section
+            'isAdmin' => $isManager, // Provide this to frontend to show the monitoring section
+            'isSuperAdmin' => $isAdmin,
+            'branches' => $branches,
+            'filters' => [
+                'branch_id' => $request->branch_id
+            ]
         ]);
     }
 

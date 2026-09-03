@@ -9,7 +9,7 @@ import PageHeader from '@/Components/PageHeader';
 
 import AttendanceMonitor from './Partials/AttendanceMonitor';
 
-export default function AttendanceIndex({ attendance, branch, allAttendances = [], isAdmin = false }) {
+export default function AttendanceIndex({ attendance, branch, allAttendances = [], isAdmin = false, isSuperAdmin = false, branches = [], filters = {} }) {
     const [activeTab, setActiveTab] = useState(isAdmin ? 'monitor' : 'selfie');
     const [location, setLocation] = useState(null);
     const [locationError, setLocationError] = useState(null);
@@ -152,7 +152,12 @@ export default function AttendanceIndex({ attendance, branch, allAttendances = [
                 )}
 
                 {activeTab === 'monitor' && isAdmin ? (
-                    <AttendanceMonitor attendances={allAttendances} />
+                    <AttendanceMonitor 
+                        attendances={allAttendances} 
+                        isSuperAdmin={isSuperAdmin}
+                        branches={branches}
+                        filters={filters}
+                    />
                 ) : (
                     <>
                         {/* Status Card */}
