@@ -65,6 +65,16 @@ export default function Dashboard({ config }) {
                                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Customers</span>
                                             <span className="font-black text-blue-600">{branch.customers}</span>
                                         </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 flex items-center justify-between p-3 bg-emerald-50 rounded-2xl border border-emerald-100/50">
+                                                <span className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest">On Time</span>
+                                                <span className="font-black text-emerald-600">{branch.ontime}</span>
+                                            </div>
+                                            <div className="flex-1 flex items-center justify-between p-3 bg-rose-50 rounded-2xl border border-rose-100/50">
+                                                <span className="text-[10px] font-black text-rose-600/70 uppercase tracking-widest">Telat</span>
+                                                <span className="font-black text-rose-600">{branch.late}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

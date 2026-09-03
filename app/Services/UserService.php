@@ -39,6 +39,7 @@ class UserService extends BaseService
     private function getBranchSummaries(): array
     {
         $today = now()->startOfDay();
+        $todayStr = now()->toDateString();
         $branches = \App\Models\Branch::where('is_active', true)->get();
         
         $summaries = [];
@@ -53,11 +54,21 @@ class UserService extends BaseService
                 ->where('created_at', '>=', $today)
                 ->count();
                 
+            $onTime = \App\Models\Attendance::whereHas('user', function($q) use ($branch) {
+                $q->where('branch_id', $branch->id);
+            })->where('date', $todayStr)->where('clock_in_on_time', true)->count();
+
+            $late = \App\Models\Attendance::whereHas('user', function($q) use ($branch) {
+                $q->where('branch_id', $branch->id);
+            })->where('date', $todayStr)->where('clock_in_on_time', false)->count();
+                
             $summaries[] = [
                 'id' => $branch->id,
                 'name' => $branch->name,
                 'revenue' => 'Rp ' . number_format($revenue, 0, ',', '.'),
-                'customers' => $customers
+                'customers' => $customers,
+                'ontime' => $onTime,
+                'late' => $late,
             ];
         }
         
