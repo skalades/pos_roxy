@@ -274,11 +274,13 @@ export default function ShiftDetail({
                                         <span className="text-slate-500 font-bold">Rp</span>
                                     </div>
                                     <input 
-                                        type="number"
+                                        type="text"
                                         required
-                                        min="0"
-                                        value={data.closing_balance}
-                                        onChange={e => setData('closing_balance', e.target.value)}
+                                        value={data.closing_balance ? parseInt(data.closing_balance).toLocaleString('id-ID') : ''}
+                                        onChange={e => {
+                                            const rawValue = e.target.value.replace(/\D/g, '');
+                                            setData('closing_balance', rawValue);
+                                        }}
                                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl pl-12 pr-4 py-3 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
                                     />
                                 </div>
