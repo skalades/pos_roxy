@@ -113,6 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reports/finance', [\App\Http\Controllers\FinanceController::class, 'index'])->name('reports.finance');
         Route::get('/reports/finance/export', [\App\Http\Controllers\FinanceController::class, 'exportPdf'])->name('reports.finance.export');
         Route::get('/reports/shifts', [\App\Http\Controllers\ShiftReportController::class, 'index'])->name('reports.shifts');
+        Route::get('/reports/shifts/{id}', [\App\Http\Controllers\ShiftReportController::class, 'show'])->name('reports.shifts.show');
     });
 
     // ── Setting Routes (admin middleware + feature check) ──

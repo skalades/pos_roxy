@@ -1,6 +1,6 @@
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import PageHeader from '@/Components/PageHeader';
 import { Store, Search, Filter } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
@@ -94,12 +94,13 @@ export default function Shifts({ shifts, branches, filters }) {
                                     <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Fisik (Close)</th>
                                     <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Selisih</th>
                                     <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {shifts.data.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
+                                        <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
                                             Tidak ada data laporan shift yang sesuai filter.
                                         </td>
                                     </tr>
@@ -135,6 +136,14 @@ export default function Shifts({ shifts, branches, filters }) {
                                             }`}>
                                                 {shift.status}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <Link 
+                                                href={route('reports.shifts.show', shift.id)}
+                                                className="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all active:scale-95"
+                                            >
+                                                Lihat Detail
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))}
