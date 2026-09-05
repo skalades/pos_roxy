@@ -115,6 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reports/shifts', [\App\Http\Controllers\ShiftReportController::class, 'index'])->name('reports.shifts');
         Route::get('/reports/shifts/{id}', [\App\Http\Controllers\ShiftReportController::class, 'show'])->name('reports.shifts.show');
         Route::put('/reports/shifts/{id}/correct', [\App\Http\Controllers\ShiftCorrectionController::class, 'update'])->name('reports.shifts.correct');
+        Route::delete('/reports/shifts/{id}', [\App\Http\Controllers\ShiftReportController::class, 'destroy'])->name('reports.shifts.destroy');
     });
 
     // ── Setting Routes (admin middleware + feature check) ──

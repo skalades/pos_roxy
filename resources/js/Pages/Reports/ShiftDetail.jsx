@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, usePage, useForm } from '@inertiajs/react';
+import { Head, Link, usePage, useForm, router } from '@inertiajs/react';
 import PageHeader from '@/Components/PageHeader';
-import { Store, CheckCircle, Clock, Calendar, ArrowLeft, Edit2, X } from 'lucide-react';
+import { Store, CheckCircle, Clock, Calendar, ArrowLeft, Edit2, X, Trash2, AlertTriangle } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
 
 export default function ShiftDetail({ 
@@ -13,8 +13,10 @@ export default function ShiftDetail({
     const { auth } = usePage().props;
     const isSuperAdmin = auth.user.role === 'super_admin';
     const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmationWord, setDeleteConfirmationWord] = useState('');
     
-    const { data, setData, put, processing, errors, reset } = useForm({
+    const { data, setData, put, processing: correctionProcessing, errors: correctionErrors, reset: correctionReset } = useForm({
         closing_balance: shift.closing_balance || '',
         notes: ''
     });
@@ -24,9 +26,15 @@ export default function ShiftDetail({
         put(route('reports.shifts.correct', shift.id), {
             onSuccess: () => {
                 setShowCorrectionModal(false);
-                reset('notes');
+                correctionReset('notes');
             }
         });
+    };
+
+    const handleDeleteShift = () => {
+        if (deleteConfirmationWord === 'HAPUS') {
+            router.delete(route('reports.shifts.destroy', shift.id));
+        }
     };
 
     return (
@@ -82,10 +90,19 @@ export default function ShiftDetail({
 
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Rekap Saldo */}
-                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 relative">
+                        {isSuperAdmin && (
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="absolute top-6 right-6 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-2 rounded-xl transition-colors"
+                                title="Hapus Permanen Shift Training"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        )}
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
-                            <h4 className="font-black text-slate-800 uppercase tracking-widest">Ringkasan Sistem & Laci</h4>
+                            <h4 className="font-black text-slate-800 uppercase tracking-widest pr-8">Ringkasan Sistem & Laci</h4>
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
@@ -284,7 +301,7 @@ export default function ShiftDetail({
                                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl pl-12 pr-4 py-3 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
                                     />
                                 </div>
-                                {errors.closing_balance && <p className="mt-1 text-xs text-rose-500">{errors.closing_balance}</p>}
+                                {correctionErrors.closing_balance && <p className="mt-1 text-xs text-rose-500">{correctionErrors.closing_balance}</p>}
                             </div>
 
                             <div>
@@ -296,7 +313,7 @@ export default function ShiftDetail({
                                     onChange={e => setData('notes', e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
                                 ></textarea>
-                                {errors.notes && <p className="mt-1 text-xs text-rose-500">{errors.notes}</p>}
+                                {correctionErrors.notes && <p className="mt-1 text-xs text-rose-500">{correctionErrors.notes}</p>}
                             </div>
 
                             <div className="flex gap-3 pt-4">
@@ -309,13 +326,67 @@ export default function ShiftDetail({
                                 </button>
                                 <button 
                                     type="submit" 
-                                    disabled={processing}
+                                    disabled={correctionProcessing}
                                     className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors flex justify-center items-center gap-2"
                                 >
-                                    {processing ? 'Menyimpan...' : 'Simpan Koreksi'}
+                                    {correctionProcessing ? 'Menyimpan...' : 'Simpan Koreksi'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Hapus Shift Training */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 border-2 border-rose-500/20">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-rose-50">
+                            <h3 className="font-black text-rose-700 text-lg flex items-center gap-2">
+                                <AlertTriangle size={20} />
+                                Hapus Data Training
+                            </h3>
+                            <button onClick={() => setShowDeleteModal(false)} className="text-rose-400 hover:text-rose-600 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="bg-rose-50 p-4 rounded-2xl text-sm text-rose-800 border border-rose-100">
+                                <p className="font-bold mb-1">PERINGATAN BERBAHAYA!</p>
+                                <p className="opacity-90">Tindakan ini akan <b>MENGHAPUS PERMANEN</b> data shift ini beserta <b>seluruh nota transaksi, rincian layanan/produk, dan data pengeluaran (cash operation)</b> yang terjadi di dalam shift ini.</p>
+                                <p className="mt-2 opacity-90">Tindakan ini tidak dapat dibatalkan. Gunakan ini HANYA untuk menghapus transaksi training/dummy sebelum Grand Opening.</p>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ketik "HAPUS" untuk melanjutkan</label>
+                                <input 
+                                    type="text"
+                                    value={deleteConfirmationWord}
+                                    onChange={e => setDeleteConfirmationWord(e.target.value)}
+                                    placeholder="Ketik HAPUS disini..."
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-center"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={handleDeleteShift}
+                                    disabled={deleteConfirmationWord !== 'HAPUS'}
+                                    className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Trash2 size={18} />
+                                    Hapus Permanen
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
