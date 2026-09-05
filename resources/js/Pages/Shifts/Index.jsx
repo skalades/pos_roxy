@@ -9,7 +9,7 @@ import CurrencyInput from '@/Components/CurrencyInput';
 import { formatIDR } from '@/utils/currency';
 import PageHeader from '@/Components/PageHeader';
 
-export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown }) {
+export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown, total_discount, discount_breakdown }) {
     const { auth, app_settings, flash, errors } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [printing, setPrinting] = useState(false);
@@ -53,6 +53,8 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                 productsTotal: isClosing ? parseFloat(source.products_total || 0) : 0,
                 servicesBreakdown: isClosing ? (source.services_breakdown || []) : [],
                 productsBreakdown: isClosing ? (source.products_breakdown || []) : [],
+                totalDiscount: isClosing ? parseFloat(source.total_discount !== undefined ? source.total_discount : (total_discount || 0)) : 0,
+                discountBreakdown: isClosing ? (source.discount_breakdown || discount_breakdown || []) : [],
             };
 
             await PrinterService.printShiftReport(printData, type, app_settings.receipt_logo);
@@ -277,6 +279,12 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                                                         <span className="text-slate-800 font-bold">{formatIDR(total)}</span>
                                                     </div>
                                                 ))}
+                                            {(total_discount > 0) && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-slate-500 font-medium text-orange-500">Total Diskon Diberikan</span>
+                                                    <span className="text-orange-600 font-bold">{formatIDR(total_discount)}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-slate-500 font-medium text-rose-500">Total Pengeluaran</span>
                                                 <span className="text-rose-600 font-bold">-{formatIDR(cash_expenses)}</span>

@@ -243,6 +243,17 @@ class UserService extends BaseService
             }
         }
 
+        // ── Laporan Shift (super_admin & admin) ───────────
+        if (in_array($role, ['super_admin', 'admin'])) {
+            $items[] = [
+                'title'       => 'Laporan Shift',
+                'description' => 'Monitoring aktivitas kasir',
+                'icon'        => 'Store',
+                'href'        => '/reports/shifts',
+                'color'       => 'amber',
+            ];
+        }
+
         // ── Feature Access Control (super_admin only) ───────────
         if ($role === 'super_admin') {
             $items[] = [

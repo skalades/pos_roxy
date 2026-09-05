@@ -139,4 +139,38 @@ class ShiftService extends BaseService
             ->get()
             ->toArray();
     }
+
+    /**
+     * Hitung total diskon dalam sebuah shift.
+     */
+    public function calculateTotalDiscount(Shift $shift): float
+    {
+        return (float) $shift->transactions()
+            ->where('status', 'completed')
+            ->sum('discount_amount');
+    }
+
+    /**
+     * Breakdown transaksi yang mendapatkan diskon beserta rincian layanannya.
+     */
+    public function getDiscountBreakdown(Shift $shift): array
+    {
+        $transactions = $shift->transactions()
+            ->where('status', 'completed')
+            ->where('discount_amount', '>', 0)
+            ->with('items')
+            ->get();
+
+        $breakdown = [];
+        foreach ($transactions as $trx) {
+            $itemNames = $trx->items->pluck('item_name')->implode(', ');
+            $breakdown[] = [
+                'trx_number' => $trx->transaction_number,
+                'items' => $itemNames,
+                'discount_amount' => (float) $trx->discount_amount
+            ];
+        }
+
+        return $breakdown;
+    }
 }

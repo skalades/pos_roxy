@@ -112,6 +112,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('feature:finance_reports')->group(function () {
         Route::get('/reports/finance', [\App\Http\Controllers\FinanceController::class, 'index'])->name('reports.finance');
         Route::get('/reports/finance/export', [\App\Http\Controllers\FinanceController::class, 'exportPdf'])->name('reports.finance.export');
+        Route::get('/reports/shifts', [\App\Http\Controllers\ShiftReportController::class, 'index'])->name('reports.shifts');
     });
 
     // ── Setting Routes (admin middleware + feature check) ──

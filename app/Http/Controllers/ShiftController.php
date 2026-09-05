@@ -30,6 +30,8 @@ class ShiftController extends Controller
         $productsTotal = 0;
         $servicesBreakdown = [];
         $productsBreakdown = [];
+        $totalDiscount = 0;
+        $discountBreakdown = [];
 
         if ($shift) {
             $cashSales = $this->shiftService->calculateCashSales($shift);
@@ -40,6 +42,8 @@ class ShiftController extends Controller
             $productsTotal = $this->shiftService->getProductsTotal($shift);
             $servicesBreakdown = $this->shiftService->getServicesBreakdown($shift);
             $productsBreakdown = $this->shiftService->getProductsBreakdown($shift);
+            $totalDiscount = $this->shiftService->calculateTotalDiscount($shift);
+            $discountBreakdown = $this->shiftService->getDiscountBreakdown($shift);
         }
 
         return Inertia::render('Shifts/Index', [
@@ -52,6 +56,8 @@ class ShiftController extends Controller
             'products_total' => $productsTotal,
             'services_breakdown' => $servicesBreakdown,
             'products_breakdown' => $productsBreakdown,
+            'total_discount' => $totalDiscount,
+            'discount_breakdown' => $discountBreakdown,
         ]);
     }
 
@@ -138,6 +144,8 @@ class ShiftController extends Controller
             'products_total' => $this->shiftService->getProductsTotal($shift),
             'services_breakdown' => $this->shiftService->getServicesBreakdown($shift),
             'products_breakdown' => $this->shiftService->getProductsBreakdown($shift),
+            'total_discount' => $this->shiftService->calculateTotalDiscount($shift),
+            'discount_breakdown' => $this->shiftService->getDiscountBreakdown($shift),
         ];
 
         return redirect()->route('shifts.index')->with('success', 'Shift berhasil ditutup.')->with('just_closed_data', $closeReportData);

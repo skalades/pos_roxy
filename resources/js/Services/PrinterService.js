@@ -314,8 +314,31 @@ class PrinterService {
 
                 this.encoder.line('-'.repeat(32))
                     .line(`TOTAL PENDAPATAN (GABUNGAN):`)
-                    .line(`${totalAllMethods.toLocaleString('id-ID').padStart(32)}`)
-                    .line('-'.repeat(32))
+                    .line(`${totalAllMethods.toLocaleString('id-ID').padStart(32)}`);
+
+                if (data.totalDiscount > 0) {
+                    this.encoder.line('-'.repeat(32))
+                        .line(`TOTAL DISKON DIBERIKAN:`)
+                        .line(`${data.totalDiscount.toLocaleString('id-ID').padStart(32)}`);
+
+                    if (data.discountBreakdown && data.discountBreakdown.length > 0) {
+                        this.encoder.line('Rincian Diskon (Per Transaksi):').align('left');
+                        data.discountBreakdown.forEach(d => {
+                            const trxInfo = d.trx_number.substring(0, 20);
+                            const priceStr = Number(d.discount_amount).toLocaleString('id-ID');
+                            const spaceCount = Math.max(1, 32 - trxInfo.length - priceStr.length);
+                            this.encoder.line(trxInfo + ' '.repeat(spaceCount) + priceStr);
+                            
+                            if (d.items) {
+                                // Potong string agar muat di kertas 32 char, prefix dengan panah
+                                const itemsStr = ` > ${d.items}`.substring(0, 32);
+                                this.encoder.line(itemsStr);
+                            }
+                        });
+                    }
+                }
+
+                this.encoder.line('-'.repeat(32))
                     .line('Rincian Layanan:')
                     .align('left');
 
