@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage, useForm } from '@inertiajs/react';
 import PageHeader from '@/Components/PageHeader';
-import { Store, CheckCircle, Clock, Calendar, ArrowLeft } from 'lucide-react';
+import { Store, CheckCircle, Clock, Calendar, ArrowLeft, Edit2, X } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
 
 export default function ShiftDetail({ 
@@ -10,6 +10,25 @@ export default function ShiftDetail({
     payment_summary, barber_commissions, services_total, products_total, 
     services_breakdown, products_breakdown, total_discount, discount_breakdown 
 }) {
+    const { auth } = usePage().props;
+    const isSuperAdmin = auth.user.role === 'super_admin';
+    const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+    
+    const { data, setData, put, processing, errors, reset } = useForm({
+        closing_balance: shift.closing_balance || '',
+        notes: ''
+    });
+
+    const submitCorrection = (e) => {
+        e.preventDefault();
+        put(route('reports.shifts.correct', shift.id), {
+            onSuccess: () => {
+                setShowCorrectionModal(false);
+                reset('notes');
+            }
+        });
+    };
+
     return (
         <AuthenticatedLayout
             header={
@@ -42,11 +61,20 @@ export default function ShiftDetail({
                                     </p>
                                 </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right flex flex-col items-end gap-2">
                                 <p className="text-[10px] uppercase font-bold tracking-widest opacity-80">Status</p>
-                                <span className="bg-white/20 px-4 py-2 rounded-xl text-sm font-black mt-2 inline-block uppercase tracking-wider">
+                                <span className="bg-white/20 px-4 py-2 rounded-xl text-sm font-black inline-block uppercase tracking-wider">
                                     {shift.status}
                                 </span>
+                                {isSuperAdmin && shift.status === 'closed' && (
+                                    <button 
+                                        onClick={() => setShowCorrectionModal(true)}
+                                        className="mt-2 bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-2"
+                                    >
+                                        <Edit2 size={14} />
+                                        Koreksi Laporan
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -101,7 +129,7 @@ export default function ShiftDetail({
                                 <div className="flex justify-between items-center">
                                     <span className="text-slate-500 font-bold text-sm">Fisik di Laci (Kasir)</span>
                                     <span className="text-slate-800 font-black text-lg">
-                                        {shift.closing_balance ? formatIDR(shift.closing_balance) : 'Belum Ditutup'}
+                                        {shift.closing_balance !== null ? formatIDR(shift.closing_balance) : 'Belum Ditutup'}
                                     </span>
                                 </div>
                                 {shift.status === 'closed' && (
@@ -219,10 +247,76 @@ export default function ShiftDetail({
                                 </p>
                             </div>
                         )}
-
                     </div>
                 </div>
             </div>
+
+            {/* Modal Koreksi Shift */}
+            {showCorrectionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="font-black text-slate-800 text-lg">Koreksi Laporan Shift</h3>
+                            <button onClick={() => setShowCorrectionModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={submitCorrection} className="p-6 space-y-5">
+                            <div className="bg-blue-50 p-4 rounded-2xl text-sm text-blue-800 border border-blue-100">
+                                <p className="font-bold mb-1">Total Sistem: {formatIDR(expected_balance)}</p>
+                                <p className="opacity-80">Gunakan form ini untuk mengoreksi jumlah fisik aktual yang benar jika terjadi kesalahan input oleh kasir.</p>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Fisik Aktual Laci (Benar)</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <span className="text-slate-500 font-bold">Rp</span>
+                                    </div>
+                                    <input 
+                                        type="number"
+                                        required
+                                        min="0"
+                                        value={data.closing_balance}
+                                        onChange={e => setData('closing_balance', e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl pl-12 pr-4 py-3 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
+                                    />
+                                </div>
+                                {errors.closing_balance && <p className="mt-1 text-xs text-rose-500">{errors.closing_balance}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Catatan Koreksi Tambahan</label>
+                                <textarea 
+                                    rows="3"
+                                    placeholder="Opsional: Tuliskan alasan koreksi (misal: Kasir salah hitung 50rb...)"
+                                    value={data.notes}
+                                    onChange={e => setData('notes', e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
+                                ></textarea>
+                                {errors.notes && <p className="mt-1 text-xs text-rose-500">{errors.notes}</p>}
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowCorrectionModal(false)}
+                                    className="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={processing}
+                                    className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors flex justify-center items-center gap-2"
+                                >
+                                    {processing ? 'Menyimpan...' : 'Simpan Koreksi'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }

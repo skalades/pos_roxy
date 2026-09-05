@@ -114,6 +114,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reports/finance/export', [\App\Http\Controllers\FinanceController::class, 'exportPdf'])->name('reports.finance.export');
         Route::get('/reports/shifts', [\App\Http\Controllers\ShiftReportController::class, 'index'])->name('reports.shifts');
         Route::get('/reports/shifts/{id}', [\App\Http\Controllers\ShiftReportController::class, 'show'])->name('reports.shifts.show');
+        Route::put('/reports/shifts/{id}/correct', [\App\Http\Controllers\ShiftCorrectionController::class, 'update'])->name('reports.shifts.correct');
     });
 
     // ── Setting Routes (admin middleware + feature check) ──
