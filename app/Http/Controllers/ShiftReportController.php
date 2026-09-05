@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Gate;
 
 class ShiftReportController extends Controller
 {
-    public function index(Request )
+    public function index(Request $request)
     {
         // Pastikan hanya super_admin atau admin yang bisa mengakses
         if (!in_array($request->user()->role, ['super_admin', 'admin'])) {
