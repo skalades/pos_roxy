@@ -130,7 +130,9 @@ export default function Shifts({ shifts, branches, filters }) {
                                             ) : '-'}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className={px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider }>
+                                            <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                                                shift.status === 'open' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                                            }`}>
                                                 {shift.status}
                                             </span>
                                         </td>
@@ -147,7 +149,13 @@ export default function Shifts({ shifts, branches, filters }) {
                                 <a 
                                     key={i}
                                     href={link.url || '#'}
-                                    className={px-4 py-2 rounded-xl text-sm font-bold transition-all }
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                                        link.active 
+                                            ? 'bg-roxy-primary text-white shadow-md' 
+                                            : link.url 
+                                                ? 'bg-slate-50 text-slate-600 hover:bg-slate-100' 
+                                                : 'text-slate-300 cursor-not-allowed'
+                                    }`}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                     onClick={e => {
                                         if (!link.url) e.preventDefault();
