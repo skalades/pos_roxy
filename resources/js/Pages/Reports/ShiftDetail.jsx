@@ -2,19 +2,54 @@ import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/react';
 import PageHeader from '@/Components/PageHeader';
-import { Store, CheckCircle, Clock, Calendar, ArrowLeft, Edit2, X, Trash2, AlertTriangle } from 'lucide-react';
+import { Store, CheckCircle, Clock, Calendar, ArrowLeft, Edit2, X, Trash2, AlertTriangle, Printer } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
+import PrinterService from '@/Services/PrinterService';
 
 export default function ShiftDetail({ 
     shift, cash_sales, cash_expenses, expected_balance, 
     payment_summary, barber_commissions, services_total, products_total, 
     services_breakdown, products_breakdown, total_discount, discount_breakdown 
 }) {
-    const { auth } = usePage().props;
+    const { auth, app_settings } = usePage().props;
     const isSuperAdmin = auth.user.role === 'super_admin';
     const [showCorrectionModal, setShowCorrectionModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmationWord, setDeleteConfirmationWord] = useState('');
+    const [printing, setPrinting] = useState(false);
+
+    const handleReprintClose = async () => {
+        setPrinting(true);
+        try {
+            const printData = {
+                storeName: app_settings.app_name,
+                branchName: shift.branch?.name || '',
+                cashierName: shift.user?.name || '',
+                time: `${new Date(shift.closed_at || shift.opened_at).toLocaleDateString('id-ID')} ${new Date(shift.closed_at || shift.opened_at).toLocaleTimeString('id-ID').replace(/\./g, ':')}`,
+                openingBalance: parseFloat(shift.opening_balance),
+                notes: shift.notes,
+                cashSales: parseFloat(cash_sales || 0),
+                cashExpenses: parseFloat(cash_expenses || 0),
+                expectedBalance: parseFloat(expected_balance || 0),
+                closingBalance: parseFloat(shift.closing_balance || 0),
+                difference: parseFloat(shift.difference || 0),
+                paymentSummary: payment_summary || {},
+                barberCommissions: barber_commissions || [],
+                servicesTotal: parseFloat(services_total || 0),
+                productsTotal: parseFloat(products_total || 0),
+                servicesBreakdown: services_breakdown || [],
+                productsBreakdown: products_breakdown || [],
+                totalDiscount: parseFloat(total_discount || 0),
+                discountBreakdown: discount_breakdown || [],
+            };
+
+            await PrinterService.printShiftReport(printData, 'close', app_settings.receipt_logo);
+        } catch (error) {
+            alert('Gagal mencetak: ' + error.message);
+        } finally {
+            setPrinting(false);
+        }
+    };
     
     const { data, setData, put, processing: correctionProcessing, errors: correctionErrors, reset: correctionReset } = useForm({
         closing_balance: shift.closing_balance || '',
@@ -74,14 +109,26 @@ export default function ShiftDetail({
                                 <span className="bg-white/20 px-4 py-2 rounded-xl text-sm font-black inline-block uppercase tracking-wider">
                                     {shift.status}
                                 </span>
-                                {isSuperAdmin && shift.status === 'closed' && (
-                                    <button 
-                                        onClick={() => setShowCorrectionModal(true)}
-                                        className="mt-2 bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-2"
-                                    >
-                                        <Edit2 size={14} />
-                                        Koreksi Laporan
-                                    </button>
+                                {shift.status === 'closed' && (
+                                    <div className="flex flex-col gap-2 mt-2">
+                                        <button
+                                            onClick={handleReprintClose}
+                                            disabled={printing}
+                                            className="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        >
+                                            <Printer size={14} />
+                                            {printing ? 'Mencetak...' : 'Cetak Ulang Laporan'}
+                                        </button>
+                                        {isSuperAdmin && (
+                                            <button 
+                                                onClick={() => setShowCorrectionModal(true)}
+                                                className="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-2"
+                                            >
+                                                <Edit2 size={14} />
+                                                Koreksi Laporan
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>
