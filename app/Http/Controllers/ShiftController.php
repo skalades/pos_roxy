@@ -46,6 +46,42 @@ class ShiftController extends Controller
             $discountBreakdown = $this->shiftService->getDiscountBreakdown($shift);
         }
 
+        // Ambil shift terakhir yang sudah ditutup (untuk cetak ulang oleh kasir)
+        $lastClosedShift = null;
+        $lastClosedData = null;
+        if (!$shift) {
+            $lastClosedShift = Shift::with(['user', 'branch'])
+                ->where('user_id', $request->user()->id)
+                ->where('branch_id', $request->user()->branch_id)
+                ->where('status', 'closed')
+                ->orderBy('closed_at', 'desc')
+                ->first();
+
+            if ($lastClosedShift) {
+                $lastClosedData = [
+                    'opening_balance' => $lastClosedShift->opening_balance,
+                    'cash_sales' => $this->shiftService->calculateCashSales($lastClosedShift),
+                    'cash_expenses' => $this->shiftService->calculateCashExpenses($lastClosedShift),
+                    'expected_balance' => $this->shiftService->calculateExpectedBalance($lastClosedShift),
+                    'closing_balance' => $lastClosedShift->closing_balance,
+                    'difference' => $lastClosedShift->difference,
+                    'notes' => $lastClosedShift->notes,
+                    'opened_at' => $lastClosedShift->opened_at,
+                    'closed_at' => $lastClosedShift->closed_at,
+                    'payment_summary' => $this->shiftService->getPaymentMethodsSummary($lastClosedShift),
+                    'barber_commissions' => $this->shiftService->getBarberCommissions($lastClosedShift),
+                    'services_total' => $this->shiftService->getServicesTotal($lastClosedShift),
+                    'products_total' => $this->shiftService->getProductsTotal($lastClosedShift),
+                    'services_breakdown' => $this->shiftService->getServicesBreakdown($lastClosedShift),
+                    'products_breakdown' => $this->shiftService->getProductsBreakdown($lastClosedShift),
+                    'total_discount' => $this->shiftService->calculateTotalDiscount($lastClosedShift),
+                    'discount_breakdown' => $this->shiftService->getDiscountBreakdown($lastClosedShift),
+                    'cashier_name' => $lastClosedShift->user->name ?? '',
+                    'branch_name' => $lastClosedShift->branch->name ?? '',
+                ];
+            }
+        }
+
         return Inertia::render('Shifts/Index', [
             'current_shift' => $shift,
             'cash_sales' => $cashSales,
@@ -58,6 +94,8 @@ class ShiftController extends Controller
             'products_breakdown' => $productsBreakdown,
             'total_discount' => $totalDiscount,
             'discount_breakdown' => $discountBreakdown,
+            'last_closed_shift' => $lastClosedShift,
+            'last_closed_data' => $lastClosedData,
         ]);
     }
 

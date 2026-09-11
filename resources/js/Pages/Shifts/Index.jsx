@@ -9,7 +9,7 @@ import CurrencyInput from '@/Components/CurrencyInput';
 import { formatIDR } from '@/utils/currency';
 import PageHeader from '@/Components/PageHeader';
 
-export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown, total_discount, discount_breakdown }) {
+export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, payment_summary, barber_commissions, services_total, products_total, services_breakdown, products_breakdown, total_discount, discount_breakdown, last_closed_shift, last_closed_data }) {
     const { auth, app_settings, flash, errors } = usePage().props;
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [printing, setPrinting] = useState(false);
@@ -58,6 +58,39 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
             };
 
             await PrinterService.printShiftReport(printData, type, app_settings.receipt_logo);
+        } catch (error) {
+            alert('Gagal mencetak: ' + error.message);
+        } finally {
+            setPrinting(false);
+        }
+    };
+
+    const handleReprintLastShift = async () => {
+        if (!last_closed_data) return;
+        setPrinting(true);
+        try {
+            const printData = {
+                storeName: app_settings.app_name,
+                branchName: last_closed_data.branch_name || auth.user.branch?.name || '',
+                cashierName: last_closed_data.cashier_name || auth.user.name,
+                time: `${new Date(last_closed_data.closed_at).toLocaleDateString('id-ID')} ${new Date(last_closed_data.closed_at).toLocaleTimeString('id-ID').replace(/\./g, ':')}`,
+                openingBalance: parseFloat(last_closed_data.opening_balance),
+                notes: last_closed_data.notes,
+                cashSales: parseFloat(last_closed_data.cash_sales || 0),
+                cashExpenses: parseFloat(last_closed_data.cash_expenses || 0),
+                expectedBalance: parseFloat(last_closed_data.expected_balance || 0),
+                closingBalance: parseFloat(last_closed_data.closing_balance || 0),
+                difference: parseFloat(last_closed_data.difference || 0),
+                paymentSummary: last_closed_data.payment_summary || {},
+                barberCommissions: last_closed_data.barber_commissions || [],
+                servicesTotal: parseFloat(last_closed_data.services_total || 0),
+                productsTotal: parseFloat(last_closed_data.products_total || 0),
+                servicesBreakdown: last_closed_data.services_breakdown || [],
+                productsBreakdown: last_closed_data.products_breakdown || [],
+                totalDiscount: parseFloat(last_closed_data.total_discount || 0),
+                discountBreakdown: last_closed_data.discount_breakdown || [],
+            };
+            await PrinterService.printShiftReport(printData, 'close', app_settings.receipt_logo);
         } catch (error) {
             alert('Gagal mencetak: ' + error.message);
         } finally {
@@ -129,7 +162,8 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
 
             <div className="max-w-4xl mx-auto space-y-8 landscape:space-y-4">
                 {!current_shift ? (
-                    /* Open Shift Card */
+                    <>
+                    {/* Open Shift Card */}
                     <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
                         <div className="p-8 bg-slate-900 text-white relative overflow-hidden">
                             <div className="absolute top-[-50%] right-[-10%] w-64 h-64 bg-teal-500/20 blur-[60px] rounded-full"></div>
@@ -197,6 +231,58 @@ export default function ShiftIndex({ current_shift, cash_sales, cash_expenses, p
                             </button>
                         </form>
                     </div>
+                    
+                    {/* Panel Cetak Ulang Shift Terakhir — untuk kasir */}
+                    {last_closed_shift && last_closed_data && (
+                        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+                            <div className="p-6 sm:p-8 bg-slate-50 border-b border-slate-100">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                                            <CheckCircle size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black text-slate-800 text-sm uppercase tracking-wider">Shift Terakhir</h4>
+                                            <p className="text-xs text-slate-500 font-medium mt-1">
+                                                Ditutup: {new Date(last_closed_shift.closed_at).toLocaleString('id-ID')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleReprintLastShift}
+                                        disabled={printing}
+                                        className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-2xl text-xs font-black transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 uppercase tracking-wider"
+                                    >
+                                        <Printer size={16} />
+                                        {printing ? 'Mencetak...' : 'Cetak Ulang Laporan'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-6 sm:p-8">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-2xl">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Modal Awal</p>
+                                        <p className="text-sm font-black text-slate-800 mt-1">{formatIDR(last_closed_data.opening_balance)}</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-2xl">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Sistem</p>
+                                        <p className="text-sm font-black text-slate-800 mt-1">{formatIDR(last_closed_data.expected_balance)}</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-2xl">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Fisik Laci</p>
+                                        <p className="text-sm font-black text-slate-800 mt-1">{formatIDR(last_closed_data.closing_balance)}</p>
+                                    </div>
+                                    <div className={`p-4 rounded-2xl ${parseFloat(last_closed_data.difference) < 0 ? 'bg-rose-50' : parseFloat(last_closed_data.difference) > 0 ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Selisih</p>
+                                        <p className={`text-sm font-black mt-1 ${parseFloat(last_closed_data.difference) < 0 ? 'text-rose-600' : parseFloat(last_closed_data.difference) > 0 ? 'text-emerald-600' : 'text-slate-800'}`}>
+                                            {parseFloat(last_closed_data.difference) > 0 ? '+' : ''}{formatIDR(last_closed_data.difference)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    </>
                 ) : (
                     /* Active Shift / Close Shift UI */
                     <div className="space-y-6">
