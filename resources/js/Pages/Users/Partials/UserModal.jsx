@@ -271,10 +271,15 @@ export default function UserModal({ show, onClose, user = null, branches = [], r
                             <TextInput
                                 id="work_start_time"
                                 type="time"
-                                className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-roxy-primary/10 focus:!border-roxy-primary !py-4 !px-5 !font-bold !text-slate-700"
+                                className={`mt-1 block w-full !rounded-2xl focus:!ring-roxy-primary/10 focus:!border-roxy-primary !py-4 !px-5 !font-bold !text-slate-700 ${!data.work_start_time ? '!border-amber-300 bg-amber-50' : '!border-slate-100'}`}
                                 value={data.work_start_time}
                                 onChange={(e) => setData('work_start_time', e.target.value)}
                             />
+                            {!data.work_start_time && (
+                                <p className="text-[9px] text-amber-600 font-bold flex items-center gap-1">
+                                    ⚠️ Wajib diisi agar perhitungan denda keterlambatan akurat. Default sistem: 09:30.
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <InputLabel htmlFor="work_end_time" value="Selesai Kerja" className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400" />

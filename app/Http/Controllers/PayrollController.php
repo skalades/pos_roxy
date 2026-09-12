@@ -79,20 +79,36 @@ class PayrollController extends Controller
             ->with('transaction')
             ->get();
 
+        // Riwayat keterlambatan — filter sesuai apply_from agar konsisten dengan kalkulasi
+        $applyFrom = $user->branch?->late_penalty_apply_from;
         $lates = Attendance::where('user_id', $user->id)
             ->whereDate('date', '>=', $startDate)
             ->whereDate('date', '<=', $endDate)
             ->where('clock_in_on_time', false)
+            ->whereNotNull('clock_in_at')
+            ->when($applyFrom, fn($q) => $q->whereDate('date', '>=', $applyFrom))
+            ->orderBy('date')
+            ->get();
+
+        // Riwayat tidak masuk (alpha)
+        $absents = Attendance::where('user_id', $user->id)
+            ->whereDate('date', '>=', $startDate)
+            ->whereDate('date', '<=', $endDate)
+            ->where('status', 'absent')
+            ->whereNull('clock_in_at')
+            ->when($applyFrom, fn($q) => $q->whereDate('date', '>=', $applyFrom))
+            ->orderBy('date')
             ->get();
 
         return Inertia::render('Payroll/Show', [
-            'payroll' => $data,
+            'payroll'     => $data,
             'commissions' => $commissions,
-            'lates' => $lates,
-            'filters' => [
-                'period' => $period,
+            'lates'       => $lates,
+            'absents'     => $absents,
+            'filters'     => [
+                'period'     => $period,
                 'start_date' => $startDate,
-                'end_date' => $endDate,
+                'end_date'   => $endDate,
             ],
         ]);
     }

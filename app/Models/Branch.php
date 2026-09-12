@@ -39,8 +39,11 @@ class Branch extends Model
         'late_penalty_amount',
         'late_penalty_interval',
         'late_penalty_per_interval',
+        'late_penalty_per_minute',
         'late_grace_period_minutes',
         'late_penalty_apply_from',
+        'enable_absent_penalty',
+        'absent_penalty_amount',
     ];
 
     protected function casts(): array
@@ -60,7 +63,10 @@ class Branch extends Model
             'late_penalty_amount' => 'decimal:2',
             'late_penalty_interval' => 'integer',
             'late_penalty_per_interval' => 'decimal:2',
+            'late_penalty_per_minute' => 'decimal:2',
             'late_grace_period_minutes' => 'integer',
+            'enable_absent_penalty' => 'boolean',
+            'absent_penalty_amount' => 'decimal:2',
         ];
     }
 

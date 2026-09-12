@@ -27,8 +27,11 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
         enable_attendance_deduction: false,
         late_penalty_amount: 0,
         late_penalty_per_interval: 0,
+        late_penalty_per_minute: 0,
         late_grace_period_minutes: 0,
         late_penalty_apply_from: '',
+        enable_absent_penalty: false,
+        absent_penalty_amount: 0,
     });
 
     useEffect(() => {
@@ -52,8 +55,11 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
                 late_penalty_amount: branch.late_penalty_amount || 0,
                 late_penalty_interval: branch.late_penalty_interval || 5,
                 late_penalty_per_interval: branch.late_penalty_per_interval || 0,
+                late_penalty_per_minute: branch.late_penalty_per_minute || 0,
                 late_grace_period_minutes: branch.late_grace_period_minutes || 0,
                 late_penalty_apply_from: branch.late_penalty_apply_from || '',
+                enable_absent_penalty: branch.enable_absent_penalty ?? false,
+                absent_penalty_amount: branch.absent_penalty_amount || 0,
             });
         } else {
             reset();
@@ -348,51 +354,108 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
 
                         {data.enable_attendance_deduction && (
                             <div className="md:col-span-2 space-y-4">
-                                {/* Row 1: Interval + Denda */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <InputLabel
-                                            htmlFor="late_penalty_interval"
-                                            value="Interval Waktu (menit)"
-                                            className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
-                                        />
-                                        <div className="relative">
-                                            <TextInput
-                                                id="late_penalty_interval"
-                                                type="number"
-                                                min="1"
-                                                max="120"
-                                                className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-rose-500/10 focus:!border-rose-400 !py-4 !px-5 !font-bold !text-slate-700"
-                                                value={data.late_penalty_interval}
-                                                onChange={(e) => setData('late_penalty_interval', e.target.value)}
-                                            />
-                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase tracking-widest">menit</span>
-                                        </div>
-                                        <p className="text-[9px] text-slate-400 font-medium">Setiap berapa menit dihitung 1 interval</p>
-                                        <InputError message={errors.late_penalty_interval} className="mt-1" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <InputLabel
-                                            htmlFor="late_penalty_per_interval"
-                                            value="Denda per Interval (Rp)"
-                                            className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
-                                        />
-                                        <TextInput
-                                            id="late_penalty_per_interval"
-                                            type="number"
-                                            min="0"
-                                            className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-rose-500/10 focus:!border-rose-400 !py-4 !px-5 !font-bold !text-slate-700"
-                                            value={data.late_penalty_per_interval}
-                                            onChange={(e) => setData('late_penalty_per_interval', e.target.value)}
-                                            placeholder="Contoh: 2000"
-                                        />
-                                        <p className="text-[9px] text-slate-400 font-medium">Nominal potongan tiap 1 interval</p>
-                                        <InputError message={errors.late_penalty_per_interval} className="mt-1" />
+                                {/* Mode Selector */}
+                                <div className="space-y-2">
+                                    <InputLabel
+                                        value="Mode Perhitungan Denda Telat"
+                                        className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
+                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setData('late_penalty_per_minute', 0);
+                                            }}
+                                            className={`p-3 rounded-2xl border-2 text-left transition-all ${Number(data.late_penalty_per_minute) <= 0 ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'}`}
+                                        >
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Per Interval</p>
+                                            <p className="text-[9px] font-medium mt-1">Denda per X menit blok</p>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setData('late_penalty_interval', 1);
+                                                if (Number(data.late_penalty_per_minute) <= 0) {
+                                                    setData('late_penalty_per_minute', 1000);
+                                                }
+                                            }}
+                                            className={`p-3 rounded-2xl border-2 text-left transition-all ${Number(data.late_penalty_per_minute) > 0 ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'}`}
+                                        >
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Per Menit</p>
+                                            <p className="text-[9px] font-medium mt-1">Denda dihitung per menit tepat</p>
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* Row 2: Grace Period */}
+                                {/* Per-Interval Fields */}
+                                {Number(data.late_penalty_per_minute) <= 0 && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <InputLabel
+                                                htmlFor="late_penalty_interval"
+                                                value="Interval Waktu (menit)"
+                                                className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
+                                            />
+                                            <div className="relative">
+                                                <TextInput
+                                                    id="late_penalty_interval"
+                                                    type="number"
+                                                    min="1"
+                                                    max="120"
+                                                    className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-rose-500/10 focus:!border-rose-400 !py-4 !px-5 !font-bold !text-slate-700"
+                                                    value={data.late_penalty_interval}
+                                                    onChange={(e) => setData('late_penalty_interval', e.target.value)}
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase tracking-widest">menit</span>
+                                            </div>
+                                            <p className="text-[9px] text-slate-400 font-medium">Setiap berapa menit dihitung 1 interval</p>
+                                            <InputError message={errors.late_penalty_interval} className="mt-1" />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <InputLabel
+                                                htmlFor="late_penalty_per_interval"
+                                                value="Denda per Interval (Rp)"
+                                                className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
+                                            />
+                                            <TextInput
+                                                id="late_penalty_per_interval"
+                                                type="number"
+                                                min="0"
+                                                className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-rose-500/10 focus:!border-rose-400 !py-4 !px-5 !font-bold !text-slate-700"
+                                                value={data.late_penalty_per_interval}
+                                                onChange={(e) => setData('late_penalty_per_interval', e.target.value)}
+                                                placeholder="Contoh: 2000"
+                                            />
+                                            <p className="text-[9px] text-slate-400 font-medium">Nominal potongan tiap 1 interval</p>
+                                            <InputError message={errors.late_penalty_per_interval} className="mt-1" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Per-Menit Field */}
+                                {Number(data.late_penalty_per_minute) > 0 && (
+                                    <div className="space-y-2">
+                                        <InputLabel
+                                            htmlFor="late_penalty_per_minute"
+                                            value="Denda per Menit (Rp)"
+                                            className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
+                                        />
+                                        <TextInput
+                                            id="late_penalty_per_minute"
+                                            type="number"
+                                            min="0"
+                                            className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-rose-500/10 focus:!border-rose-400 !py-4 !px-5 !font-bold !text-slate-700"
+                                            value={data.late_penalty_per_minute}
+                                            onChange={(e) => setData('late_penalty_per_minute', e.target.value)}
+                                            placeholder="Contoh: 500"
+                                        />
+                                        <p className="text-[9px] text-slate-400 font-medium">Potongan per menit keterlambatan (dihitung tepat per menit)</p>
+                                        <InputError message={errors.late_penalty_per_minute} className="mt-1" />
+                                    </div>
+                                )}
+
+                                {/* Grace Period */}
                                 <div className="space-y-2">
                                     <InputLabel
                                         htmlFor="late_grace_period_minutes"
@@ -415,6 +478,7 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
                                     <InputError message={errors.late_grace_period_minutes} className="mt-1" />
                                 </div>
 
+                                {/* Apply From */}
                                 <div className="space-y-3 pt-2">
                                     <label className="flex items-start gap-3 cursor-pointer group">
                                         <div className="relative flex items-center justify-center mt-0.5">
@@ -452,16 +516,25 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
                                 </div>
 
                                 {/* Live Preview */}
-                                {(Number(data.late_penalty_interval) > 0 && Number(data.late_penalty_per_interval) > 0) && (
+                                {((Number(data.late_penalty_per_minute) > 0) || (Number(data.late_penalty_interval) > 0 && Number(data.late_penalty_per_interval) > 0)) && (
                                     <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 space-y-2">
-                                        <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-3">📊 Preview Simulasi</p>
+                                        <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-3">📊 Preview Simulasi Denda Telat</p>
                                         {[5, 10, 15, 30, 60].map((exampleMinutes) => {
-                                            const grace     = Number(data.late_grace_period_minutes) || 0;
-                                            const interval  = Math.max(1, Number(data.late_penalty_interval));
-                                            const perInt    = Number(data.late_penalty_per_interval);
-                                            const effective = Math.max(0, exampleMinutes - grace);
-                                            const intervals = Math.floor(effective / interval);
-                                            const total     = intervals * perInt;
+                                            const grace      = Number(data.late_grace_period_minutes) || 0;
+                                            const perMin     = Number(data.late_penalty_per_minute);
+                                            const interval   = Math.max(1, Number(data.late_penalty_interval));
+                                            const perInt     = Number(data.late_penalty_per_interval);
+                                            const effective  = Math.max(0, exampleMinutes - grace);
+                                            let total = 0;
+                                            let label = '';
+                                            if (perMin > 0) {
+                                                total = effective * perMin;
+                                                label = effective > 0 ? `${effective} mnt × Rp ${perMin.toLocaleString('id-ID')}` : '';
+                                            } else {
+                                                const intervals = Math.floor(effective / interval);
+                                                total = intervals * perInt;
+                                                label = intervals > 0 ? `${intervals}×` : '';
+                                            }
                                             return (
                                                 <div key={exampleMinutes} className="flex items-center justify-between text-[10px]">
                                                     <span className="text-slate-500 font-medium">
@@ -473,7 +546,7 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
                                                     <span className="font-black text-rose-600">
                                                         {total === 0
                                                             ? <span className="text-emerald-600">Rp 0</span>
-                                                            : `Rp ${total.toLocaleString('id-ID')} (${intervals}×)`
+                                                            : `Rp ${total.toLocaleString('id-ID')}${label ? ` (${label})` : ''}`
                                                         }
                                                     </span>
                                                 </div>
@@ -483,6 +556,53 @@ export default function BranchModal({ show, onClose, branch = null, managers = [
                                 )}
                             </div>
                         )}
+
+                        {/* Denda Tidak Masuk (Alpha) */}
+                        <div className="md:col-span-2">
+                            <label className="flex items-center gap-4 cursor-pointer group bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:bg-rose-50 hover:border-rose-100 transition-all">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={data.enable_absent_penalty}
+                                        onChange={(e) => setData('enable_absent_penalty', e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500 shadow-inner"></div>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest group-hover:text-rose-500 transition-colors">Denda Tidak Masuk (Alpha)</span>
+                                    <p className="text-[9px] text-slate-500 font-medium leading-tight">Potong gaji jika karyawan absen tanpa keterangan</p>
+                                </div>
+                            </label>
+
+                            {data.enable_absent_penalty && (
+                                <div className="mt-3 space-y-2 pl-0">
+                                    <InputLabel
+                                        htmlFor="absent_penalty_amount"
+                                        value="Denda per Hari Tidak Masuk (Rp)"
+                                        className="!text-[10px] !font-black !uppercase !tracking-widest !text-slate-400"
+                                    />
+                                    <TextInput
+                                        id="absent_penalty_amount"
+                                        type="number"
+                                        min="0"
+                                        className="mt-1 block w-full !rounded-2xl !border-slate-100 focus:!ring-rose-500/10 focus:!border-rose-400 !py-4 !px-5 !font-bold !text-slate-700"
+                                        value={data.absent_penalty_amount}
+                                        onChange={(e) => setData('absent_penalty_amount', e.target.value)}
+                                        placeholder="Contoh: 150000"
+                                    />
+                                    <p className="text-[9px] text-slate-400 font-medium">Potongan per hari untuk status Alpha (tidak masuk tanpa keterangan)</p>
+                                    <InputError message={errors.absent_penalty_amount} className="mt-1" />
+                                    {Number(data.absent_penalty_amount) > 0 && (
+                                        <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 mt-2">
+                                            <p className="text-[10px] text-rose-600 font-black">
+                                                Contoh: 3 hari alpha = Rp {(Number(data.absent_penalty_amount) * 3).toLocaleString('id-ID')} dipotong
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="md:col-span-2">

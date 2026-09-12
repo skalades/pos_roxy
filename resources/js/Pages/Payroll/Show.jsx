@@ -1,9 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import React from 'react';
 import { 
-    ArrowLeft, 
-    Download, 
     Printer, 
     CheckCircle2, 
     Clock, 
@@ -13,14 +11,15 @@ import {
     Calendar,
     Briefcase,
     ShieldCheck,
-    AlertCircle
+    AlertCircle,
+    XCircle
 } from 'lucide-react';
 import { formatIDR } from '@/utils/currency';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import PageHeader from '@/Components/PageHeader';
 
-export default function Show({ payroll, commissions, lates, filters }) {
+export default function Show({ payroll, commissions, lates, absents, filters }) {
     const { post, processing } = useForm({
         user_id: payroll.user.id,
         period: filters.period
@@ -37,6 +36,9 @@ export default function Show({ payroll, commissions, lates, filters }) {
     ) : (
         `${format(new Date(filters.start_date), 'dd MMM')} - ${format(new Date(filters.end_date), 'dd MMM yyyy')}`
     );
+
+    // Tentukan mode denda dari item pertama
+    const lateMode = (payroll.late_deduction_items ?? [])[0]?.mode ?? 'per_interval';
 
     return (
         <AuthenticatedLayout
@@ -106,6 +108,21 @@ export default function Show({ payroll, commissions, lates, filters }) {
                     </div>
                 </div>
 
+                {/* Warning: jam masuk belum diset */}
+                {!payroll.user.work_start_time && (
+                    <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
+                        <span className="text-xl mt-0.5">⚠️</span>
+                        <div>
+                            <p className="text-sm font-black text-amber-700">Jam Masuk Karyawan Belum Diset</p>
+                            <p className="text-[10px] text-amber-600 font-medium mt-1">
+                                <strong>{payroll.user.name}</strong> belum memiliki jam masuk kerja yang dikonfigurasi.
+                                Perhitungan denda keterlambatan menggunakan default <strong>09:30</strong>.
+                                Silakan update di halaman <strong>Manajemen Karyawan</strong> agar denda dihitung akurat.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     {/* Earnings */}
                     <div className="space-y-6">
@@ -150,6 +167,7 @@ export default function Show({ payroll, commissions, lates, filters }) {
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-4">Potongan (Deductions)</h4>
                         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
                             <div className="p-8 space-y-6">
+                                {/* Denda Telat */}
                                 <div className="flex items-center justify-between group">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center">
@@ -159,11 +177,30 @@ export default function Show({ payroll, commissions, lates, filters }) {
                                             <p className="font-bold text-slate-800">Denda Terlambat</p>
                                             <p className="text-[10px] text-slate-400 font-medium">
                                                 {payroll.late_count} kali &bull; {payroll.late_total_minutes ?? 0} mnt total
+                                                {lateMode === 'per_minute' && <span className="ml-1 text-rose-400">(per menit)</span>}
                                             </p>
                                         </div>
                                     </div>
-                                    <p className="font-black text-rose-600">-{formatIDR(payroll.total_deduction)}</p>
+                                    <p className="font-black text-rose-600">-{formatIDR(payroll.late_deduction ?? 0)}</p>
                                 </div>
+
+                                {/* Denda Alpha */}
+                                {(payroll.absent_count > 0 || payroll.absent_deduction > 0) && (
+                                    <div className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center">
+                                                <XCircle size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-800">Denda Tidak Masuk</p>
+                                                <p className="text-[10px] text-slate-400 font-medium">
+                                                    {payroll.absent_count} hari alpha
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p className="font-black text-rose-600">-{formatIDR(payroll.absent_deduction ?? 0)}</p>
+                                    </div>
+                                )}
 
                                 <div className="flex items-center justify-between group opacity-50">
                                     <div className="flex items-center gap-4">
@@ -186,7 +223,7 @@ export default function Show({ payroll, commissions, lates, filters }) {
                     </div>
                 </div>
 
-                {/* History Tabs / Lists */}
+                {/* Riwayat Keterlambatan */}
                 <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
                     <div className="border-b border-slate-50 p-8 flex items-center justify-between">
                         <h4 className="font-black text-slate-800 flex items-center gap-3">
@@ -194,7 +231,7 @@ export default function Show({ payroll, commissions, lates, filters }) {
                             Riwayat Keterlambatan
                         </h4>
                         <span className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                            {lates.length} Kejadian
+                            {(payroll.late_deduction_items ?? []).length} Kejadian
                         </span>
                     </div>
                     <div className="overflow-x-auto">
@@ -204,7 +241,9 @@ export default function Show({ payroll, commissions, lates, filters }) {
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jam Masuk</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Menit Telat</th>
-                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Interval</th>
+                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                                        {lateMode === 'per_minute' ? 'Mode' : 'Interval'}
+                                    </th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Potongan</th>
                                 </tr>
                             </thead>
@@ -225,7 +264,7 @@ export default function Show({ payroll, commissions, lates, filters }) {
                                         </td>
                                         <td className="px-8 py-5 text-center">
                                             <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black">
-                                                {item.intervals}×
+                                                {item.mode === 'per_minute' ? `${item.intervals} mnt` : `${item.intervals}×`}
                                             </span>
                                         </td>
                                         <td className="px-8 py-5 text-right font-black text-rose-600">
@@ -242,6 +281,54 @@ export default function Show({ payroll, commissions, lates, filters }) {
                         </table>
                     </div>
                 </div>
+
+                {/* Riwayat Tidak Masuk (Alpha) */}
+                {((payroll.absent_deduction_items ?? []).length > 0 || (absents ?? []).length > 0) && (
+                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
+                        <div className="border-b border-slate-50 p-8 flex items-center justify-between">
+                            <h4 className="font-black text-slate-800 flex items-center gap-3">
+                                <XCircle size={20} className="text-rose-500" />
+                                Riwayat Tidak Masuk (Alpha)
+                            </h4>
+                            <span className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                {payroll.absent_count ?? 0} Hari
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50/50">
+                                    <tr>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal</th>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Hari</th>
+                                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Potongan</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {(payroll.absent_deduction_items ?? []).map((item, i) => (
+                                        <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-8 py-5 font-bold text-slate-700">
+                                                {format(new Date(item.date), 'dd MMMM yyyy', { locale: id })}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-black">
+                                                    {format(new Date(item.date), 'EEEE', { locale: id })}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right font-black text-rose-600">
+                                                -{formatIDR(item.deduction)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(payroll.absent_deduction_items ?? []).length === 0 && (
+                                        <tr>
+                                            <td colSpan="3" className="px-8 py-10 text-center text-slate-400 font-medium">Data alpha tidak tersedia atau denda tidak diaktifkan.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );
