@@ -159,9 +159,11 @@ class FinanceController extends Controller
             'staff_details' => []
         ];
 
+        $bulkPayroll = $payrollService->calculateBulkAttendanceDeductions($usersToCalculate, $startDate, $endDate);
+
         foreach ($usersToCalculate as $staff) {
-            $payroll = $payrollService->calculateUserPayroll($staff, $startDate, $endDate);
-            if ($payroll['late_count'] > 0 || $payroll['late_total_minutes'] > 0) {
+            $payroll = $bulkPayroll[$staff->id] ?? null;
+            if ($payroll && ($payroll['late_count'] > 0 || $payroll['late_total_minutes'] > 0)) {
                 $attendanceStats['total_late_staff']++;
                 $attendanceStats['total_late_count'] += $payroll['late_count'];
                 $attendanceStats['total_late_minutes'] += $payroll['late_total_minutes'];

@@ -204,4 +204,94 @@ class PayrollService extends BaseService
             ]
         );
     }
+
+    /**
+     * Calculate deductions for multiple users efficiently (fixes N+1 in reports).
+     */
+    public function calculateBulkAttendanceDeductions(\Illuminate\Support\Collection $users, string $startDate, string $endDate): array
+    {
+        $userIds = $users->pluck('id')->toArray();
+        $results = [];
+
+        // Preload all attendances for these users in the date range
+        $attendances = Attendance::whereIn('user_id', $userIds)
+            ->whereDate('date', '>=', $startDate)
+            ->whereDate('date', '<=', $endDate)
+            ->get()
+            ->groupBy('user_id');
+
+        foreach ($users as $user) {
+            $userAttendances = $attendances->get($user->id, collect());
+            
+            $lateDeduction = 0;
+            $lateCount = 0;
+            $lateTotalMinutes = 0;
+            $absentDeduction = 0;
+            $absentCount = 0;
+
+            if ($user->branch) {
+                $branch = $user->branch;
+                $applyFrom = $branch->late_penalty_apply_from ? Carbon::parse($branch->late_penalty_apply_from)->startOfDay() : null;
+
+                $penaltyEnabled = (bool) ($branch->enable_attendance_deduction ?? false);
+                $perMinute = $penaltyEnabled ? (float) ($branch->late_penalty_per_minute ?? 0) : 0.0;
+                $interval = max(1, (int) ($branch->late_penalty_interval ?? 5));
+                $penaltyPerInterval = ($penaltyEnabled && $perMinute <= 0) ? (float) ($branch->late_penalty_per_interval ?? 0) : 0.0;
+                $gracePeriod = (int) ($branch->late_grace_period_minutes ?? 0);
+
+                // Lates
+                $lateRecords = $userAttendances->filter(function($a) {
+                    return $a->clock_in_on_time === false && $a->clock_in_at !== null;
+                });
+
+                foreach ($lateRecords as $attendance) {
+                    if ($applyFrom && Carbon::parse($attendance->date)->startOfDay()->lt($applyFrom)) continue;
+
+                    $minutes = (int) ($attendance->late_minutes ?? 0);
+                    if ($minutes === 0 && $attendance->clock_in_at && $user->work_start_time) {
+                        $scheduledStart = Carbon::parse($attendance->date)->setTimeFromTimeString($user->work_start_time);
+                        $rawLate = (int) $scheduledStart->diffInMinutes($attendance->clock_in_at, false);
+                        $minutes = max(0, $rawLate - $gracePeriod);
+                    }
+                    
+                    if ($minutes <= 0) continue;
+
+                    if ($perMinute > 0) {
+                        $deduction = $minutes * $perMinute;
+                    } else {
+                        $intervals = (int) floor($minutes / $interval);
+                        $deduction = $intervals * $penaltyPerInterval;
+                    }
+
+                    $lateCount++;
+                    $lateTotalMinutes += $minutes;
+                    $lateDeduction += $deduction;
+                }
+
+                // Absents
+                $absentPenaltyEnabled = (bool) ($branch->enable_absent_penalty ?? false);
+                $absentPenaltyAmount = $absentPenaltyEnabled ? (float) ($branch->absent_penalty_amount ?? 0) : 0.0;
+
+                if ($absentPenaltyEnabled && $absentPenaltyAmount > 0) {
+                    $absentRecords = $userAttendances->filter(function($a) {
+                        return $a->status === 'absent' && $a->clock_in_at === null;
+                    });
+
+                    foreach ($absentRecords as $absentRecord) {
+                        if ($applyFrom && Carbon::parse($absentRecord->date)->startOfDay()->lt($applyFrom)) continue;
+                        $absentCount++;
+                        $absentDeduction += $absentPenaltyAmount;
+                    }
+                }
+            }
+
+            $results[$user->id] = [
+                'late_count' => $lateCount,
+                'late_total_minutes' => $lateTotalMinutes,
+                'total_deduction' => $lateDeduction + $absentDeduction,
+            ];
+        }
+
+        return $results;
+    }
 }
