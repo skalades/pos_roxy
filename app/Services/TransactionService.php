@@ -8,30 +8,38 @@ use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TransactionService extends BaseService
 {
     /**
-     * Buat nomor transaksi unik dengan mekanisme retry untuk menghindari duplikasi.
+     * Buat nomor transaksi unik.
+     *
+     * CATATAN AUDIT:
+     * - Versi lama memakai COUNT() transaksi hari ini. Karena model memakai SoftDeletes,
+     *   transaksi yang dihapus (soft delete) tidak ikut terhitung, padahal nomornya masih
+     *   tersimpan di tabel & terkena unique index -> nomor yang dihasilkan bentrok
+     *   (error "Duplicate entry TRX-xxxx" di semua cabang).
+     * - Sekarang memakai nomor urut TERBESAR hari ini (termasuk yang soft-deleted).
+     *
+     * @param int $offset Tambahan urutan saat retry akibat tabrakan bersamaan.
      */
-    public function generateTransactionNumber(): string
+    public function generateTransactionNumber(int $offset = 0): string
     {
-        $prefix = 'TRX-' . date('Ymd');
-        $maxRetries = 5;
+        $prefix = 'TRX-' . now()->format('Ymd');
+        $prefixLength = strlen($prefix);
 
-        for ($i = 0; $i < $maxRetries; $i++) {
-            $count = Transaction::whereDate('created_at', date('Y-m-d'))->count() + 1 + $i;
-            $number = $prefix . str_pad($count, 4, '0', STR_PAD_LEFT);
+        $lastSequence = (int) Transaction::withTrashed()
+            ->where('transaction_number', 'like', $prefix . '%')
+            ->where('transaction_number', 'not like', $prefix . '-%') // abaikan format fallback lama
+            ->selectRaw('MAX(CAST(SUBSTRING(transaction_number, ?) AS UNSIGNED)) as max_seq', [$prefixLength + 1])
+            ->value('max_seq');
 
-            if (!Transaction::where('transaction_number', $number)->exists()) {
-                return $number;
-            }
-        }
+        $next = $lastSequence + 1 + $offset;
 
-        // Fallback: pakai timestamp untuk memastikan unik
-        return $prefix . '-' . time();
+        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -44,8 +52,28 @@ class TransactionService extends BaseService
      */
     public function processTransaction(array $validated, User $user, Shift $shift): Transaction
     {
-        return $this->transactional(function () use ($validated, $user, $shift) {
-            $transactionNumber = $this->generateTransactionNumber();
+        $maxAttempts = 5;
+
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            try {
+                return $this->createTransactionRecord($validated, $user, $shift, $attempt);
+            } catch (UniqueConstraintViolationException $e) {
+                // Dua cabang/kasir menyimpan di detik yang sama -> nomor bentrok, coba nomor berikutnya.
+                if (!str_contains($e->getMessage(), 'transaction_number') || $attempt === $maxAttempts - 1) {
+                    throw $e;
+                }
+                Log::warning('Nomor transaksi bentrok, mencoba ulang', ['attempt' => $attempt + 1]);
+                usleep(random_int(50, 200) * 1000);
+            }
+        }
+
+        throw new \RuntimeException('Gagal membuat nomor transaksi unik.');
+    }
+
+    private function createTransactionRecord(array $validated, User $user, Shift $shift, int $attempt): Transaction
+    {
+        return $this->transactional(function () use ($validated, $user, $shift, $attempt) {
+            $transactionNumber = $this->generateTransactionNumber($attempt);
 
             $transaction = Transaction::create([
                 'branch_id' => $user->branch_id,
