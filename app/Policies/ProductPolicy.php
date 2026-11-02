@@ -13,7 +13,7 @@ class ProductPolicy
      */
     public function manage(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'manager', 'admin']);
+        return in_array($user->role, ['super_admin', 'manager', 'admin', 'cashier']);
     }
 
     /**

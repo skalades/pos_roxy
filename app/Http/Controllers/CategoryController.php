@@ -79,7 +79,7 @@ class CategoryController extends Controller
     private function authorizeAccess()
     {
         $role = auth()->user()->role;
-        if (!in_array($role, ['super_admin', 'manager', 'admin'])) {
+        if (!in_array($role, ['super_admin', 'manager', 'admin', 'cashier'])) {
             abort(403, 'Unauthorized action.');
         }
     }

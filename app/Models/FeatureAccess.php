@@ -68,8 +68,12 @@ class FeatureAccess extends Model
                 ->where('role', $role)
                 ->first();
 
-            // If no record exists, default to enabled
-            return $record ? $record->is_enabled : true;
+            // If no record exists, fall back to default from config
+            if ($record) {
+                return (bool) $record->is_enabled;
+            }
+
+            return (bool) config("features.registry.{$featureKey}.defaults.{$role}", false);
         });
     }
 

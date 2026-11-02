@@ -19,8 +19,8 @@ class ServiceController extends Controller
         $user = $request->user();
         $query = Service::query()->with(['category', 'branch']);
 
-        // Restrictions for branch managers
-        if ($user->role === 'manager' || $user->role === 'admin') {
+        // Restrictions for branch managers and cashiers
+        if (in_array($user->role, ['manager', 'admin', 'cashier'])) {
             $query->where(function($q) use ($user) {
                 $q->where('branch_id', $user->branch_id)
                   ->orWhereNull('branch_id');
@@ -101,7 +101,7 @@ class ServiceController extends Controller
     private function authorizeAccess()
     {
         $role = auth()->user()->role;
-        if (!in_array($role, ['super_admin', 'manager', 'admin'])) {
+        if (!in_array($role, ['super_admin', 'manager', 'admin', 'cashier'])) {
             abort(403, 'Unauthorized action.');
         }
     }

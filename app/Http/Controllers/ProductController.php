@@ -20,8 +20,8 @@ class ProductController extends Controller
         $user = $request->user();
         $query = Product::query()->with(['category', 'branch']);
 
-        // Restrictions for branch managers
-        if ($user->role === 'manager' || $user->role === 'admin') {
+        // Restrictions for branch managers and cashiers
+        if (in_array($user->role, ['manager', 'admin', 'cashier'])) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -39,7 +39,7 @@ class ProductController extends Controller
         return Inertia::render('Products/Index', [
             'products' => $query->latest()->get(),
             'categories' => Category::where('type', 'product')->get(),
-            'branches' => Branch::all(),
+            'branches' => $user->role === 'super_admin' ? Branch::all() : Branch::where('id', $user->branch_id)->get(),
             'filters' => $request->only(['search', 'category_id']),
         ]);
     }

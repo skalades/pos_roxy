@@ -22,7 +22,7 @@ class FinanceController extends Controller
         $user = $request->user();
         
         // Authorization check
-        if (!$user->hasRole(['super_admin', 'admin', 'manager'])) {
+        if (!$user->hasRole(['super_admin', 'admin', 'manager', 'cashier'])) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -31,8 +31,8 @@ class FinanceController extends Controller
         $branchId = $request->input('branch_id');
         $barberId = $request->input('barber_id');
 
-        // Enforcement of branch visibility for Managers
-        if ($user->hasRole('manager')) {
+        // Enforcement of branch visibility for Managers & Cashiers
+        if ($user->hasRole(['manager', 'cashier'])) {
             $branchId = $user->branch_id;
         }
 
@@ -218,12 +218,12 @@ class FinanceController extends Controller
         set_time_limit(300);
 
         $user = $request->user();
-        if (!$user->hasRole(['super_admin', 'admin', 'manager'])) abort(403);
+        if (!$user->hasRole(['super_admin', 'admin', 'manager', 'cashier'])) abort(403, 'Unauthorized action.');
 
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
         $branchId = $request->input('branch_id');
-        if ($user->hasRole('manager')) $branchId = $user->branch_id;
+        if ($user->hasRole(['manager', 'cashier'])) $branchId = $user->branch_id;
 
         $branch = $branchId ? Branch::find($branchId) : null;
         $dateRange = [$startDate . ' 00:00:00', $endDate . ' 23:59:59'];
