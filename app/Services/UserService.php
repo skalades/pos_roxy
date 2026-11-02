@@ -266,6 +266,13 @@ class UserService extends BaseService
                 'href'        => '/feature-access',
                 'color'       => 'purple',
             ];
+            $items[] = [
+                'title'       => 'Pembersihan Data',
+                'description' => 'Hapus data & kurangi beban',
+                'icon'        => 'Trash2',
+                'href'        => '/data-cleanup',
+                'color'       => 'rose',
+            ];
         }
 
         // ── Profile (always available for everyone) ─────────────

@@ -19,7 +19,11 @@ import {
     Store,
     User,
     Trophy,
-    Crown
+    Crown,
+    Trash2,
+    Database,
+    ShieldAlert,
+    HardDrive
 } from 'lucide-react';
 
 export default function NavAppCard({ title, description, icon: iconName, href, color = 'teal' }) {
@@ -42,7 +46,11 @@ export default function NavAppCard({ title, description, icon: iconName, href, c
         Store,
         User,
         Trophy,
-        Crown
+        Crown,
+        Trash2,
+        Database,
+        ShieldAlert,
+        HardDrive
     };
 
     const Icon = icons[iconName] || HelpCircle;

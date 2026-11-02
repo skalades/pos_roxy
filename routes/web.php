@@ -26,6 +26,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/feature-access', [FeatureAccessController::class, 'index'])->name('feature-access.index');
         Route::put('/feature-access', [FeatureAccessController::class, 'update'])->name('feature-access.update');
         Route::post('/feature-access/reset', [FeatureAccessController::class, 'resetDefaults'])->name('feature-access.reset');
+
+        // ── Data & Storage Cleanup Tool (Super Admin) ──
+        Route::get('/data-cleanup', [\App\Http\Controllers\DataCleanupController::class, 'index'])->name('data-cleanup.index');
+        Route::post('/data-cleanup/preview', [\App\Http\Controllers\DataCleanupController::class, 'preview'])->name('data-cleanup.preview');
+        Route::post('/data-cleanup/execute', [\App\Http\Controllers\DataCleanupController::class, 'execute'])->name('data-cleanup.execute');
     });
 
     // ── Shift Routes ──
