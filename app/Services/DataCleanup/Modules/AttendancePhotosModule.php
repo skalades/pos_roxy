@@ -39,10 +39,9 @@ class AttendancePhotosModule implements CleanupModuleInterface
         return 'Camera';
     }
 
-    protected function getQuery(int $year, int $month, ?int $branchId = null)
+    protected function getQuery(Carbon $startDate, Carbon $endDate, ?int $branchId = null)
     {
-        $query = Attendance::whereYear('date', $year)
-            ->whereMonth('date', $month)
+        $query = Attendance::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->where(function ($q) {
                 $q->whereNotNull('clock_in_photo')
                   ->orWhereNotNull('clock_out_photo');
@@ -55,9 +54,9 @@ class AttendancePhotosModule implements CleanupModuleInterface
         return $query;
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $attendances = $this->getQuery($year, $month, $branchId)->get(['id', 'clock_in_photo', 'clock_out_photo']);
+        $attendances = $this->getQuery($startDate, $endDate, $branchId)->get(['id', 'clock_in_photo', 'clock_out_photo']);
 
         $fileCount = 0;
         $totalBytes = 0;
@@ -71,14 +70,12 @@ class AttendancePhotosModule implements CleanupModuleInterface
                         if ($disk->exists($photo)) {
                             $totalBytes += $disk->size($photo);
                         } else {
-                            // Estimated average size per selfie photo if already missing or in different relative path
                             $totalBytes += 150 * 1024;
                         }
                     } catch (\Throwable $e) {
                         $totalBytes += 150 * 1024;
                     }
                 } elseif ($photo && str_starts_with($photo, 'data:')) {
-                    // Base64 stored in database
                     $fileCount++;
                     $totalBytes += strlen($photo);
                 }
@@ -93,14 +90,14 @@ class AttendancePhotosModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
         $disk = Storage::disk('public');
         $filesDeleted = 0;
         $recordsUpdated = 0;
         $bytesFreed = 0;
 
-        $this->getQuery($year, $month, $branchId)
+        $this->getQuery($startDate, $endDate, $branchId)
             ->chunkById(100, function ($attendances) use ($disk, &$filesDeleted, &$recordsUpdated, &$bytesFreed) {
                 foreach ($attendances as $att) {
                     $hasPhoto = false;
@@ -116,9 +113,7 @@ class AttendancePhotosModule implements CleanupModuleInterface
                                         $bytesFreed += $size;
                                     }
                                 }
-                            } catch (\Throwable $e) {
-                                // Continue deleting remaining files
-                            }
+                            } catch (\Throwable $e) {}
                         } elseif ($photo && str_starts_with($photo, 'data:')) {
                             $hasPhoto = true;
                             $bytesFreed += strlen($photo);

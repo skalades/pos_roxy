@@ -12,6 +12,7 @@ use App\Services\DataCleanup\Modules\ShiftsModule;
 use App\Services\DataCleanup\Modules\AppointmentsModule;
 use App\Services\DataCleanup\Modules\PayrollRecordsModule;
 use App\Services\DataCleanup\Modules\SystemLogsModule;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +30,6 @@ class DataCleanupService extends BaseService
 
     /**
      * Register default cleanup modules.
-     * Easy to extend or configure.
      */
     protected function registerDefaultModules(): void
     {
@@ -96,9 +96,9 @@ class DataCleanupService extends BaseService
     }
 
     /**
-     * Preview cleanup impact for selected modules, month, year, and optional branch.
+     * Preview cleanup impact for selected modules and date range.
      */
-    public function preview(int $year, int $month, ?int $branchId = null, array $selectedModuleIds = []): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $selectedModuleIds = []): array
     {
         $targetModules = empty($selectedModuleIds)
             ? array_keys($this->modules)
@@ -112,7 +112,7 @@ class DataCleanupService extends BaseService
         foreach ($targetModules as $moduleId) {
             $module = $this->modules[$moduleId];
             try {
-                $previewData = $module->preview($year, $month, $branchId);
+                $previewData = $module->preview($startDate, $endDate, $branchId);
                 $totalRecords += $previewData['records'];
                 $totalFiles += $previewData['files'];
                 $totalBytes += $previewData['bytes'];
@@ -144,8 +144,11 @@ class DataCleanupService extends BaseService
         }
 
         return [
-            'year' => $year,
-            'month' => $month,
+            'start_year' => $startDate->year,
+            'start_month' => $startDate->month,
+            'end_year' => $endDate->year,
+            'end_month' => $endDate->month,
+            'formatted_period' => $this->formatPeriod($startDate, $endDate),
             'branch_id' => $branchId,
             'total_records' => $totalRecords,
             'total_files' => $totalFiles,
@@ -156,9 +159,9 @@ class DataCleanupService extends BaseService
     }
 
     /**
-     * Execute cleanup for selected modules.
+     * Execute cleanup for selected modules and date range.
      */
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $selectedModuleIds = [], array $options = [], ?int $userId = null): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $selectedModuleIds = [], array $options = [], ?int $userId = null): array
     {
         $targetModules = empty($selectedModuleIds)
             ? array_keys($this->modules)
@@ -172,7 +175,7 @@ class DataCleanupService extends BaseService
         foreach ($targetModules as $moduleId) {
             $module = $this->modules[$moduleId];
             try {
-                $result = $module->cleanup($year, $month, $branchId, $options);
+                $result = $module->cleanup($startDate, $endDate, $branchId, $options);
                 $totalRecordsDeleted += $result['records_deleted'];
                 $totalFilesDeleted += $result['files_deleted'];
                 $totalBytesFreed += $result['bytes_freed'];
@@ -201,11 +204,14 @@ class DataCleanupService extends BaseService
         }
 
         // Record audit trail in database
-        $this->recordLog($userId, $year, $month, $branchId, $targetModules, $totalRecordsDeleted, $totalFilesDeleted, $totalBytesFreed, $results, $options);
+        $this->recordLog($userId, $startDate, $endDate, $branchId, $targetModules, $totalRecordsDeleted, $totalFilesDeleted, $totalBytesFreed, $results, $options);
 
         return [
-            'year' => $year,
-            'month' => $month,
+            'start_year' => $startDate->year,
+            'start_month' => $startDate->month,
+            'end_year' => $endDate->year,
+            'end_month' => $endDate->month,
+            'formatted_period' => $this->formatPeriod($startDate, $endDate),
             'branch_id' => $branchId,
             'total_records_deleted' => $totalRecordsDeleted,
             'total_files_deleted' => $totalFilesDeleted,
@@ -218,21 +224,27 @@ class DataCleanupService extends BaseService
     /**
      * Record cleanup audit log.
      */
-    protected function recordLog(?int $userId, int $year, int $month, ?int $branchId, array $modules, int $recordsDeleted, int $filesDeleted, int $bytesFreed, array $summary, array $options): void
+    protected function recordLog(?int $userId, Carbon $startDate, Carbon $endDate, ?int $branchId, array $modules, int $recordsDeleted, int $filesDeleted, int $bytesFreed, array $summary, array $options): void
     {
         try {
             if ($userId) {
                 DataCleanupLog::create([
                     'user_id' => $userId,
-                    'year' => $year,
-                    'month' => $month,
+                    'year' => $startDate->year,
+                    'month' => $startDate->month,
+                    'start_year' => $startDate->year,
+                    'start_month' => $startDate->month,
+                    'end_year' => $endDate->year,
+                    'end_month' => $endDate->month,
                     'branch_id' => $branchId,
                     'modules' => $modules,
                     'records_deleted' => $recordsDeleted,
                     'files_deleted' => $filesDeleted,
                     'bytes_freed' => $bytesFreed,
                     'summary' => $summary,
-                    'options' => $options,
+                    'options' => array_merge($options, [
+                        'formatted_period' => $this->formatPeriod($startDate, $endDate),
+                    ]),
                 ]);
             }
         } catch (\Throwable $e) {
@@ -251,15 +263,12 @@ class DataCleanupService extends BaseService
         $usedSpace = max(0, $totalSpace - $freeSpace);
         $usedPercentage = $totalSpace > 0 ? round(($usedSpace / $totalSpace) * 100, 1) : 0;
 
-        // Measure app storage directory size
         $storageDir = storage_path('app');
         $storageBytes = $this->getDirectorySize($storageDir);
 
-        // Measure attendance photo storage size specifically
         $attendancePhotosDir = storage_path('app/public/attendance');
         $attendanceBytes = $this->getDirectorySize($attendancePhotosDir);
 
-        // Measure logs directory size
         $logsDir = storage_path('logs');
         $logsBytes = $this->getDirectorySize($logsDir);
 
@@ -291,11 +300,20 @@ class DataCleanupService extends BaseService
                 ->take($limit)
                 ->get()
                 ->map(function ($log) {
+                    $periodStr = $log->options['formatted_period'] ?? null;
+                    if (!$periodStr) {
+                        if ($log->end_year && $log->end_month && ($log->start_year != $log->end_year || $log->start_month != $log->end_month)) {
+                            $periodStr = $this->getMonthName($log->start_month) . ' ' . $log->start_year . ' - ' . $this->getMonthName($log->end_month) . ' ' . $log->end_year;
+                        } else {
+                            $periodStr = $this->getMonthName($log->month ?? $log->start_month) . ' ' . ($log->year ?? $log->start_year);
+                        }
+                    }
+
                     return [
                         'id' => $log->id,
                         'user_name' => $log->user?->name ?? 'Super Admin',
                         'branch_name' => $log->branch?->name ?? 'Semua Cabang',
-                        'period' => $this->getMonthName($log->month) . ' ' . $log->year,
+                        'period' => $periodStr,
                         'records_deleted' => $log->records_deleted,
                         'files_deleted' => $log->files_deleted,
                         'formatted_freed' => $this->formatBytes($log->bytes_freed),
@@ -310,9 +328,6 @@ class DataCleanupService extends BaseService
         }
     }
 
-    /**
-     * Helper to compute directory size in bytes.
-     */
     protected function getDirectorySize(string $path): int
     {
         if (!File::isDirectory($path)) {
@@ -329,9 +344,6 @@ class DataCleanupService extends BaseService
         return $size;
     }
 
-    /**
-     * Helper to format bytes into readable KB, MB, GB.
-     */
     public function formatBytes(int|float $bytes, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -345,9 +357,6 @@ class DataCleanupService extends BaseService
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
-    /**
-     * Helper for Indonesian month name.
-     */
     public function getMonthName(int $month): string
     {
         $months = [
@@ -357,5 +366,14 @@ class DataCleanupService extends BaseService
         ];
 
         return $months[$month] ?? "Bulan {$month}";
+    }
+
+    public function formatPeriod(Carbon $startDate, Carbon $endDate): string
+    {
+        if ($startDate->year === $endDate->year && $startDate->month === $endDate->month) {
+            return $this->getMonthName($startDate->month) . ' ' . $startDate->year;
+        }
+
+        return $this->getMonthName($startDate->month) . ' ' . $startDate->year . ' s/d ' . $this->getMonthName($endDate->month) . ' ' . $endDate->year;
     }
 }

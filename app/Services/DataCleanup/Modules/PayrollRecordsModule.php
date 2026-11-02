@@ -3,6 +3,7 @@
 namespace App\Services\DataCleanup\Modules;
 
 use App\Services\DataCleanup\CleanupModuleInterface;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PayrollRecordsModule implements CleanupModuleInterface
@@ -19,7 +20,7 @@ class PayrollRecordsModule implements CleanupModuleInterface
 
     public function getDescription(): string
     {
-        return 'Menghapus riwayat slip gaji bulanan (payroll_records) beserta rincian komponen tunjangan, bonus, dan potongan pegawai (payroll_components) pada periode bulan & tahun terpilih.';
+        return 'Menghapus riwayat slip gaji bulanan (payroll_records) beserta rincian komponen tunjangan, bonus, dan potongan pegawai (payroll_components) pada periode terpilih.';
     }
 
     public function getCategory(): string
@@ -37,11 +38,14 @@ class PayrollRecordsModule implements CleanupModuleInterface
         return 'Wallet';
     }
 
-    protected function getQuery(int $year, int $month, ?int $branchId = null)
+    protected function getQuery(Carbon $startDate, Carbon $endDate, ?int $branchId = null)
     {
+        $startPeriod = ($startDate->year * 12) + $startDate->month;
+        $endPeriod = ($endDate->year * 12) + $endDate->month;
+
         $query = DB::table('payroll_records')
-            ->where('period_year', $year)
-            ->where('period_month', $month);
+            ->whereRaw('((period_year * 12) + period_month) >= ?', [$startPeriod])
+            ->whereRaw('((period_year * 12) + period_month) <= ?', [$endPeriod]);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -50,9 +54,9 @@ class PayrollRecordsModule implements CleanupModuleInterface
         return $query;
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $query = $this->getQuery($year, $month, $branchId);
+        $query = $this->getQuery($startDate, $endDate, $branchId);
         $recordsCount = $query->count();
 
         $recordIds = (clone $query)->pluck('id');
@@ -69,16 +73,15 @@ class PayrollRecordsModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
-        $query = $this->getQuery($year, $month, $branchId);
+        $query = $this->getQuery($startDate, $endDate, $branchId);
         $recordIds = $query->pluck('id')->toArray();
 
         $compDeleted = 0;
         $recDeleted = 0;
 
         if (!empty($recordIds)) {
-            // Delete in chunks of 200
             foreach (array_chunk($recordIds, 200) as $chunk) {
                 $compDeleted += DB::table('payroll_components')->whereIn('payroll_record_id', $chunk)->delete();
                 $recDeleted += DB::table('payroll_records')->whereIn('id', $chunk)->delete();

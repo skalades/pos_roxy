@@ -15,8 +15,12 @@ return new class extends Migration
             Schema::create('data_cleanup_logs', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-                $table->integer('year');
-                $table->integer('month');
+                $table->integer('year')->nullable();
+                $table->integer('month')->nullable();
+                $table->integer('start_year')->nullable();
+                $table->integer('start_month')->nullable();
+                $table->integer('end_year')->nullable();
+                $table->integer('end_month')->nullable();
                 $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
                 $table->json('modules');
                 $table->unsignedBigInteger('records_deleted')->default(0);
@@ -26,7 +30,7 @@ return new class extends Migration
                 $table->json('options')->nullable();
                 $table->timestamps();
 
-                $table->index(['year', 'month']);
+                $table->index(['start_year', 'start_month']);
             });
         }
     }

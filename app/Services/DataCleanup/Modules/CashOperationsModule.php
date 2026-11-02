@@ -4,6 +4,7 @@ namespace App\Services\DataCleanup\Modules;
 
 use App\Models\CashOperation;
 use App\Services\DataCleanup\CleanupModuleInterface;
+use Carbon\Carbon;
 
 class CashOperationsModule implements CleanupModuleInterface
 {
@@ -19,7 +20,7 @@ class CashOperationsModule implements CleanupModuleInterface
 
     public function getDescription(): string
     {
-        return 'Menghapus catatan pengeluaran harian cabang (cash_out), penambahan kas (cash_in), dan rekonsiliasi kas pada bulan & tahun terpilih.';
+        return 'Menghapus catatan pengeluaran harian cabang (cash_out), penambahan kas (cash_in), dan rekonsiliasi kas pada periode terpilih.';
     }
 
     public function getCategory(): string
@@ -37,10 +38,9 @@ class CashOperationsModule implements CleanupModuleInterface
         return 'Banknote';
     }
 
-    protected function getQuery(int $year, int $month, ?int $branchId = null)
+    protected function getQuery(Carbon $startDate, Carbon $endDate, ?int $branchId = null)
     {
-        $query = CashOperation::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month);
+        $query = CashOperation::whereBetween('created_at', [$startDate, $endDate]);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -49,9 +49,9 @@ class CashOperationsModule implements CleanupModuleInterface
         return $query;
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $count = $this->getQuery($year, $month, $branchId)->count();
+        $count = $this->getQuery($startDate, $endDate, $branchId)->count();
         $estimatedBytes = $count * 512;
 
         return [
@@ -62,11 +62,11 @@ class CashOperationsModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
         $deleted = 0;
 
-        $this->getQuery($year, $month, $branchId)
+        $this->getQuery($startDate, $endDate, $branchId)
             ->chunkById(100, function ($operations) use (&$deleted) {
                 $ids = $operations->pluck('id')->toArray();
                 $deleted += CashOperation::whereIn('id', $ids)->delete();

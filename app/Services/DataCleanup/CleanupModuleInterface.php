@@ -2,6 +2,8 @@
 
 namespace App\Services\DataCleanup;
 
+use Carbon\Carbon;
+
 interface CleanupModuleInterface
 {
     /**
@@ -35,23 +37,23 @@ interface CleanupModuleInterface
     public function getIcon(): string;
 
     /**
-     * Preview count and estimated bytes that would be deleted for the specified month and year.
+     * Preview count and estimated bytes that would be deleted for the specified date range.
      *
-     * @param int $year
-     * @param int $month
+     * @param Carbon $startDate Start of the range (inclusive, e.g. 2024-01-01 00:00:00)
+     * @param Carbon $endDate   End of the range (inclusive, e.g. 2024-06-30 23:59:59)
      * @param int|null $branchId
      * @return array{records: int, files: int, bytes: int, details: string}
      */
-    public function preview(int $year, int $month, ?int $branchId = null): array;
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array;
 
     /**
-     * Execute chunked deletion for the specified month and year.
+     * Execute chunked deletion for the specified date range.
      *
-     * @param int $year
-     * @param int $month
+     * @param Carbon $startDate Start of the range (inclusive)
+     * @param Carbon $endDate   End of the range (inclusive)
      * @param int|null $branchId
      * @param array $options
      * @return array{records_deleted: int, files_deleted: int, bytes_freed: int, message: string}
      */
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array;
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array;
 }

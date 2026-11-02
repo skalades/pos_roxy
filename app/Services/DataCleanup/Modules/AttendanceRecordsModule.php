@@ -4,6 +4,7 @@ namespace App\Services\DataCleanup\Modules;
 
 use App\Models\Attendance;
 use App\Services\DataCleanup\CleanupModuleInterface;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,7 +22,7 @@ class AttendanceRecordsModule implements CleanupModuleInterface
 
     public function getDescription(): string
     {
-        return 'Menghapus riwayat rekor kehadiran pegawai (tabel attendances), log audit geofence/ip (attendance_audit_logs), serta file foto terkait pada bulan & tahun terpilih.';
+        return 'Menghapus riwayat rekor kehadiran pegawai (tabel attendances), log audit geofence/ip (attendance_audit_logs), serta file foto terkait pada periode terpilih.';
     }
 
     public function getCategory(): string
@@ -39,10 +40,9 @@ class AttendanceRecordsModule implements CleanupModuleInterface
         return 'Calendar';
     }
 
-    protected function getQuery(int $year, int $month, ?int $branchId = null)
+    protected function getQuery(Carbon $startDate, Carbon $endDate, ?int $branchId = null)
     {
-        $query = Attendance::whereYear('date', $year)
-            ->whereMonth('date', $month);
+        $query = Attendance::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()]);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -51,9 +51,9 @@ class AttendanceRecordsModule implements CleanupModuleInterface
         return $query;
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $query = $this->getQuery($year, $month, $branchId);
+        $query = $this->getQuery($startDate, $endDate, $branchId);
         $count = $query->count();
 
         $attendanceIds = (clone $query)->pluck('id');
@@ -61,7 +61,6 @@ class AttendanceRecordsModule implements CleanupModuleInterface
             ->whereIn('attendance_id', $attendanceIds)
             ->count();
 
-        // Estimated DB bytes per attendance row (~1.5 KB average with metadata)
         $estimatedBytes = ($count * 1536) + ($auditLogsCount * 800);
 
         return [
@@ -72,14 +71,14 @@ class AttendanceRecordsModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
         $disk = Storage::disk('public');
         $deletedRecords = 0;
         $deletedFiles = 0;
         $bytesFreed = 0;
 
-        $this->getQuery($year, $month, $branchId)
+        $this->getQuery($startDate, $endDate, $branchId)
             ->chunkById(100, function ($attendances) use ($disk, &$deletedRecords, &$deletedFiles, &$bytesFreed) {
                 $ids = $attendances->pluck('id')->toArray();
 

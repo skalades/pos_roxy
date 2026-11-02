@@ -4,6 +4,7 @@ namespace App\Services\DataCleanup\Modules;
 
 use App\Models\Shift;
 use App\Services\DataCleanup\CleanupModuleInterface;
+use Carbon\Carbon;
 
 class ShiftsModule implements CleanupModuleInterface
 {
@@ -19,7 +20,7 @@ class ShiftsModule implements CleanupModuleInterface
 
     public function getDescription(): string
     {
-        return 'Menghapus riwayat shift kasir yang berstatus Closed pada bulan & tahun terpilih. Shift yang sedang aktif/terbuka tidak akan disentuh.';
+        return 'Menghapus riwayat shift kasir yang berstatus Closed pada periode terpilih. Shift yang sedang aktif/terbuka tidak akan disentuh.';
     }
 
     public function getCategory(): string
@@ -37,11 +38,10 @@ class ShiftsModule implements CleanupModuleInterface
         return 'Store';
     }
 
-    protected function getQuery(int $year, int $month, ?int $branchId = null)
+    protected function getQuery(Carbon $startDate, Carbon $endDate, ?int $branchId = null)
     {
         $query = Shift::where('status', 'closed')
-            ->whereYear('opened_at', $year)
-            ->whereMonth('opened_at', $month);
+            ->whereBetween('opened_at', [$startDate, $endDate]);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -50,9 +50,9 @@ class ShiftsModule implements CleanupModuleInterface
         return $query;
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $count = $this->getQuery($year, $month, $branchId)->count();
+        $count = $this->getQuery($startDate, $endDate, $branchId)->count();
         $estimatedBytes = $count * 512;
 
         return [
@@ -63,11 +63,11 @@ class ShiftsModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
         $deleted = 0;
 
-        $this->getQuery($year, $month, $branchId)
+        $this->getQuery($startDate, $endDate, $branchId)
             ->chunkById(100, function ($shifts) use (&$deleted) {
                 $ids = $shifts->pluck('id')->toArray();
                 $deleted += Shift::whereIn('id', $ids)->delete();

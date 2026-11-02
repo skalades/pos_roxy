@@ -38,19 +38,43 @@ class DataCleanupController extends Controller
         $diskUsage = $this->cleanupService->getSystemDiskUsage();
         $recentLogs = $this->cleanupService->getRecentCleanupLogs();
 
-        // Default to previous month
-        $defaultDate = Carbon::now()->subMonth();
-        $defaultYear = (int) $defaultDate->year;
-        $defaultMonth = (int) $defaultDate->month;
+        // Default to previous 3 months or previous month
+        $defaultEndDate = Carbon::now()->subMonth();
+        $defaultStartDate = Carbon::now()->subMonths(3);
 
         return Inertia::render('DataCleanup/Index', [
             'branches' => $branches,
             'modules' => $modules,
             'diskUsage' => $diskUsage,
             'recentLogs' => $recentLogs,
-            'defaultYear' => $defaultYear,
-            'defaultMonth' => $defaultMonth,
+            'defaultStartYear' => (int) $defaultStartDate->year,
+            'defaultStartMonth' => (int) $defaultStartDate->month,
+            'defaultEndYear' => (int) $defaultEndDate->year,
+            'defaultEndMonth' => (int) $defaultEndDate->month,
         ]);
+    }
+
+    /**
+     * Parse and validate range into Carbon instances.
+     */
+    protected function parseDateRange(array $data): array
+    {
+        $startYear = (int) ($data['start_year'] ?? $data['year'] ?? Carbon::now()->year);
+        $startMonth = (int) ($data['start_month'] ?? $data['month'] ?? 1);
+        $endYear = (int) ($data['end_year'] ?? $data['year'] ?? $startYear);
+        $endMonth = (int) ($data['end_month'] ?? $data['month'] ?? $startMonth);
+
+        $startDate = Carbon::create($startYear, $startMonth, 1)->startOfMonth();
+        $endDate = Carbon::create($endYear, $endMonth, 1)->endOfMonth();
+
+        if ($startDate->gt($endDate)) {
+            // Swap if user inverted start and end
+            $temp = $startDate;
+            $startDate = $endDate->copy()->startOfMonth();
+            $endDate = $temp->copy()->endOfMonth();
+        }
+
+        return [$startDate, $endDate];
     }
 
     /**
@@ -61,17 +85,23 @@ class DataCleanupController extends Controller
         $this->authorizeSuperAdmin($request);
 
         $validated = $request->validate([
-            'year' => 'required|integer|min:2020|max:' . (Carbon::now()->year + 1),
-            'month' => 'required|integer|min:1|max:12',
+            'start_year' => 'nullable|integer|min:2020|max:' . (Carbon::now()->year + 1),
+            'start_month' => 'nullable|integer|min:1|max:12',
+            'end_year' => 'nullable|integer|min:2020|max:' . (Carbon::now()->year + 1),
+            'end_month' => 'nullable|integer|min:1|max:12',
+            'year' => 'nullable|integer|min:2020|max:' . (Carbon::now()->year + 1),
+            'month' => 'nullable|integer|min:1|max:12',
             'branch_id' => 'nullable|integer',
             'modules' => 'nullable|array',
             'modules.*' => 'string',
         ]);
 
+        [$startDate, $endDate] = $this->parseDateRange($validated);
+
         $preview = $this->cleanupService->preview(
-            (int) $validated['year'],
-            (int) $validated['month'],
-            $validated['branch_id'] ? (int) $validated['branch_id'] : null,
+            $startDate,
+            $endDate,
+            !empty($validated['branch_id']) ? (int) $validated['branch_id'] : null,
             $validated['modules'] ?? []
         );
 
@@ -86,8 +116,12 @@ class DataCleanupController extends Controller
         $this->authorizeSuperAdmin($request);
 
         $validated = $request->validate([
-            'year' => 'required|integer|min:2020|max:' . (Carbon::now()->year + 1),
-            'month' => 'required|integer|min:1|max:12',
+            'start_year' => 'nullable|integer|min:2020|max:' . (Carbon::now()->year + 1),
+            'start_month' => 'nullable|integer|min:1|max:12',
+            'end_year' => 'nullable|integer|min:2020|max:' . (Carbon::now()->year + 1),
+            'end_month' => 'nullable|integer|min:1|max:12',
+            'year' => 'nullable|integer|min:2020|max:' . (Carbon::now()->year + 1),
+            'month' => 'nullable|integer|min:1|max:12',
             'branch_id' => 'nullable|integer',
             'modules' => 'required|array|min:1',
             'modules.*' => 'string',
@@ -98,21 +132,25 @@ class DataCleanupController extends Controller
             return back()->with('error', 'Konfirmasi kata "HAPUS" tidak cocok. Pembersihan dibatalkan demi keamanan.');
         }
 
-        // Warn if trying to delete current month
-        $isCurrentMonth = ($validated['year'] == Carbon::now()->year && $validated['month'] == Carbon::now()->month);
+        [$startDate, $endDate] = $this->parseDateRange($validated);
+
+        // Warn if range includes current month
+        $currentStart = Carbon::now()->startOfMonth();
+        $includesCurrentMonth = $endDate->gte($currentStart);
+
         $options = [
-            'is_current_month' => $isCurrentMonth,
+            'includes_current_month' => $includesCurrentMonth,
         ];
 
         $result = $this->cleanupService->cleanup(
-            (int) $validated['year'],
-            (int) $validated['month'],
-            $validated['branch_id'] ? (int) $validated['branch_id'] : null,
+            $startDate,
+            $endDate,
+            !empty($validated['branch_id']) ? (int) $validated['branch_id'] : null,
             $validated['modules'],
             $options,
             $request->user()->id
         );
 
-        return back()->with('success', "Pembersihan berhasil! {$result['total_records_deleted']} rekor dihapus, {$result['total_files_deleted']} file dihapus, membebaskan {$result['formatted_freed_size']} ruang server.");
+        return back()->with('success', "Pembersihan berhasil! Periode: {$result['formatted_period']}. {$result['total_records_deleted']} rekor dihapus, {$result['total_files_deleted']} file dihapus, membebaskan {$result['formatted_freed_size']} kapasitas server.");
     }
 }

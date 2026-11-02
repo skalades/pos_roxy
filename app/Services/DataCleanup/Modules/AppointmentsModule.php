@@ -4,6 +4,7 @@ namespace App\Services\DataCleanup\Modules;
 
 use App\Models\Appointment;
 use App\Services\DataCleanup\CleanupModuleInterface;
+use Carbon\Carbon;
 
 class AppointmentsModule implements CleanupModuleInterface
 {
@@ -19,7 +20,7 @@ class AppointmentsModule implements CleanupModuleInterface
 
     public function getDescription(): string
     {
-        return 'Menghapus data riwayat janji temu / booking layanan pelanggan pada bulan & tahun terpilih.';
+        return 'Menghapus data riwayat janji temu / booking layanan pelanggan pada periode terpilih.';
     }
 
     public function getCategory(): string
@@ -37,10 +38,9 @@ class AppointmentsModule implements CleanupModuleInterface
         return 'Clock';
     }
 
-    protected function getQuery(int $year, int $month, ?int $branchId = null)
+    protected function getQuery(Carbon $startDate, Carbon $endDate, ?int $branchId = null)
     {
-        $query = Appointment::whereYear('appointment_date', $year)
-            ->whereMonth('appointment_date', $month);
+        $query = Appointment::whereBetween('appointment_date', [$startDate->toDateString(), $endDate->toDateString()]);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -49,9 +49,9 @@ class AppointmentsModule implements CleanupModuleInterface
         return $query;
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $count = $this->getQuery($year, $month, $branchId)->count();
+        $count = $this->getQuery($startDate, $endDate, $branchId)->count();
         $estimatedBytes = $count * 512;
 
         return [
@@ -62,11 +62,11 @@ class AppointmentsModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
         $deleted = 0;
 
-        $this->getQuery($year, $month, $branchId)
+        $this->getQuery($startDate, $endDate, $branchId)
             ->chunkById(100, function ($appointments) use (&$deleted) {
                 $ids = $appointments->pluck('id')->toArray();
                 $deleted += Appointment::whereIn('id', $ids)->delete();

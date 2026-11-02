@@ -3,6 +3,8 @@
 namespace App\Services\DataCleanup\Modules;
 
 use App\Services\DataCleanup\CleanupModuleInterface;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
@@ -20,7 +22,7 @@ class SystemLogsModule implements CleanupModuleInterface
 
     public function getDescription(): string
     {
-        return 'Menghapus file log aplikasi di folder storage/logs (laravel-YYYY-MM-*.log) dan antrean pekerjaan gagal (failed_jobs) pada bulan & tahun terpilih untuk mengurangi beban hard drive server.';
+        return 'Menghapus file log aplikasi di folder storage/logs (laravel-YYYY-MM-*.log) dan antrean pekerjaan gagal (failed_jobs) pada periode terpilih untuk mengurangi beban hard drive server.';
     }
 
     public function getCategory(): string
@@ -38,24 +40,33 @@ class SystemLogsModule implements CleanupModuleInterface
         return 'Terminal';
     }
 
-    protected function getMatchingLogFiles(int $year, int $month): array
+    protected function getMatchingLogFiles(Carbon $startDate, Carbon $endDate): array
     {
         $logDir = storage_path('logs');
         if (!File::isDirectory($logDir)) {
             return [];
         }
 
-        $formattedMonth = str_pad($month, 2, '0', STR_PAD_LEFT);
-        $pattern = "laravel-{$year}-{$formattedMonth}-*.log";
-        $files = File::glob($logDir . DIRECTORY_SEPARATOR . $pattern);
+        $matchedFiles = [];
+        // Loop through each month in the period
+        $period = CarbonPeriod::create($startDate->copy()->startOfMonth(), '1 month', $endDate->copy()->startOfMonth());
 
-        // Also check if single laravel.log has last modified date matching year and month if older
-        return $files ?: [];
+        foreach ($period as $dt) {
+            $year = $dt->year;
+            $month = str_pad($dt->month, 2, '0', STR_PAD_LEFT);
+            $pattern = "laravel-{$year}-{$month}-*.log";
+            $files = File::glob($logDir . DIRECTORY_SEPARATOR . $pattern);
+            if ($files) {
+                $matchedFiles = array_merge($matchedFiles, $files);
+            }
+        }
+
+        return array_unique($matchedFiles);
     }
 
-    public function preview(int $year, int $month, ?int $branchId = null): array
+    public function preview(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
     {
-        $files = $this->getMatchingLogFiles($year, $month);
+        $files = $this->getMatchingLogFiles($startDate, $endDate);
         $totalBytes = 0;
         foreach ($files as $file) {
             $totalBytes += File::size($file);
@@ -64,8 +75,7 @@ class SystemLogsModule implements CleanupModuleInterface
         $failedJobsCount = 0;
         try {
             $failedJobsCount = DB::table('failed_jobs')
-                ->whereYear('failed_at', $year)
-                ->whereMonth('failed_at', $month)
+                ->whereBetween('failed_at', [$startDate, $endDate])
                 ->count();
             $totalBytes += ($failedJobsCount * 1024);
         } catch (\Throwable $e) {}
@@ -80,9 +90,9 @@ class SystemLogsModule implements CleanupModuleInterface
         ];
     }
 
-    public function cleanup(int $year, int $month, ?int $branchId = null, array $options = []): array
+    public function cleanup(Carbon $startDate, Carbon $endDate, ?int $branchId = null, array $options = []): array
     {
-        $files = $this->getMatchingLogFiles($year, $month);
+        $files = $this->getMatchingLogFiles($startDate, $endDate);
         $filesDeleted = 0;
         $bytesFreed = 0;
 
@@ -99,8 +109,7 @@ class SystemLogsModule implements CleanupModuleInterface
         $recordsDeleted = 0;
         try {
             $recordsDeleted = DB::table('failed_jobs')
-                ->whereYear('failed_at', $year)
-                ->whereMonth('failed_at', $month)
+                ->whereBetween('failed_at', [$startDate, $endDate])
                 ->delete();
             $bytesFreed += ($recordsDeleted * 1024);
         } catch (\Throwable $e) {}

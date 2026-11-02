@@ -18,16 +18,12 @@ import {
     Terminal,
     AlertTriangle,
     ShieldAlert,
-    CheckCircle2,
     RefreshCw,
-    FileText,
-    Layers,
     Filter,
     ArrowRight,
-    Server,
-    Sparkles,
     Check,
-    X
+    Layers,
+    CalendarRange
 } from 'lucide-react';
 
 const iconMap = {
@@ -67,20 +63,34 @@ export default function Index({
     modules = [],
     diskUsage = {},
     recentLogs = [],
-    defaultYear,
-    defaultMonth,
+    defaultStartYear,
+    defaultStartMonth,
+    defaultEndYear,
+    defaultEndMonth,
 }) {
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const years = [];
     for (let y = currentYear; y >= currentYear - 5; y--) {
         years.push(y);
     }
 
-    const [selectedYear, setSelectedYear] = useState(defaultYear || currentYear);
-    const [selectedMonth, setSelectedMonth] = useState(defaultMonth || new Date().getMonth() + 1);
+    // Filter Mode: 'range' | 'single'
+    const [filterMode, setFilterMode] = useState('range');
+
+    // Start Period
+    const [startYear, setStartYear] = useState(defaultStartYear || currentYear);
+    const [startMonth, setStartMonth] = useState(defaultStartMonth || Math.max(1, currentMonth - 3));
+
+    // End Period
+    const [endYear, setEndYear] = useState(defaultEndYear || currentYear);
+    const [endMonth, setEndMonth] = useState(defaultEndMonth || Math.max(1, currentMonth - 1));
+
+    // Branch & Modules Selection
     const [selectedBranch, setSelectedBranch] = useState('');
     const [selectedModules, setSelectedModules] = useState(modules.map((m) => m.id));
-    
+
+    // Preview state
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewData, setPreviewData] = useState(null);
 
@@ -89,14 +99,33 @@ export default function Index({
     const [confirmText, setConfirmText] = useState('');
     const [executing, setExecuting] = useState(false);
 
-    // Fetch preview whenever year, month, or branch changes
-    const fetchPreview = async (year = selectedYear, month = selectedMonth, branch = selectedBranch) => {
+    // Compute effective query bounds
+    const getActiveBounds = () => {
+        if (filterMode === 'single') {
+            return {
+                start_year: parseInt(startYear),
+                start_month: parseInt(startMonth),
+                end_year: parseInt(startYear),
+                end_month: parseInt(startMonth),
+            };
+        }
+        return {
+            start_year: parseInt(startYear),
+            start_month: parseInt(startMonth),
+            end_year: parseInt(endYear),
+            end_month: parseInt(endMonth),
+        };
+    };
+
+    // Fetch preview data
+    const fetchPreview = async () => {
         setPreviewLoading(true);
+        const bounds = getActiveBounds();
+
         try {
             const response = await axios.post('/data-cleanup/preview', {
-                year: parseInt(year),
-                month: parseInt(month),
-                branch_id: branch ? parseInt(branch) : null,
+                ...bounds,
+                branch_id: selectedBranch ? parseInt(selectedBranch) : null,
                 modules: selectedModules,
             });
             setPreviewData(response.data);
@@ -109,35 +138,54 @@ export default function Index({
 
     useEffect(() => {
         fetchPreview();
-    }, [selectedYear, selectedMonth, selectedBranch]);
+    }, [filterMode, startYear, startMonth, endYear, endMonth, selectedBranch]);
 
-    // Module selection handlers
+    // Module toggles
     const toggleModule = (id) => {
         setSelectedModules((prev) =>
             prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
         );
     };
 
-    const selectAllModules = () => {
-        setSelectedModules(modules.map((m) => m.id));
-    };
-
+    const selectAllModules = () => setSelectedModules(modules.map((m) => m.id));
     const selectStorageOnly = () => {
         setSelectedModules(
             modules.filter((m) => m.category === 'storage' || m.category === 'system').map((m) => m.id)
         );
     };
+    const clearAllModules = () => setSelectedModules([]);
 
-    const clearAllModules = () => {
-        setSelectedModules([]);
-    };
-
-    // Quick period presets
-    const applyPreset = (monthsAgo) => {
+    // Quick presets
+    const applySinglePreset = (monthsAgo) => {
+        setFilterMode('single');
         const d = new Date();
         d.setMonth(d.getMonth() - monthsAgo);
-        setSelectedYear(d.getFullYear());
-        setSelectedMonth(d.getMonth() + 1);
+        setStartYear(d.getFullYear());
+        setStartMonth(d.getMonth() + 1);
+        setEndYear(d.getFullYear());
+        setEndMonth(d.getMonth() + 1);
+    };
+
+    const applyRangePreset = (startMonthsAgo, endMonthsAgo) => {
+        setFilterMode('range');
+        const dStart = new Date();
+        dStart.setMonth(dStart.getMonth() - startMonthsAgo);
+
+        const dEnd = new Date();
+        dEnd.setMonth(dEnd.getMonth() - endMonthsAgo);
+
+        setStartYear(dStart.getFullYear());
+        setStartMonth(dStart.getMonth() + 1);
+        setEndYear(dEnd.getFullYear());
+        setEndMonth(dEnd.getMonth() + 1);
+    };
+
+    const applyFullYearPreset = (year) => {
+        setFilterMode('range');
+        setStartYear(year);
+        setStartMonth(1);
+        setEndYear(year);
+        setEndMonth(12);
     };
 
     // Execution trigger
@@ -146,11 +194,12 @@ export default function Index({
         if (confirmText.trim().toUpperCase() !== 'HAPUS') return;
 
         setExecuting(true);
+        const bounds = getActiveBounds();
+
         router.post(
             '/data-cleanup/execute',
             {
-                year: parseInt(selectedYear),
-                month: parseInt(selectedMonth),
+                ...bounds,
                 branch_id: selectedBranch ? parseInt(selectedBranch) : null,
                 modules: selectedModules,
                 confirmation: confirmText.trim().toUpperCase(),
@@ -168,12 +217,12 @@ export default function Index({
         );
     };
 
-    // Group modules by category
+    // Group modules
     const storageModules = modules.filter((m) => m.category === 'storage');
     const databaseModules = modules.filter((m) => m.category === 'database');
     const systemModules = modules.filter((m) => m.category === 'system');
 
-    // Calculate selected summary from previewData
+    // Selected summary calculation
     const selectedSummary = React.useMemo(() => {
         if (!previewData || !previewData.breakdown) {
             return { records: 0, files: 0, bytes: 0, formatted: '0 B' };
@@ -191,7 +240,6 @@ export default function Index({
             }
         });
 
-        // Simple format helper
         const formatBytes = (b) => {
             if (b === 0) return '0 B';
             const units = ['B', 'KB', 'MB', 'GB'];
@@ -207,7 +255,13 @@ export default function Index({
         };
     }, [previewData, selectedModules]);
 
-    const monthLabel = MONTHS.find((m) => m.value === parseInt(selectedMonth))?.label || selectedMonth;
+    const startMonthName = MONTHS.find((m) => m.value === parseInt(startMonth))?.label || startMonth;
+    const endMonthName = MONTHS.find((m) => m.value === parseInt(endMonth))?.label || endMonth;
+
+    const formattedActivePeriod =
+        filterMode === 'single' || (startYear === endYear && startMonth === endMonth)
+            ? `${startMonthName} ${startYear}`
+            : `${startMonthName} ${startYear} s/d ${endMonthName} ${endYear}`;
 
     return (
         <AuthenticatedLayout
@@ -227,7 +281,6 @@ export default function Index({
             <div className="space-y-8 max-w-7xl mx-auto pb-16">
                 {/* ── System Storage Health Overview ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {/* Disk Free / Total */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -245,7 +298,6 @@ export default function Index({
                                 bebas dari {diskUsage.formatted_total || '0 GB'}
                             </span>
                         </div>
-                        {/* Progress Bar */}
                         <div className="w-full bg-slate-100 rounded-full h-2 mt-3 overflow-hidden">
                             <div
                                 className={`h-full transition-all duration-500 ${
@@ -264,7 +316,6 @@ export default function Index({
                         </p>
                     </div>
 
-                    {/* Attendance Photos Storage */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -282,7 +333,6 @@ export default function Index({
                         </p>
                     </div>
 
-                    {/* App Storage Size */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -300,7 +350,6 @@ export default function Index({
                         </p>
                     </div>
 
-                    {/* Server Logs Storage */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -321,6 +370,7 @@ export default function Index({
 
                 {/* ── Filter & Analysis Controller Card ── */}
                 <div className="bg-white p-6 sm:p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    {/* Header + Mode Switcher */}
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -329,94 +379,237 @@ export default function Index({
                             <div>
                                 <h3 className="text-lg font-black text-slate-900">Filter Target Pembersihan</h3>
                                 <p className="text-xs font-medium text-slate-400">
-                                    Pilih periode bulan dan tahun data yang ingin dibersihkan dari server
+                                    Pilih satu bulan atau tentukan rentang bulan untuk dibersihkan
                                 </p>
                             </div>
                         </div>
 
-                        {/* Quick Presets */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-slate-400 mr-1">Preset Cepat:</span>
+                        {/* Mode Switcher Buttons */}
+                        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/60 self-start lg:self-auto">
                             <button
                                 type="button"
-                                onClick={() => applyPreset(3)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all border border-slate-100"
+                                onClick={() => setFilterMode('range')}
+                                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+                                    filterMode === 'range'
+                                        ? 'bg-white text-slate-900 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-800'
+                                }`}
                             >
-                                3 Bulan Lalu
+                                <CalendarRange size={15} />
+                                <span>Rentang Bulan (Range)</span>
                             </button>
                             <button
                                 type="button"
-                                onClick={() => applyPreset(6)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all border border-slate-100"
+                                onClick={() => setFilterMode('single')}
+                                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+                                    filterMode === 'single'
+                                        ? 'bg-white text-slate-900 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-800'
+                                }`}
                             >
-                                6 Bulan Lalu
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => applyPreset(12)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all border border-slate-100"
-                            >
-                                1 Tahun Lalu
+                                <Calendar size={15} />
+                                <span>Satu Bulan Saja</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Filter Inputs Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
-                        {/* Month Selector */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-                                Bulan
-                            </label>
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
-                            >
-                                {MONTHS.map((m) => (
-                                    <option key={m.value} value={m.value}>
-                                        {m.label} ({m.value})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    {/* Quick Presets */}
+                    <div className="py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-slate-400 mr-1 uppercase tracking-wider text-[10px]">
+                            Preset Cepat:
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => applyRangePreset(3, 1)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all border border-slate-100 cursor-pointer"
+                        >
+                            3 Bulan Terakhir
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => applyRangePreset(6, 1)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all border border-slate-100 cursor-pointer"
+                        >
+                            6 Bulan Terakhir
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => applyRangePreset(12, 1)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all border border-slate-100 cursor-pointer"
+                        >
+                            1 Tahun Terakhir
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => applyFullYearPreset(currentYear - 1)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all border border-slate-100 cursor-pointer"
+                        >
+                            Penuh Tahun {currentYear - 1} (Jan - Des)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => applySinglePreset(1)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all border border-slate-100 cursor-pointer"
+                        >
+                            Bulan Lalu Saja
+                        </button>
+                    </div>
 
-                        {/* Year Selector */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-                                Tahun
-                            </label>
-                            <select
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
-                            >
-                                {years.map((y) => (
-                                    <option key={y} value={y}>
-                                        {y}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    {/* Filter Inputs: Range vs Single */}
+                    <div className="pt-6">
+                        {filterMode === 'range' ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                                    {/* Start Month */}
+                                    <div className="lg:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                                        <div className="text-[11px] font-black uppercase tracking-wider text-rose-600 mb-2 flex items-center gap-1.5">
+                                            <span>Dari Periode Awal</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <select
+                                                value={startMonth}
+                                                onChange={(e) => setStartMonth(e.target.value)}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary"
+                                            >
+                                                {MONTHS.map((m) => (
+                                                    <option key={m.value} value={m.value}>
+                                                        {m.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <select
+                                                value={startYear}
+                                                onChange={(e) => setStartYear(e.target.value)}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary"
+                                            >
+                                                {years.map((y) => (
+                                                    <option key={y} value={y}>
+                                                        {y}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
 
-                        {/* Branch Selector */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-                                Cabang Outlet
-                            </label>
-                            <select
-                                value={selectedBranch}
-                                onChange={(e) => setSelectedBranch(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
-                            >
-                                <option value="">Semua Cabang (Global)</option>
-                                {branches.map((b) => (
-                                    <option key={b.id} value={b.id}>
-                                        {b.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                                    {/* Arrow Separator */}
+                                    <div className="hidden lg:flex items-center justify-center text-slate-300">
+                                        <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
+                                            <ArrowRight size={18} />
+                                        </div>
+                                    </div>
+
+                                    {/* End Month */}
+                                    <div className="lg:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                                        <div className="text-[11px] font-black uppercase tracking-wider text-teal-600 mb-2 flex items-center gap-1.5">
+                                            <span>Sampai Periode Akhir</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <select
+                                                value={endMonth}
+                                                onChange={(e) => setEndMonth(e.target.value)}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary"
+                                            >
+                                                {MONTHS.map((m) => (
+                                                    <option key={m.value} value={m.value}>
+                                                        {m.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <select
+                                                value={endYear}
+                                                onChange={(e) => setEndYear(e.target.value)}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary"
+                                            >
+                                                {years.map((y) => (
+                                                    <option key={y} value={y}>
+                                                        {y}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Branch Selector */}
+                                <div className="pt-2">
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                                        Cabang Outlet Target
+                                    </label>
+                                    <select
+                                        value={selectedBranch}
+                                        onChange={(e) => setSelectedBranch(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
+                                    >
+                                        <option value="">Semua Cabang (Global Seluruh Outlet)</option>
+                                        {branches.map((b) => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                                        Pilih Bulan
+                                    </label>
+                                    <select
+                                        value={startMonth}
+                                        onChange={(e) => {
+                                            setStartMonth(e.target.value);
+                                            setEndMonth(e.target.value);
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
+                                    >
+                                        {MONTHS.map((m) => (
+                                            <option key={m.value} value={m.value}>
+                                                {m.label} ({m.value})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                                        Pilih Tahun
+                                    </label>
+                                    <select
+                                        value={startYear}
+                                        onChange={(e) => {
+                                            setStartYear(e.target.value);
+                                            setEndYear(e.target.value);
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
+                                    >
+                                        {years.map((y) => (
+                                            <option key={y} value={y}>
+                                                {y}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
+                                        Cabang Outlet
+                                    </label>
+                                    <select
+                                        value={selectedBranch}
+                                        onChange={(e) => setSelectedBranch(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-roxy-primary/20 focus:border-roxy-primary transition-all"
+                                    >
+                                        <option value="">Semua Cabang (Global)</option>
+                                        {branches.map((b) => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Quick Selection Shortcuts */}
@@ -426,21 +619,21 @@ export default function Index({
                             <button
                                 type="button"
                                 onClick={selectAllModules}
-                                className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition-all"
+                                className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition-all cursor-pointer"
                             >
                                 Pilih Semua
                             </button>
                             <button
                                 type="button"
                                 onClick={selectStorageOnly}
-                                className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold transition-all"
+                                className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold transition-all cursor-pointer"
                             >
                                 Foto & Storage Saja
                             </button>
                             <button
                                 type="button"
                                 onClick={clearAllModules}
-                                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 text-xs font-bold transition-all"
+                                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 text-xs font-bold transition-all cursor-pointer"
                             >
                                 Kosongkan
                             </button>
@@ -450,7 +643,7 @@ export default function Index({
                             type="button"
                             onClick={() => fetchPreview()}
                             disabled={previewLoading}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black tracking-wide hover:bg-slate-800 transition-all disabled:opacity-50"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black tracking-wide hover:bg-slate-800 transition-all disabled:opacity-50 cursor-pointer"
                         >
                             <RefreshCw size={14} className={previewLoading ? 'animate-spin' : ''} />
                             <span>{previewLoading ? 'Menganalisa Data...' : 'Segarkan Analisa'}</span>
@@ -515,7 +708,6 @@ export default function Index({
                                                 {module.description}
                                             </p>
 
-                                            {/* Preview Stats */}
                                             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                                                 <span className="font-bold text-slate-400">
                                                     {previewLoading ? (
@@ -682,12 +874,12 @@ export default function Index({
                 {/* ── Sticky Execution Action Card ── */}
                 <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-[2.5rem] shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-6 border border-slate-800">
                     <div className="space-y-2 text-center lg:text-left">
-                        <div className="flex items-center justify-center lg:justify-start gap-3">
+                        <div className="flex items-center justify-center lg:justify-start gap-3 flex-wrap">
                             <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 font-black text-xs uppercase tracking-widest border border-rose-500/30">
                                 Ringkasan Target
                             </span>
                             <span className="text-sm font-bold text-slate-400">
-                                Periode: <span className="text-white font-black">{monthLabel} {selectedYear}</span>
+                                Periode: <span className="text-white font-black">{formattedActivePeriod}</span>
                             </span>
                         </div>
                         <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -782,7 +974,7 @@ export default function Index({
 
                     <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100 text-xs text-rose-800 leading-relaxed font-medium space-y-2">
                         <p>
-                            Anda akan menghapus data dan file untuk periode <strong>{monthLabel} {selectedYear}</strong> ({selectedBranch ? branches.find(b => b.id === parseInt(selectedBranch))?.name : 'Semua Cabang'}).
+                            Anda akan menghapus data dan file untuk rentang periode: <strong className="text-rose-950 font-black">{formattedActivePeriod}</strong> ({selectedBranch ? branches.find(b => b.id === parseInt(selectedBranch))?.name : 'Semua Cabang'}).
                         </p>
                         <p className="font-bold">
                             Total estimasi: {selectedSummary.records.toLocaleString()} rekor database dan {selectedSummary.files.toLocaleString()} file fisik (~{selectedSummary.formatted}) akan dihapus secara permanen untuk membebaskan ruang server.
