@@ -153,7 +153,16 @@ class FinanceController extends Controller
         }
         // Attendance Monitoring
         $payrollService = new PayrollService();
-        $usersQuery = User::whereIn('role', ['barber', 'staff', 'manager']);
+        $usersQuery = User::whereIn('role', ['barber', 'staff', 'manager'])
+            ->where(function ($q) use ($endDate) {
+                $q->where(function ($sub) use ($endDate) {
+                    $sub->whereNotNull('hire_date')
+                        ->where('hire_date', '<=', $endDate);
+                })->orWhere(function ($sub) use ($endDate) {
+                    $sub->whereNull('hire_date')
+                        ->whereDate('created_at', '<=', $endDate);
+                });
+            });
         if ($branchId) {
             $usersQuery->where('branch_id', $branchId);
         }

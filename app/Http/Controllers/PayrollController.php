@@ -41,6 +41,15 @@ class PayrollController extends Controller
         $users = User::with(['profile', 'branch'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereIn('role', ['barber', 'cashier', 'manager'])
+            ->where(function ($q) use ($endDate) {
+                $q->where(function ($sub) use ($endDate) {
+                    $sub->whereNotNull('hire_date')
+                        ->where('hire_date', '<=', $endDate);
+                })->orWhere(function ($sub) use ($endDate) {
+                    $sub->whereNull('hire_date')
+                        ->whereDate('created_at', '<=', $endDate);
+                });
+            })
             ->get();
 
         $payrollData = $users->map(function ($user) use ($startDate, $endDate) {

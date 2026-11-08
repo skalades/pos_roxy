@@ -135,9 +135,19 @@ class FinanceReportService extends BaseService
             ->get();
 
         // 7. Staff & Payroll Summary
+        // Hanya ambil pegawai yang sudah mulai bekerja pada atau sebelum akhir periode laporan
         $branchStaff = User::where('is_active', true)
             ->where('role', '!=', 'super_admin')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->where(function ($q) use ($endDate) {
+                $q->where(function ($sub) use ($endDate) {
+                    $sub->whereNotNull('hire_date')
+                        ->where('hire_date', '<=', $endDate);
+                })->orWhere(function ($sub) use ($endDate) {
+                    $sub->whereNull('hire_date')
+                        ->whereDate('created_at', '<=', $endDate);
+                });
+            })
             ->get();
 
         $totalFixedSalaries = (float) $branchStaff->sum('monthly_salary');
