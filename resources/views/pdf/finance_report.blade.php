@@ -169,7 +169,7 @@
 
     <!-- Summary Stats -->
     <div class="section">
-        <div class="section-title">Ringkasan Performa</div>
+        <div class="section-title">Ringkasan Performa {{ $branch }}</div>
         <table class="summary-table">
             <tr>
                 <td class="summary-card" style="width: 25%;">
@@ -206,6 +206,59 @@
             </tr>
         </table>
     </div>
+
+    {{-- Performa Tiap Cabang (Hanya Muncul Jika Dipilih "Semua Cabang") --}}
+    @if(!empty($is_all_branches) && count($branch_breakdown) > 0)
+    <div class="section">
+        <div class="section-title">Ringkasan Performa Tiap Cabang</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="24%">Cabang</th>
+                    <th width="10%" class="text-right">Trx</th>
+                    <th width="16%" class="text-right">Pendapatan</th>
+                    <th width="14%" class="text-right">Pengeluaran</th>
+                    <th width="12%" class="text-right">Komisi</th>
+                    <th width="12%" class="text-right">Gaji Net</th>
+                    <th width="12%" class="text-right">Laba Bersih</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($branch_breakdown as $bb)
+                <tr class="{{ $loop->iteration % 2 === 0 ? 'row-even' : '' }}">
+                    <td>
+                        <span class="text-bold">{{ $bb['name'] }}</span>
+                        @if(!empty($bb['code']))
+                            <div style="font-size:7.5px; color:#64748b;">Kode: {{ $bb['code'] }} &bull; {{ $bb['staff_count'] }} staff</div>
+                        @endif
+                    </td>
+                    <td class="text-right">{{ $bb['trx_count'] }}x</td>
+                    <td class="text-right text-emerald text-bold">Rp {{ number_format($bb['revenue'], 0, ',', '.') }}</td>
+                    <td class="text-right text-rose">Rp {{ number_format($bb['expenses'], 0, ',', '.') }}</td>
+                    <td class="text-right text-indigo">Rp {{ number_format($bb['commissions'], 0, ',', '.') }}</td>
+                    <td class="text-right text-rose">Rp {{ number_format($bb['net_salary_cost'], 0, ',', '.') }}</td>
+                    <td class="text-right text-bold {{ $bb['profit'] < 0 ? 'text-rose' : 'text-indigo' }}">
+                        Rp {{ number_format($bb['profit'], 0, ',', '.') }}
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
+                    <td>TOTAL KONSOLIDASI</td>
+                    <td class="text-right">{{ collect($branch_breakdown)->sum('trx_count') }}x</td>
+                    <td class="text-right text-emerald">Rp {{ number_format(collect($branch_breakdown)->sum('revenue'), 0, ',', '.') }}</td>
+                    <td class="text-right text-rose">Rp {{ number_format(collect($branch_breakdown)->sum('expenses'), 0, ',', '.') }}</td>
+                    <td class="text-right text-indigo">Rp {{ number_format(collect($branch_breakdown)->sum('commissions'), 0, ',', '.') }}</td>
+                    <td class="text-right text-rose">Rp {{ number_format(collect($branch_breakdown)->sum('net_salary_cost'), 0, ',', '.') }}</td>
+                    <td class="text-right" style="color:#4f46e5; font-size:10px;">
+                        Rp {{ number_format(collect($branch_breakdown)->sum('profit'), 0, ',', '.') }}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    @endif
 
     <table style="width: 100%; border: none; margin-bottom: 0;">
         <tr>

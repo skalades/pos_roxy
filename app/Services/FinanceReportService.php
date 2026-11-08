@@ -169,6 +169,62 @@ class FinanceReportService extends BaseService
         $totalLateDeductions = (float) $staffPayroll->sum('total_deduction');
         $totalNetSalaryCost  = (float) ($totalFixedSalaries - $totalLateDeductions);
 
+        // 8. Branch Performance Breakdown (jika dipilih "Semua Cabang")
+        $branchBreakdown = [];
+        if (!$branchId) {
+            $allBranches = Branch::where(function ($q) use ($endDate) {
+                // Cabang yang sudah dibuat sebelum atau pada periode laporan
+                $q->whereDate('created_at', '<=', $endDate);
+            })->get();
+
+            foreach ($allBranches as $b) {
+                $bRevenue = (float) Transaction::whereBetween('created_at', $dateRange)
+                    ->where('status', 'completed')
+                    ->where('branch_id', $b->id)
+                    ->sum('total_amount');
+
+                $bExpenses = (float) CashOperation::where('type', 'cash_out')
+                    ->whereBetween('created_at', $dateRange)
+                    ->where('branch_id', $b->id)
+                    ->sum('amount');
+
+                $bCommissions = (float) TransactionItem::whereHas('transaction', function($q) use ($dateRange, $b) {
+                    $q->whereBetween('created_at', $dateRange)
+                      ->where('status', 'completed')
+                      ->where('branch_id', $b->id);
+                })->sum('commission_amount');
+
+                // Staff yang terdaftar di cabang ini pada periode laporan
+                $bStaff = $branchStaff->where('branch_id', $b->id);
+                $bStaffPayroll = $staffPayroll->filter(fn($sp) => $sp['user']->branch_id === $b->id);
+
+                $bFixedSalaries = (float) $bStaff->sum('monthly_salary');
+                $bLateDeductions = (float) $bStaffPayroll->sum('total_deduction');
+                $bNetSalaryCost = (float) ($bFixedSalaries - $bLateDeductions);
+                $bProfit = $bRevenue - $bExpenses - $bCommissions - $bNetSalaryCost;
+
+                $bTrxCount = Transaction::whereBetween('created_at', $dateRange)
+                    ->where('status', 'completed')
+                    ->where('branch_id', $b->id)
+                    ->count();
+
+                $branchBreakdown[] = [
+                    'id'               => $b->id,
+                    'name'             => $b->name,
+                    'code'             => $b->code,
+                    'trx_count'        => $bTrxCount,
+                    'revenue'          => $bRevenue,
+                    'expenses'         => $bExpenses,
+                    'commissions'      => $bCommissions,
+                    'fixed_salaries'   => $bFixedSalaries,
+                    'late_deductions'  => $bLateDeductions,
+                    'net_salary_cost'  => $bNetSalaryCost,
+                    'profit'           => $bProfit,
+                    'staff_count'      => $bStaff->count(),
+                ];
+            }
+        }
+
         $formattedPeriod = $periodLabel ?: (Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'));
 
         return [
@@ -177,6 +233,8 @@ class FinanceReportService extends BaseService
             'report_date'           => now()->format('d M Y H:i'),
             'period'                => $formattedPeriod,
             'branch'                => $branch ? $branch->name : 'Semua Cabang',
+            'is_all_branches'       => is_null($branchId),
+            'branch_breakdown'      => $branchBreakdown,
             'summary'               => [
                 'revenue'            => $revenue,
                 'pending_revenue'    => $pendingRevenue,
