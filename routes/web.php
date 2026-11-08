@@ -117,6 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('feature:finance_reports')->group(function () {
         Route::get('/reports/finance', [\App\Http\Controllers\FinanceController::class, 'index'])->name('reports.finance');
         Route::get('/reports/finance/export', [\App\Http\Controllers\FinanceController::class, 'exportPdf'])->name('reports.finance.export');
+        Route::get('/reports/finance/export-months', [\App\Http\Controllers\FinanceController::class, 'exportMonths'])->name('reports.finance.export_months');
         Route::get('/reports/shifts', [\App\Http\Controllers\ShiftReportController::class, 'index'])->name('reports.shifts');
         Route::get('/reports/shifts/{id}', [\App\Http\Controllers\ShiftReportController::class, 'show'])->name('reports.shifts.show');
         Route::put('/reports/shifts/{id}/correct', [\App\Http\Controllers\ShiftCorrectionController::class, 'update'])->name('reports.shifts.correct');

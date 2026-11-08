@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
 use App\Services\PayrollService;
+use App\Services\FinanceReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,6 +18,13 @@ use Illuminate\Support\Facades\DB;
 
 class FinanceController extends Controller
 {
+    protected FinanceReportService $reportService;
+
+    public function __construct(FinanceReportService $reportService)
+    {
+        $this->reportService = $reportService;
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -214,154 +222,57 @@ class FinanceController extends Controller
 
     public function exportPdf(Request $request)
     {
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
-
         $user = $request->user();
-        if (!$user->hasRole(['super_admin', 'admin', 'manager', 'cashier'])) abort(403, 'Unauthorized action.');
+        if (!$user->hasRole(['super_admin', 'admin', 'manager', 'cashier'])) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
         $branchId = $request->input('branch_id');
-        if ($user->hasRole(['manager', 'cashier'])) $branchId = $user->branch_id;
-
-        $branch = $branchId ? Branch::find($branchId) : null;
-        $dateRange = [$startDate . ' 00:00:00', $endDate . ' 23:59:59'];
-
-        // Resolve logo path for dompdf (Use App Logo for Premium Look)
-        $logoUrl = \App\Models\Setting::get('app_logo');
-        $logoPath = null;
-        if ($logoUrl) {
-            $parsedUrl = parse_url($logoUrl, PHP_URL_PATH);
-            $relativePath = str_replace('/storage/', '', $parsedUrl);
-            $logoPath = storage_path('app/public/' . $relativePath);
+        if ($user->hasRole(['manager', 'cashier'])) {
+            $branchId = $user->branch_id;
         }
 
-        // 1. Financial Summary
-        $revenue = Transaction::whereBetween('created_at', $dateRange)
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
-            
-        $pendingRevenue = Transaction::whereBetween('created_at', $dateRange)
-            ->where('status', 'pending')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
-        
-        $expenses = CashOperation::where('type', 'cash_out')
-            ->whereBetween('created_at', $dateRange)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('amount');
+        return $this->reportService->downloadDateRange($startDate, $endDate, $branchId ? (int)$branchId : null);
+    }
 
-        $commissions = TransactionItem::whereHas('transaction', function($q) use ($dateRange, $branchId) {
-            $q->whereBetween('created_at', $dateRange)
-              ->where('status', 'completed');
-            if ($branchId) $q->where('branch_id', $branchId);
-        })->sum('commission_amount');
+    public function exportMonths(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->hasRole(['super_admin', 'admin', 'manager', 'cashier'])) {
+            abort(403, 'Unauthorized action.');
+        }
 
-        // 2. Barber Commission Breakdown
-        $barberCommissions = TransactionItem::select(
-                'barber_id',
-                DB::raw('SUM(commission_amount) as total_commission'),
-                DB::raw('SUM(quantity) as total_services')
-            )
-            ->whereNotNull('barber_id')
-            ->whereHas('transaction', function($q) use ($dateRange, $branchId) {
-                $q->whereBetween('created_at', $dateRange)
-                  ->where('status', 'completed');
-                if ($branchId) $q->where('branch_id', $branchId);
-            })
-            ->with('barber')
-            ->groupBy('barber_id')
-            ->get();
+        $year = (int) $request->input('year', date('Y'));
+        $branchId = $request->input('branch_id');
+        if ($user->hasRole(['manager', 'cashier'])) {
+            $branchId = $user->branch_id;
+        }
 
-        // 3. Payment Method Distribution
-        $paymentDistribution = Transaction::select('payment_method', DB::raw('SUM(total_amount) as total'), DB::raw('COUNT(*) as count'))
-            ->whereBetween('created_at', $dateRange)
-            ->whereNotNull('payment_method')
-            ->where('payment_method', '!=', '')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->groupBy('payment_method')
-            ->get();
+        // Support single month or array / comma-separated months
+        $rawMonths = $request->input('months', []);
+        if ($request->has('month') && empty($rawMonths)) {
+            $rawMonths = [$request->input('month')];
+        } elseif (is_string($rawMonths)) {
+            $rawMonths = explode(',', $rawMonths);
+        }
 
-        // 4. Shift & Cash Summary (Buka/Tutup Kas)
-        $shifts = Shift::whereBetween('opened_at', $dateRange)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('user')
-            ->orderBy('opened_at', 'desc')
-            ->get();
+        $months = array_values(array_unique(array_filter(
+            array_map('intval', (array) $rawMonths),
+            fn($m) => $m >= 1 && $m <= 12
+        )));
 
-        // 5. Detailed Transactions (dibatasi 200 terbaru agar tidak OOM di DomPDF)
-        $transactions = Transaction::whereBetween('created_at', $dateRange)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with(['items:id,transaction_id,item_name,quantity', 'customer:id,name'])
-            ->select(['id', 'transaction_number', 'created_at', 'status', 'total_amount', 'customer_id', 'branch_id'])
-            ->orderBy('created_at', 'desc')
-            ->limit(200)
-            ->get();
+        sort($months);
 
-        $totalTransactionCount = Transaction::whereBetween('created_at', $dateRange)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->count();
+        if (empty($months)) {
+            return back()->with('error', 'Silakan pilih minimal satu bulan untuk diexport.');
+        }
 
-        // 6. Detailed Expenses
-        $expenseList = CashOperation::where('type', 'cash_out')
-            ->whereBetween('created_at', $dateRange)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        if (count($months) === 1) {
+            return $this->reportService->downloadSingleMonth($year, $months[0], $branchId ? (int)$branchId : null);
+        }
 
-        // 7. Staff & Payroll Summary (including Cashiers)
-        $branchStaff = User::where('is_active', true)
-            ->where('role', '!=', 'super_admin')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->get();
-
-        $totalFixedSalaries = $branchStaff->sum('monthly_salary');
-
-        // Calculate late deductions per staff using PayrollService
-        $payrollService = app(PayrollService::class);
-        $staffPayroll = $branchStaff->map(function ($staff) use ($payrollService, $startDate, $endDate) {
-            $calc = $payrollService->calculateUserPayroll($staff, $startDate, $endDate);
-            return [
-                'user'                 => $staff,
-                'total_commission'     => $calc['total_commission'],
-                'total_deduction'      => $calc['total_deduction'],
-                'late_count'          => $calc['late_count'],
-                'late_total_minutes'  => $calc['late_total_minutes'],
-                'late_deduction_items' => $calc['late_deduction_items'],
-                'net_salary'          => $calc['net_salary'],
-            ];
-        });
-
-        $totalLateDeductions = $staffPayroll->sum('total_deduction');
-        // Net salary cost = gaji pokok - potongan telat (komisi sudah dihitung terpisah)
-        $totalNetSalaryCost  = $branchStaff->sum('monthly_salary') - $totalLateDeductions;
-
-        $data = [
-            'app_name'              => \App\Models\Setting::get('app_name', 'Roxy POS'),
-            'app_logo'              => $logoPath,
-            'report_date'           => now()->format('d M Y H:i'),
-            'period'                => Carbon::parse($startDate)->format('d M Y') . ' - ' . Carbon::parse($endDate)->format('d M Y'),
-            'branch'                => $branch ? $branch->name : 'Semua Cabang',
-            'summary'               => [
-                'revenue'            => (float) $revenue,
-                'pending_revenue'    => (float) $pendingRevenue,
-                'expenses'           => (float) $expenses,
-                'commissions'        => (float) $commissions,
-                'fixed_salaries'     => (float) $totalFixedSalaries,
-                'late_deductions'    => (float) $totalLateDeductions,
-                'net_salary_cost'    => (float) $totalNetSalaryCost,
-                'profit'             => (float) ($revenue - $expenses - $commissions - $totalNetSalaryCost),
-            ],
-            'barber_commissions'    => $barberCommissions,
-            'payment_distribution'  => $paymentDistribution,
-            'shifts'                => $shifts,
-            'transactions'          => $transactions,
-            'expense_list'          => $expenseList,
-            'all_staff'             => $branchStaff,
-            'staff_payroll'         => $staffPayroll,
-        ];
-
-        $pdf = Pdf::loadView('pdf.finance_report', $data);
-        return $pdf->download('Laporan_Keuangan_Detail_' . now()->format('Ymd') . '.pdf');
+        return $this->reportService->exportMultipleMonthsZip($months, $year, $branchId ? (int)$branchId : null);
     }
 }

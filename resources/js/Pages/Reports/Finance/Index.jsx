@@ -21,9 +21,12 @@ import {
     Building2,
     PieChart as PieChartIcon,
     Clock,
-    ShieldCheck
+    ShieldCheck,
+    CalendarCheck,
+    Layers
 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
+import MonthExportModal from './Components/MonthExportModal';
 import { 
     AreaChart, 
     Area, 
@@ -47,6 +50,7 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
     const [branchId, setBranchId] = useState(filters.branch_id || '');
     const [barberId, setBarberId] = useState(filters.barber_id || '');
     const [activeTab, setActiveTab] = useState('finance'); // 'finance' or 'attendance'
+    const [isMonthExportModalOpen, setIsMonthExportModalOpen] = useState(false);
 
     const isAdmin = auth.user.role === 'super_admin' || auth.user.role === 'admin';
 
@@ -93,13 +97,23 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                         backHref={route('dashboard')}
                         subtitle="Analisis performa bisnis dan profitabilitas"
                     />
-                    <button 
-                        onClick={handleExport}
-                        className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
-                    >
-                        <Download size={20} />
-                        Export PDF
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button 
+                            onClick={() => setIsMonthExportModalOpen(true)}
+                            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-5 py-3 rounded-2xl font-bold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+                        >
+                            <CalendarCheck size={18} />
+                            Export Bulanan (Checklist)
+                        </button>
+                        <button 
+                            onClick={handleExport}
+                            className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                            title="Export PDF rentang tanggal yang sedang aktif di filter"
+                        >
+                            <Download size={18} />
+                            Export Filter Aktif
+                        </button>
+                    </div>
                 </div>
             }
         >
@@ -122,6 +136,35 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
             </div>
 
             <div className="space-y-8 mt-6">
+                {/* Tools Export Bulanan Banner */}
+                <div className="bg-gradient-to-r from-indigo-50/80 via-white to-indigo-50/50 border border-indigo-100 rounded-3xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-200">
+                            <Layers size={22} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h4 className="text-base font-black text-slate-900">
+                                    Tools Export Laporan Bulanan (Checklist)
+                                </h4>
+                                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+                                    Format Otomatis
+                                </span>
+                            </div>
+                            <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                                Checklist beberapa bulan sekaligus (contoh: Januari, Februari, Maret, April) untuk generate file laporan per bulan dengan penamaan file nama bulan dan tahun.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsMonthExportModalOpen(true)}
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-indigo-200 active:scale-95 shrink-0 flex items-center gap-2"
+                    >
+                        <CalendarCheck size={16} />
+                        Buka Checklist Bulan
+                    </button>
+                </div>
+
                 {/* Quick Filters */}
                 <div className="flex flex-wrap gap-2">
                     {[
@@ -688,6 +731,15 @@ export default function FinanceIndex({ filters, summary, revenue_trend, payment_
                     </div>
                 )}
             </div>
+
+            {/* Modal Tools Checklist Export Bulanan */}
+            <MonthExportModal
+                show={isMonthExportModalOpen}
+                onClose={() => setIsMonthExportModalOpen(false)}
+                branches={branches}
+                isAdmin={isAdmin}
+                defaultBranchId={branchId}
+            />
         </AuthenticatedLayout>
     );
 }
