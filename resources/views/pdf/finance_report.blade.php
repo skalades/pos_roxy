@@ -290,6 +290,13 @@
                 <!-- Staff Payroll -->
                 <div class="section">
                     <div class="section-title">Daftar Gaji &amp; Komisi Pegawai</div>
+                    @php
+                        // Jika Semua Cabang, kelompokkan berdasarkan cabang
+                        $groupedStaff = !empty($is_all_branches) 
+                            ? collect($staff_payroll)->groupBy(fn($sp) => $sp['user']->branch ? $sp['user']->branch->name : 'Pusat / Tanpa Cabang')
+                            : collect(['' => $staff_payroll]);
+                    @endphp
+
                     <table style="font-size: 9px;">
                         <thead>
                             <tr>
@@ -303,32 +310,44 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($staff_payroll as $sp)
-                            @php
-                                $staff     = $sp['user'];
-                                $barberData = $barber_commissions->where('barber_id', $staff->id)->first();
-                                $services  = $barberData ? $barberData->total_services : 0;
-                                $comm      = (float) $sp['total_commission'];
-                                $deduction = (float) $sp['total_deduction'];
-                                $salary    = (float) $staff->monthly_salary;
-                                $net       = $salary + $comm - $deduction;
-                            @endphp
-                            <tr>
-                                <td class="text-bold" style="white-space: nowrap;">{{ $staff->name }}</td>
-                                <td style="text-transform: capitalize;">{{ $staff->role }}</td>
-                                <td class="text-right">{{ $services > 0 ? $services.'x' : '—' }}</td>
-                                <td class="text-right">Rp{{ number_format($salary, 0, ',', '.') }}</td>
-                                <td class="text-right text-indigo">{{ $comm > 0 ? 'Rp'.number_format($comm, 0, ',', '.') : '—' }}</td>
-                                <td class="text-right" style="color:#c2410c;">
-                                    @if($deduction > 0)
-                                        -Rp{{ number_format($deduction, 0, ',', '.') }}
-                                        <div style="font-size:7px; color:#9a3412;">{{ $sp['late_count'] }}x &bull; {{ $sp['late_total_minutes'] }} mnt</div>
-                                    @else
-                                        <span style="color:#10b981;">—</span>
-                                    @endif
-                                </td>
-                                <td class="text-right text-bold">Rp{{ number_format($net, 0, ',', '.') }}</td>
-                            </tr>
+                            @foreach($groupedStaff as $branchGroupTitle => $spList)
+                                @if(!empty($is_all_branches))
+                                <tr>
+                                    <td colspan="7" style="background:#eef2ff; color:#4338ca; font-weight:900; font-size:9px; text-transform:uppercase; padding:6px 8px; border-top:1.5px solid #c7d2fe; border-bottom:1.5px solid #c7d2fe; letter-spacing:0.5px;">
+                                        &bull; Cabang: {{ $branchGroupTitle }} ({{ count($spList) }} Staff)
+                                    </td>
+                                </tr>
+                                @endif
+
+                                @foreach($spList as $sp)
+                                @php
+                                    $staff     = $sp['user'];
+                                    $barberData = $barber_commissions->where('barber_id', $staff->id)->first();
+                                    $services  = $barberData ? $barberData->total_services : 0;
+                                    $comm      = (float) $sp['total_commission'];
+                                    $deduction = (float) $sp['total_deduction'];
+                                    $salary    = (float) $staff->monthly_salary;
+                                    $net       = $salary + $comm - $deduction;
+                                @endphp
+                                <tr>
+                                    <td class="text-bold" style="white-space: nowrap; padding-left: {{ !empty($is_all_branches) ? '14px' : '8px' }};">
+                                        {{ $staff->name }}
+                                    </td>
+                                    <td style="text-transform: capitalize;">{{ $staff->role }}</td>
+                                    <td class="text-right">{{ $services > 0 ? $services.'x' : '—' }}</td>
+                                    <td class="text-right">Rp{{ number_format($salary, 0, ',', '.') }}</td>
+                                    <td class="text-right text-indigo">{{ $comm > 0 ? 'Rp'.number_format($comm, 0, ',', '.') : '—' }}</td>
+                                    <td class="text-right" style="color:#c2410c;">
+                                        @if($deduction > 0)
+                                            -Rp{{ number_format($deduction, 0, ',', '.') }}
+                                            <div style="font-size:7px; color:#9a3412;">{{ $sp['late_count'] }}x &bull; {{ $sp['late_total_minutes'] }} mnt</div>
+                                        @else
+                                            <span style="color:#10b981;">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-right text-bold">Rp{{ number_format($net, 0, ',', '.') }}</td>
+                                </tr>
+                                @endforeach
                             @endforeach
                         </tbody>
                     </table>
