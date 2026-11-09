@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import PageHeader from '@/Components/PageHeader';
 import Modal from '@/Components/Modal';
 import {
@@ -82,6 +82,15 @@ export default function BackupIndex({ stats = {}, backups = [] }) {
     const [backupToDelete, setBackupToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
+    const { flash } = usePage().props;
+
+    // Trigger automatic file download if requested
+    useEffect(() => {
+        if (flash?.download_filename) {
+            window.location.href = `/backup/download/${encodeURIComponent(flash.download_filename)}`;
+        }
+    }, [flash?.download_filename]);
+
     // ── Create Backup Handler ──
     const handleCreateBackup = (e) => {
         e.preventDefault();
@@ -98,43 +107,12 @@ export default function BackupIndex({ stats = {}, backups = [] }) {
             notes: backupNotes,
         };
 
-        if (downloadDirect) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/backup/create';
-
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            if (csrfToken) {
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = csrfToken;
-                form.appendChild(csrfInput);
-            }
-
-            Object.keys(payload).forEach((key) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = payload[key] === true ? '1' : payload[key] === false ? '0' : payload[key] || '';
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-
-            setTimeout(() => {
+        router.post('/backup/create', payload, {
+            onFinish: () => {
                 setCreatingBackup(false);
-            }, 3000);
-        } else {
-            router.post('/backup/create', payload, {
-                onFinish: () => {
-                    setCreatingBackup(false);
-                    setBackupNotes('');
-                },
-            });
-        }
+                setBackupNotes('');
+            },
+        });
     };
 
     // ── File Selection Handler ──

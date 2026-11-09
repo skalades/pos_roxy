@@ -71,16 +71,18 @@ class BackupController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            if (!empty($validated['download_direct']) && file_exists($backup['path'])) {
-                return response()->download($backup['path'], $backup['filename']);
-            }
-
             $periodLabel = $backup['period_filter'] ?? 'Semua Data';
 
-            return redirect()->route('system.backup.index')->with(
+            $redirect = redirect()->route('system.backup.index')->with(
                 'success',
                 "Cadangan {$backup['filename']} ({$backup['formatted_size']}) berhasil dibuat [Periode: {$periodLabel}] dan disimpan di server."
             );
+
+            if (!empty($validated['download_direct'])) {
+                $redirect->with('download_filename', $backup['filename']);
+            }
+
+            return $redirect;
         } catch (Exception $e) {
             return redirect()->route('system.backup.index')->with(
                 'error',

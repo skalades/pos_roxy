@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
                 'just_opened' => $request->session()->get('just_opened'),
                 'just_closed_data' => $request->session()->get('just_closed_data'),
+                'download_filename' => $request->session()->get('download_filename'),
             ],
         ];
     }
