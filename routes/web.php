@@ -31,6 +31,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/data-cleanup', [\App\Http\Controllers\DataCleanupController::class, 'index'])->name('data-cleanup.index');
         Route::post('/data-cleanup/preview', [\App\Http\Controllers\DataCleanupController::class, 'preview'])->name('data-cleanup.preview');
         Route::post('/data-cleanup/execute', [\App\Http\Controllers\DataCleanupController::class, 'execute'])->name('data-cleanup.execute');
+
+        // ── Database & Media Backup & Restore (Super Admin) ──
+        Route::get('/backup', [\App\Http\Controllers\BackupController::class, 'index'])->name('system.backup.index');
+        Route::post('/backup/create', [\App\Http\Controllers\BackupController::class, 'create'])->name('system.backup.create');
+        Route::get('/backup/download/{filename}', [\App\Http\Controllers\BackupController::class, 'download'])->name('system.backup.download');
+        Route::post('/backup/restore', [\App\Http\Controllers\BackupController::class, 'restore'])->name('system.backup.restore');
+        Route::delete('/backup/{filename}', [\App\Http\Controllers\BackupController::class, 'destroy'])->name('system.backup.destroy');
     });
 
     // ── Shift Routes ──

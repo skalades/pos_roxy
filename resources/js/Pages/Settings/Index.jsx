@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, router } from '@inertiajs/react';
-import { Layout, Store, Percent, Tag, MapPin, ShieldCheck, Save, Upload, X, CheckCircle2, Pencil, Printer } from 'lucide-react';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import { Layout, Store, Percent, Tag, MapPin, ShieldCheck, Save, Upload, X, CheckCircle2, Pencil, Printer, Database, ArrowRight } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 
 export default function SettingsIndex({ settings, branches, promotions }) {
@@ -52,6 +52,25 @@ export default function SettingsIndex({ settings, branches, promotions }) {
                                 </button>
                             );
                         })}
+
+                        {/* Quick Shortcut to Backup & Restore */}
+                        <div className="pt-4">
+                            <Link
+                                href={route('system.backup.index')}
+                                className="w-full flex items-center justify-between p-5 rounded-2xl bg-indigo-50/70 hover:bg-indigo-100/70 border border-indigo-100 text-indigo-950 group transition-all shadow-sm"
+                            >
+                                <div className="flex items-center gap-3.5">
+                                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20">
+                                        <Database size={18} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs font-black tracking-tight">Backup & Restore</p>
+                                        <p className="text-[10px] font-bold text-indigo-600/80">Cadangkan database & aset</p>
+                                    </div>
+                                </div>
+                                <ArrowRight size={16} className="text-indigo-400 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </div>
                     </div>
 
                     {/* Content Area */}

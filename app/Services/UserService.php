@@ -273,6 +273,13 @@ class UserService extends BaseService
                 'href'        => '/data-cleanup',
                 'color'       => 'rose',
             ];
+            $items[] = [
+                'title'       => 'Backup & Restore',
+                'description' => 'Cadangkan & pulihkan database',
+                'icon'        => 'Database',
+                'href'        => '/backup',
+                'color'       => 'indigo',
+            ];
         }
 
         // ── Profile (always available for everyone) ─────────────
