@@ -30,7 +30,6 @@ class DatabaseDumper
         @ini_set('memory_limit', '512M');
 
         $driver = DB::getDriverName();
-        $startTime = microtime(true);
 
         if ($driver === 'sqlite') {
             return $this->dumpSqlite($outputPath, $compress, $periodFilter);
@@ -44,6 +43,7 @@ class DatabaseDumper
      */
     protected function dumpMySql(string $outputPath, bool $compress, ?array $periodFilter): array
     {
+        $startTime = microtime(true);
         $connection = DB::connection();
         $pdo = $connection->getPdo();
         $databaseName = $connection->getDatabaseName();
