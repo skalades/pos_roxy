@@ -22,10 +22,17 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $dashboardConfig = $this->userService->getDashboardConfig($user);
+        $filters = [
+            'period'     => $request->input('period', 'today'),
+            'start_date' => $request->input('start_date', ''),
+            'end_date'   => $request->input('end_date', ''),
+        ];
+
+        $dashboardConfig = $this->userService->getDashboardConfig($user, $filters);
 
         return Inertia::render('Dashboard', [
-            'config' => $dashboardConfig,
+            'config'  => $dashboardConfig,
+            'filters' => $dashboardConfig['filters'] ?? $filters,
         ]);
     }
 }

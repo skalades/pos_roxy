@@ -14,9 +14,10 @@ class UserService extends BaseService
      * Get user dashboard configuration based on permissions.
      * 
      * @param User $user
+     * @param array $filters
      * @return array
      */
-    public function getDashboardConfig(User $user): array
+    public function getDashboardConfig(User $user, array $filters = []): array
     {
         $role = $user->role;
         
@@ -24,13 +25,61 @@ class UserService extends BaseService
             ->where('status', 'open')
             ->first();
 
+        // Parse filters & date range
+        $period = $filters['period'] ?? 'today';
+        $startDate = now()->startOfDay();
+        $endDate = now()->endOfDay();
+
+        switch ($period) {
+            case 'this_week':
+                $startDate = now()->startOfWeek();
+                $endDate = now()->endOfWeek();
+                break;
+            case 'this_month':
+                $startDate = now()->startOfMonth();
+                $endDate = now()->endOfMonth();
+                break;
+            case 'custom':
+                if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+                    $startDate = \Carbon\Carbon::parse($filters['start_date'])->startOfDay();
+                    $endDate = \Carbon\Carbon::parse($filters['end_date'])->endOfDay();
+                } else {
+                    $period = 'today';
+                    $startDate = now()->startOfDay();
+                    $endDate = now()->endOfDay();
+                }
+                break;
+            case 'today':
+            default:
+                $period = 'today';
+                $startDate = now()->startOfDay();
+                $endDate = now()->endOfDay();
+                break;
+        }
+
+        $activeLabel = match ($period) {
+            'this_week'  => 'Minggu Ini',
+            'this_month' => 'Bulan Ini',
+            'custom'     => 'Kustom',
+            default      => 'Hari Ini',
+        };
+
+        $resolvedFilters = [
+            'period'          => $period,
+            'start_date'      => $startDate->toDateString(),
+            'end_date'        => $endDate->toDateString(),
+            'active_label'    => $activeLabel,
+            'formatted_range' => $startDate->translatedFormat('d M Y') . ($startDate->toDateString() !== $endDate->toDateString() ? ' - ' . $endDate->translatedFormat('d M Y') : ''),
+        ];
+
         $config = [
             'title' => $this->getDashboardTitle($role),
             'nav_cards' => $this->getMenuItemsByRole($role),
-            'stats' => $this->getStatsByRole($role, $user),
+            'stats' => $this->getStatsByRole($role, $user, $startDate, $endDate, $period),
             'active_shift' => $activeShift,
             'expenses_enabled' => FeatureAccess::isEnabled('expenses', $role),
             'branch_summaries' => $role === 'super_admin' ? $this->getBranchSummaries() : null,
+            'filters' => $resolvedFilters,
         ];
 
         return $config;
@@ -294,24 +343,40 @@ class UserService extends BaseService
         return $items;
     }
 
-    private function getStatsByRole(string $role, User $user): array
+    private function getStatsByRole(string $role, User $user, $startDate = null, $endDate = null, string $period = 'today'): array
     {
-        $today = now()->startOfDay();
+        $startDate = $startDate ?? now()->startOfDay();
+        $endDate = $endDate ?? now()->endOfDay();
         
         // Base query for transactions
-        $trxQuery = Transaction::where('created_at', '>=', $today);
+        $trxQuery = Transaction::whereBetween('created_at', [$startDate, $endDate]);
         if ($user->role !== 'super_admin') {
             $trxQuery->where('branch_id', $user->branch_id);
         }
 
+        $barberKomisiTitle = match ($period) {
+            'this_week'  => 'Komisi Minggu Ini',
+            'this_month' => 'Komisi Bulan Ini',
+            'custom'     => 'Komisi Terpilih',
+            default      => 'Komisi Hari Ini',
+        };
+
+        $barberLayananTitle = match ($period) {
+            'this_week'  => 'Layanan Minggu Ini',
+            'this_month' => 'Layanan Bulan Ini',
+            'custom'     => 'Layanan Terpilih',
+            default      => 'Layanan Selesai',
+        };
+
         return match ($role) {
             'barber' => [
                 [
-                    'title' => 'Komisi Hari Ini', 
+                    'title' => $barberKomisiTitle, 
                     'value' => 'Rp ' . number_format(
-                        \App\Models\TransactionItem::where('barber_id', $user->id)
-                            ->whereHas('transaction', function($q) use ($today) {
-                                $q->where('created_at', '>=', $today)->where('status', 'completed');
+                        (float) \App\Models\TransactionItem::where('barber_id', $user->id)
+                            ->whereHas('transaction', function($q) use ($startDate, $endDate) {
+                                $q->whereBetween('created_at', [$startDate, $endDate])
+                                  ->where('status', 'completed');
                             })->sum('commission_amount'), 
                         0, ',', '.'
                     ), 
@@ -319,10 +384,11 @@ class UserService extends BaseService
                     'color' => 'teal'
                 ],
                 [
-                    'title' => 'Layanan Selesai', 
+                    'title' => $barberLayananTitle, 
                     'value' => (string) ((int) \App\Models\TransactionItem::where('barber_id', $user->id)
-                        ->whereHas('transaction', function($q) use ($today) {
-                            $q->where('created_at', '>=', $today)->where('status', 'completed');
+                        ->whereHas('transaction', function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('created_at', [$startDate, $endDate])
+                              ->where('status', 'completed');
                         })->sum('quantity')), 
                     'icon' => 'CheckCircle',
                     'color' => 'emerald'

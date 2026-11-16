@@ -2,12 +2,13 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import StatCard from '@/Components/Dashboard/StatCard';
 import NavAppCard from '@/Components/Dashboard/NavAppCard';
+import DashboardDateFilter from '@/Components/Dashboard/DashboardDateFilter';
 import PageHeader from '@/Components/PageHeader';
 import { Clock, CheckCircle, Store } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { formatDate, formatTime } from '@/utils/datetime';
 
-export default function Dashboard({ config }) {
+export default function Dashboard({ config, filters }) {
     const { auth } = usePage().props;
 
     return (
@@ -24,7 +25,12 @@ export default function Dashboard({ config }) {
         >
             <Head title="Dashboard Operasional" />
 
-            <div className="max-w-7xl mx-auto space-y-10">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* Filter Rentang Tanggal khusus Level Barber */}
+                {auth.user.role === 'barber' && (
+                    <DashboardDateFilter filters={filters || config.filters} />
+                )}
+
                 {/* Statistics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {config.stats.map((stat, index) => (
