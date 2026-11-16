@@ -59,11 +59,12 @@ class BarberCommissionController extends Controller
                 'date' => $date,
                 'formatted_date' => Carbon::parse($date)->translatedFormat('d F Y'),
                 'total_commission' => $items->sum('commission_amount'),
-                'total_services' => $items->count(),
+                'total_services' => (int) $items->sum('quantity'),
                 'items' => $items->map(function($i) {
                     return [
                         'id' => $i->id,
                         'service_name' => $i->item_name,
+                        'quantity' => (int) $i->quantity,
                         'price' => $i->total_price,
                         'commission' => $i->commission_amount,
                         'time' => $i->transaction->created_at->format('H:i'),
@@ -75,7 +76,7 @@ class BarberCommissionController extends Controller
         return Inertia::render('Barber/Commissions/Index', [
             'summary' => [
                 'total_commission' => $commissions->sum('commission_amount'),
-                'total_services' => $commissions->count(),
+                'total_services' => (int) $commissions->sum('quantity'),
                 'daily_breakdown' => $dailySummary,
             ],
             'filters' => [

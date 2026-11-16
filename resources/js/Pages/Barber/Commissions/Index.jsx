@@ -172,7 +172,14 @@ export default function CommissionIndex({ summary, filters }) {
                                                     <Scissors size={20} />
                                                 </div>
                                                 <div>
-                                                    <h5 className="font-black text-slate-800 text-sm">{item.service_name}</h5>
+                                                    <div className="flex items-center gap-2">
+                                                        <h5 className="font-black text-slate-800 text-sm">{item.service_name}</h5>
+                                                        {item.quantity > 1 && (
+                                                            <span className="text-[10px] font-black bg-roxy-primary/10 text-roxy-primary px-2 py-0.5 rounded-full">
+                                                                {item.quantity}x
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-[10px] text-slate-400 font-bold">{item.time} WIB</p>
                                                 </div>
                                             </div>

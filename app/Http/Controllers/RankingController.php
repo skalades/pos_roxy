@@ -70,15 +70,19 @@ class RankingController extends Controller
                     if ($branchId) $t->where('branch_id', $branchId);
                 });
             }], 'commission_amount')
-            ->withCount(['transactionItems' => function($q) use ($branchId) {
+            ->withSum(['transactionItems' => function($q) use ($branchId) {
                 $q->whereHas('transaction', function($t) use ($branchId) {
                     $t->where('status', 'completed');
                     if ($branchId) $t->where('branch_id', $branchId);
                 });
-            }])
+            }], 'quantity')
             ->orderByDesc('transaction_items_sum_commission_amount')
             ->take(10)
-            ->get();
+            ->get()
+            ->map(function ($barber) {
+                $barber->transaction_items_count = (int) ($barber->transaction_items_sum_quantity ?? 0);
+                return $barber;
+            });
 
         // 5. All Customers for the Tab (Paginated with search)
         $search = $request->input('search');

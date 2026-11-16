@@ -320,10 +320,10 @@ class UserService extends BaseService
                 ],
                 [
                     'title' => 'Layanan Selesai', 
-                    'value' => (string) \App\Models\TransactionItem::where('barber_id', $user->id)
+                    'value' => (string) ((int) \App\Models\TransactionItem::where('barber_id', $user->id)
                         ->whereHas('transaction', function($q) use ($today) {
                             $q->where('created_at', '>=', $today)->where('status', 'completed');
-                        })->count(), 
+                        })->sum('quantity')), 
                     'icon' => 'CheckCircle',
                     'color' => 'emerald'
                 ],
